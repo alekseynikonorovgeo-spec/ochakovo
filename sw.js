@@ -1,14 +1,17 @@
 // ═══ ОЧАКОВО Конструктор отчёта — Service Worker ═══
-// При обновлении HTML — увеличьте номер версии (v1 → v2 → ...) чтобы новая
-// версия гарантированно скачалась у всех прорабов при следующем открытии.
+// При обновлении HTML или иконок — увеличивайте номер версии (v2 → v3 → v4 ...)
+// чтобы новая версия гарантированно скачалась у всех прорабов.
 
-const CACHE_NAME = 'ochakovo-v1';
+const CACHE_NAME = 'ochakovo-v4';
 const FILES_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/icon-192-maskable.png',
+  './icons/icon-512-maskable.png',
+  './icons/apple-touch-icon.png'
 ];
 
 // Установка — кешируем все статические файлы

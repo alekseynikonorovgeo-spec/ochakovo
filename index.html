@@ -9,7 +9,7 @@
 <!-- ═══ PWA: установка на главный экран и офлайн-работа ═══ -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F4E79">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -831,7 +831,8 @@ const WORKS = {
 
   podg_cat: [
     {id:'podg_gorodok', name:'Обустройство строительного городка', fields:[{k:'desc',type:'text',label:'Описание',opt:true,placeholder:'опционально'}], tpl:'Обустройство строительного городка{?desc|: {desc}}'},
-    {id:'podg_bytovki', name:'Установка бытовок', fields:[{k:'N',type:'num',label:'Количество, шт'}], tpl:'Установка бытовок — {N} шт.'}
+    {id:'podg_bytovki', name:'Установка бытовок', fields:[{k:'N',type:'num',label:'Количество, шт'}], tpl:'Установка бытовок — {N} шт.'},
+    {id:'obram_der', name:'Защита деревьев / кустарников', fields:[{k:'type',type:'select',opts:['деревянные щиты','металлическое ограждение'],label:'Тип защиты'},{k:'N',type:'num',label:'Количество деревьев/кустарников, шт'}], tpl:'Защита деревьев/кустарников — {type} — {N} шт (количество деревьев)'}
   ],
 
   demont: [
@@ -953,7 +954,6 @@ const WORKS = {
     {id:'obochina', name:'Устройство обочин из а/б крошки', fields:[{k:'S',type:'num',label:'S, м²'},{k:'hsr',type:'num',label:'hср, см',opt:true}], tpl:'Устройство обочин из а/б крошки — S={S} м²{?hsr|, hср={hsr:m} м}'},
     {id:'zaklin', name:'Заклинцовка щебня', fields:[{k:'fr',type:'select',opts:['20-40','5-20'],label:'Фракция'},{k:'S',type:'num',label:'S, м²'}], tpl:'Заклинцовка щебня фр. {fr} — S={S} м²'},
     {id:'kgh', name:'Установка ограждения КГХ', fields:[{k:'type',type:'select',opts:['секции','забор металлический'],label:'Тип'},{k:'N',type:'num',label:'шт',opt:true},{k:'L',type:'num',label:'L, м.п.',opt:true}], tpl:'Установка ограждения КГХ ({type}){?N| — {N} шт}{?L| — L={L} м.п.}'},
-    {id:'obram_der', name:'Обрамление деревьев', fields:[{k:'type',type:'select',opts:['деревянные щиты','металлическое ограждение'],label:'Тип'},{k:'N',type:'num',label:'шт'}], tpl:'Обрамление деревьев — {type} — {N} шт'},
     {id:'znak', name:'Установка дорожного знака', fields:[{k:'N',type:'num',label:'шт'}], tpl:'Установка дорожного знака на стойке — {N} шт'},
     {id:'shtit', name:'Установка щита/стенда', fields:[{k:'type',type:'select',opts:['информационный щит','оградительный щит','туалетная кабина'],label:'Тип'},{k:'N',type:'num',label:'шт'}], tpl:'Установка {type} — {N} шт'},
     {id:'uborka', name:'Уборка строительного мусора', fields:[{k:'V',type:'num',label:'V, м³'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда',opt:true}], tpl:'Уборка строительного мусора — V={V} м³{?place|, вывоз {place}}'},
