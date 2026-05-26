@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Фон -->
+  <rect width="512" height="512" fill="#1F4E79"/>
+  
+  <!-- Светлая полоса (как дорожная разметка) -->
+  <rect x="50" y="380" width="412" height="14" fill="#FFA500" rx="2"/>
+  <rect x="50" y="404" width="80" height="6" fill="#FFA500" opacity="0.4"/>
+  <rect x="150" y="404" width="80" height="6" fill="#FFA500" opacity="0.4"/>
+  <rect x="250" y="404" width="80" height="6" fill="#FFA500" opacity="0.4"/>
+  <rect x="350" y="404" width="80" height="6" fill="#FFA500" opacity="0.4"/>
+  
+  <!-- Большая "О" -->
+  <circle cx="256" cy="200" r="135" fill="none" stroke="#ffffff" stroke-width="42"/>
+  
+  <!-- Текст ОЧАКОВО -->
+  <text x="256" y="465" text-anchor="middle" 
+        font-family="Arial, sans-serif" font-weight="700" font-size="50" 
+        fill="#ffffff" letter-spacing="3">ОЧАКОВО</text>
+</svg>
