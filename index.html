@@ -159,6 +159,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <button type="button" class="tab" id="tab-btn-area" onclick="switchTab('area')">📐 Площадь</button>
     <button type="button" class="tab" id="tab-btn-calc" onclick="switchTab('calc')">🧮 Асфальт</button>
     <button type="button" class="tab" id="tab-btn-archive" onclick="switchTab('archive')">📚 Архив</button>
+    <button type="button" class="tab" id="tab-btn-birthdays" onclick="switchTab('birthdays')">🎂 ДР</button>
   </div>
 
   <div id="tab-main">
@@ -400,6 +401,37 @@ button:disabled{opacity:.4;cursor:not-allowed}
       
       <!-- Список отчётов -->
       <div id="archive-list"></div>
+    </div>
+  </div>
+
+  <!-- ═════ ВКЛАДКА: ДНИ РОЖДЕНИЯ СОТРУДНИКОВ ═════ -->
+  <div id="tab-birthdays" style="display:none">
+    <div class="section">
+      <h2 style="color:#1F4E79;margin:0 0 10px;font-size:16px">🎂 Дни рождения сотрудников</h2>
+      
+      <!-- Фильтр периода -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <button type="button" id="bd-tab-today" onclick="bdSetFilter('today')" style="flex:1;min-width:90px;padding:8px;font-size:12px;background:#fff;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px;font-weight:600">Сегодня <span id="bd-cnt-today" style="color:#888">(0)</span></button>
+        <button type="button" id="bd-tab-week" onclick="bdSetFilter('week')" style="flex:1;min-width:90px;padding:8px;font-size:12px;background:#fff;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px;font-weight:600">Неделя <span id="bd-cnt-week" style="color:#888">(0)</span></button>
+        <button type="button" id="bd-tab-month" onclick="bdSetFilter('month')" style="flex:1;min-width:90px;padding:8px;font-size:12px;background:#fff;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px;font-weight:600">Месяц <span id="bd-cnt-month" style="color:#888">(0)</span></button>
+        <button type="button" id="bd-tab-all" onclick="bdSetFilter('all')" style="flex:1;min-width:90px;padding:8px;font-size:12px;background:#1F4E79;color:#fff;border:1px solid #1F4E79;border-radius:4px;font-weight:600">Все <span id="bd-cnt-all">(0)</span></button>
+      </div>
+      
+      <!-- Поиск -->
+      <div class="field-group" style="margin-bottom:10px">
+        <input type="text" id="bd-search" placeholder="🔍 Поиск по ФИО, отделу, должности..." oninput="renderBirthdaysTab()" style="width:100%;padding:8px 12px;font-size:14px">
+      </div>
+      
+      <!-- Фильтр отдела -->
+      <div class="field-group" style="margin-bottom:10px">
+        <label>Отдел</label>
+        <select id="bd-dept" onchange="renderBirthdaysTab()"><option value="">Все отделы</option></select>
+      </div>
+      
+      <div id="bd-counter" style="font-size:12px;color:#666;margin-bottom:10px;text-align:center"></div>
+      
+      <!-- Список -->
+      <div id="bd-list" style="max-height:70vh;overflow-y:auto"></div>
     </div>
   </div>
 
@@ -664,7 +696,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V84';
+const APP_VERSION = 'V91';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -895,16 +927,17 @@ const CATEGORIES = [
 const WORKS = {
   mat: [
     {id:'sec_beton', name:'━━ БЕТОН / ЦПС ━━', section:true},
-    {id:'m_beton', name:'Бетон', fields:[{k:'mark',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'V',type:'num',label:'V, м³'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'},{k:'note',type:'text',label:'Примечание',opt:true,placeholder:'для замка / для основания и т.п.'}], tpl:'Бетон {mark}{?note| ({note})} — {V} м³ — {plant}'},
+    {id:'m_beton', name:'Бетон', fields:[{k:'mark',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'V',type:'num',label:'V, м³'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'для замка / ТТН №12345'}], tpl:'Бетон {mark}{?note| ({note})} — {V} м³ — {plant}{?reisy|, {reisy} рейс}'},
     {id:'m_cps', name:'ЦПС', fields:[{k:'mark',type:'select',opts:['М-150','М-100','М-200'],label:'Марка',v:'М-150'},{k:'m',type:'num',label:'Масса, кг'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'}], tpl:'ЦПС {mark} — {m} кг — {plant}'},
 
     {id:'sec_ab', name:'━━ АСФАЛЬТ / А/Б ━━', section:true},
-    {id:'m_ab', name:'Асфальтобетон (а/б)', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'m',type:'num',label:'Масса, т'},{k:'abz',type:'select_other',opts:ABZ_LIST,label:'АБЗ'},{k:'note',type:'text',label:'Примечание',opt:true,placeholder:'на ПБВ / на габбро'}], tpl:'{mark}{?note| {note}} — {m} т — АБЗ {abz}'},
+    {id:'m_ab', name:'Асфальтобетон (а/б)', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'m',type:'num',label:'Масса, т'},{k:'abz',type:'select_other',opts:ABZ_LIST,label:'АБЗ'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'на ПБВ / ТТН №12345'}], tpl:'{mark}{?note| {note}} — {m} т — АБЗ {abz}{?reisy|, {reisy} рейс}'},
 
     {id:'sec_sch', name:'━━ ЩЕБЕНЬ / ПЕСОК ━━', section:true},
-    {id:'m_schebe', name:'📥 Щебень — ПРИЁМ за смену', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'unit',type:'select',opts:['м³','т'],label:'Ед. измерения',v:'м³'},{k:'qty',type:'num',label:'Количество'},{k:'density',type:'num',label:'Плотность, т/м³ (опц.) — уточните в ПТО',opt:true,placeholder:'по умолч. 1,30',step:'0.01'},{k:'src',type:'select_other',opts:SCHEB_SRC,label:'Источник'}], tpl:'Щебень{?type| {type}} фр. {fr} — {qty} {unit}{?_alt| ({_alt})} — {src}'},
+    {id:'m_schebe', name:'📥 Щебень — ПРИЁМ за смену', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'unit',type:'select',opts:['м³','т'],label:'Ед. измерения',v:'м³'},{k:'qty',type:'num',label:'Количество'},{k:'density',type:'num',label:'Плотность, т/м³ (опц.) — уточните в ПТО',opt:true,placeholder:'по умолч. 1,30',step:'0.01'},{k:'src',type:'select_other',opts:SCHEB_SRC,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'например ТТН №12345'}], tpl:'Щебень{?type| {type}} фр. {fr} — {qty} {unit}{?_alt| ({_alt})} — {src}{?reisy|, {reisy} рейс}{?note| ({note})}'},
     {id:'m_scheb_used', name:'📤 Щебень — РАСХОД на работы', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'V',type:'num',label:'V, м³'},{k:'note',type:'text',label:'Комментарий (опц.)',opt:true,placeholder:'напр. под асфальт ПЧ'}], tpl:'Использовано {?type|{type:gen} }щебня фр. {fr} на работы — {V} м³{?note| ({note})}'},
     {id:'m_pesok', name:'Песок', fields:[{k:'V',type:'num',label:'V, м³'},{k:'src',type:'select_other',opts:['база Голохвастово','карьер Лыткарино','карьер Курьяново'],label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание',opt:true,placeholder:'без Т/Н / с Т/Н'}], tpl:'Песок — {V} м³{?reisy|, {reisy} рейс} — {src}{?note| ({note})}'},
+    {id:'m_pesok_used', name:'📤 Песок — РАСХОД на работы', fields:[{k:'V',type:'num',label:'V, м³'}], tpl:'Использовано песка на работы — {V} м³'},
 
     {id:'sec_bk', name:'━━ БК (бортовой камень) ━━', section:true},
     {id:'m_bk_bet', name:'БК бетонный прямой', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_BET,label:'Марка'},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true},{k:'src',type:'text',label:'Источник',opt:true,placeholder:'ЖБИ-3'}], tpl:'БК бетонный {mark} — {L} м.п.{?N| ({N} шт.)}{?src| — {src}}'},
@@ -2233,19 +2266,23 @@ function switchTab(name) {
   const calc = document.getElementById('tab-calc');
   const area = document.getElementById('tab-area');
   const archive = document.getElementById('tab-archive');
+  const birthdays = document.getElementById('tab-birthdays');
   const btnMain = document.getElementById('tab-btn-main');
   const btnCalc = document.getElementById('tab-btn-calc');
   const btnArea = document.getElementById('tab-btn-area');
   const btnArchive = document.getElementById('tab-btn-archive');
+  const btnBirthdays = document.getElementById('tab-btn-birthdays');
   // По умолчанию скрываем все
   main.style.display = 'none';
   calc.style.display = 'none';
   area.style.display = 'none';
   if (archive) archive.style.display = 'none';
+  if (birthdays) birthdays.style.display = 'none';
   btnMain.classList.remove('active');
   btnCalc.classList.remove('active');
   btnArea.classList.remove('active');
   if (btnArchive) btnArchive.classList.remove('active');
+  if (btnBirthdays) btnBirthdays.classList.remove('active');
   if (name === 'calc') {
     calc.style.display = '';
     btnCalc.classList.add('active');
@@ -2260,6 +2297,10 @@ function switchTab(name) {
     if (archive) archive.style.display = '';
     if (btnArchive) btnArchive.classList.add('active');
     renderArchiveTab();
+  } else if (name === 'birthdays') {
+    if (birthdays) birthdays.style.display = '';
+    if (btnBirthdays) btnBirthdays.classList.add('active');
+    renderBirthdaysTab();
   } else {
     main.style.display = '';
     btnMain.classList.add('active');
@@ -3381,7 +3422,8 @@ function renderPreview() {
   const schebMats = state.materials.filter(m => m.workId === 'm_schebe');
   const schebUsedMats = state.materials.filter(m => m.workId === 'm_scheb_used');
   const pesokMats = state.materials.filter(m => m.workId === 'm_pesok');
-  const generalMats = state.materials.filter(m => !m.section_id && m.workId !== 'm_beton' && m.workId !== 'm_ab' && m.workId !== 'm_schebe' && m.workId !== 'm_scheb_used' && m.workId !== 'm_pesok');
+  const pesokUsedMats = state.materials.filter(m => m.workId === 'm_pesok_used');
+  const generalMats = state.materials.filter(m => !m.section_id && m.workId !== 'm_beton' && m.workId !== 'm_ab' && m.workId !== 'm_schebe' && m.workId !== 'm_scheb_used' && m.workId !== 'm_pesok' && m.workId !== 'm_pesok_used');
   const balMats = state.materials.filter(m => m.section_id === 'bal');
   const gbuMats = state.materials.filter(m => m.section_id === 'gbu');
 
@@ -3391,12 +3433,13 @@ function renderPreview() {
     const mat = (w.values && w.values.mat) || '';
     if (/бетон|^В\d/i.test(mat)) return 'beton';
     if (/щебень|щебн/i.test(mat)) return 'scheben';
+    if (/песок|песч/i.test(mat)) return 'pesok';
     if (['ПД-2','МЗВ-2','КЗБ-1','МЗБ-1','ЩМА-20','ЩМА-15'].some(m => mat.includes(m))) return 'asphalt';
     return 'other';
   }
-  const transferByType = {asphalt:[], beton:[], scheben:[], other:[]};
+  const transferByType = {asphalt:[], beton:[], scheben:[], pesok:[], other:[]};
   transferWorks.forEach(w => transferByType[transferType(w)].push(w));
-  state._transferRendered = {asphalt:false, beton:false, scheben:false, other:false};
+  state._transferRendered = {asphalt:false, beton:false, scheben:false, pesok:false, other:false};
   function renderTransferBlock(type, label) {
     const ws = transferByType[type];
     if (!ws.length) return;
@@ -3557,23 +3600,19 @@ function renderPreview() {
         if (isLastAsphalt && abMats.length && !state._asphaltMatRendered) {
           lines.push('');
           pushBorder('🛢 ПРИНЯТО АСФАЛЬТА ЗА СМЕНУ');
-          const byAbz = {};
+          // Каждая запись отдельной строкой (для доказательства каждой ТТН/поставки)
           abMats.forEach(m => {
             const abz = (m.values && m.values.abz) || 'без указания АБЗ';
             const mark = (m.values && m.values.mark) || '—';
             const Mraw = (m.values && m.values.m) || '0';
             const M = parseFloat(String(Mraw).replace(',', '.')) || 0;
-            if (!byAbz[abz]) byAbz[abz] = {};
-            if (!byAbz[abz][mark]) byAbz[abz][mark] = 0;
-            byAbz[abz][mark] += M;
-          });
-          Object.keys(byAbz).forEach(abz => {
-            lines.push(`  АБЗ ${abz}:`);
-            Object.keys(byAbz[abz]).forEach(mark => {
-              const total = byAbz[abz][mark];
-              const totalStr = (Math.round(total * 100) / 100).toString().replace('.', ',');
-              lines.push(`${mark} - V = ${totalStr} т`);
-            });
+            const totalStr = (Math.round(M * 100) / 100).toString().replace('.', ',');
+            const reisy = (m.values && m.values.reisy) || '';
+            const note = (m.values && m.values.note) || '';
+            let line = `  АБЗ ${abz}: ${mark} - V = ${totalStr} т`;
+            if (reisy) line += `, ${reisy} рейс`;
+            if (note) line += ` (${note})`;
+            lines.push(line);
           });
           state._asphaltMatRendered = true;
         }
@@ -3587,23 +3626,19 @@ function renderPreview() {
           if (!state._betonRendered && betonMats.length) {
             lines.push('');
             pushBorder('🧱 ПРИНЯТО БЕТОНА ЗА СМЕНУ');
-            const byPlantInline = {};
+            // Каждая запись отдельной строкой (для доказательства каждой ТТН/поставки)
             betonMats.forEach(m => {
               const plant = (m.values && m.values.plant) || 'без указания завода';
               const mark = (m.values && m.values.mark) || '—';
               const Vraw = (m.values && m.values.V) || '0';
               const V = parseFloat(String(Vraw).replace(',', '.')) || 0;
-              if (!byPlantInline[plant]) byPlantInline[plant] = {};
-              if (!byPlantInline[plant][mark]) byPlantInline[plant][mark] = 0;
-              byPlantInline[plant][mark] += V;
-            });
-            Object.keys(byPlantInline).forEach(plant => {
-              lines.push(`  ${plant}:`);
-              Object.keys(byPlantInline[plant]).forEach(mark => {
-                const total = byPlantInline[plant][mark];
-                const totalStr = (Math.round(total * 1000) / 1000).toString().replace('.', ',');
-                lines.push(`Бетон ${mark} - V = ${totalStr} м³`);
-              });
+              const totalStr = (Math.round(V * 1000) / 1000).toString().replace('.', ',');
+              const reisy = (m.values && m.values.reisy) || '';
+              const note = (m.values && m.values.note) || '';
+              let line = `  ${plant}: Бетон ${mark} - V = ${totalStr} м³`;
+              if (reisy) line += `, ${reisy} рейс`;
+              if (note) line += ` (${note})`;
+              lines.push(line);
             });
             renderTransferBlock('beton', 'Движение бетона');
             state._betonRendered = true;
@@ -3613,47 +3648,31 @@ function renderPreview() {
             if (schebMats.length) {
               lines.push('');
               pushBorder('🪨 ПРИНЯТО ЩЕБНЯ ЗА СМЕНУ');
-              const bySrc = {};
+              // Каждая запись отдельной строкой (для доказательства каждой ТТН/поставки)
               schebMats.forEach(m => {
                 const src = (m.values && m.values.src) || 'без указания источника';
                 const fr = (m.values && m.values.fr) || '—';
                 const type = (m.values && m.values.type) || '';
-                const key = type ? `${type}|${fr}` : `|${fr}`;
                 const Vraw = (m.values && m.values.V) || '0';
                 const V = parseFloat(String(Vraw).replace(',', '.')) || 0;
                 let dRaw = (m.values && m.values.density) || '';
                 let d = parseFloat(String(dRaw).replace(',', '.'));
                 if (!d || d <= 0) d = getSchebDensity(fr);
-                if (!bySrc[src]) bySrc[src] = {};
-                if (!bySrc[src][key]) bySrc[src][key] = { V: 0, m: 0, densities: new Set(), fr, type };
-                bySrc[src][key].V += V;
-                bySrc[src][key].m += V * d;
-                bySrc[src][key].densities.add(d);
-              });
-              Object.keys(bySrc).forEach(src => {
-                lines.push(`  ${src}:`);
-                Object.keys(bySrc[src]).forEach(key => {
-                  const data = bySrc[src][key];
-                  const totalStr = (Math.round(data.V * 1000) / 1000).toString().replace('.', ',');
-                  const tonsStr = (Math.round(data.m * 100) / 100).toString().replace('.', ',');
-                  let densityNote = '';
-                  const densities = [...data.densities];
-                  const defaultD = getSchebDensity(data.fr);
-                  if (densities.length === 1 && Math.abs(densities[0] - defaultD) > 0.001) {
-                    densityNote = `, ρ=${densities[0].toString().replace('.', ',')} т/м³`;
-                  } else if (densities.length > 1) {
-                    densityNote = `, ρ разные`;
-                  }
-                  // Капитализация типа: "Известняковый щебень фр. ..."
-                  let line;
-                  if (data.type) {
-                    const typeCap = data.type[0].toUpperCase() + data.type.slice(1);
-                    line = `${typeCap} щебень фр. ${data.fr} - V = ${totalStr} м³ (= ${tonsStr} т${densityNote})`;
-                  } else {
-                    line = `Щебень фр. ${data.fr} - V = ${totalStr} м³ (= ${tonsStr} т${densityNote})`;
-                  }
-                  lines.push(line);
-                });
+                const tons = V * d;
+                const totalStr = (Math.round(V * 1000) / 1000).toString().replace('.', ',');
+                const tonsStr = (Math.round(tons * 100) / 100).toString().replace('.', ',');
+                const defaultD = getSchebDensity(fr);
+                let densityNote = '';
+                if (Math.abs(d - defaultD) > 0.001) {
+                  densityNote = `, ρ=${d.toString().replace('.', ',')} т/м³`;
+                }
+                const typeStr = type ? (type[0].toUpperCase() + type.slice(1)) + ' щебень' : 'Щебень';
+                const reisy = (m.values && m.values.reisy) || '';
+                const note = (m.values && m.values.note) || '';
+                let line = `  ${src}: ${typeStr} фр. ${fr} - V = ${totalStr} м³ (= ${tonsStr} т${densityNote})`;
+                if (reisy) line += `, ${reisy} рейс`;
+                if (note) line += ` (${note})`;
+                lines.push(line);
               });
             }
             // Расход щебня за смену (если указан напрямую)
@@ -3701,45 +3720,45 @@ function renderPreview() {
             // Баланс щебня — приход / расход / штабель
             renderSchebBalance(schebMats, transferByType.scheben, schebUsedMats);
             state._schebBalanceRendered = true;
-            // Принято песка за смену — после щебня в том же разделе
+            // Принято песка за смену — каждая запись отдельной строкой (для доказательства каждой ТТН)
             if (pesokMats.length) {
               lines.push('');
               pushBorder('🟡 ПРИНЯТО ПЕСКА ЗА СМЕНУ');
-              const bySrcP = {};
               pesokMats.forEach(m => {
                 const src = (m.values && m.values.src) || 'без указания источника';
                 const Vraw = (m.values && m.values.V) || '0';
                 const V = parseFloat(String(Vraw).replace(',', '.')) || 0;
                 const reisy = (m.values && m.values.reisy) || '';
                 const note = (m.values && m.values.note) || '';
-                if (!bySrcP[src]) bySrcP[src] = {V: 0, reisy: 0, notes: []};
-                bySrcP[src].V += V;
-                if (reisy) bySrcP[src].reisy += parseInt(reisy) || 0;
-                if (note) bySrcP[src].notes.push(note);
-              });
-              Object.keys(bySrcP).forEach(src => {
-                lines.push(`  ${src}:`);
-                const d = bySrcP[src];
-                const totalStr = (Math.round(d.V * 1000) / 1000).toString().replace('.', ',');
-                let line = `Песок - V = ${totalStr} м³`;
-                if (d.reisy) line += `, ${d.reisy} рейс`;
-                if (d.notes.length) line += ` (${d.notes.join('; ')})`;
+                const totalStr = (Math.round(V * 1000) / 1000).toString().replace('.', ',');
+                let line = `  ${src}: Песок - V = ${totalStr} м³`;
+                if (reisy) line += `, ${reisy} рейс`;
+                if (note) line += ` (${note})`;
                 lines.push(line);
               });
               state._pesokRendered = true;
             }
             // Передачи песка (если есть transfer типа песок) и баланс
-            const pesokTransfers = state.works.filter(w => {
-              if (w.catId !== 'transfer') return false;
-              const m = (w.values && w.values.mat) || '';
-              return /песок|песч/i.test(m);
-            });
+            const pesokTransfers = transferByType.pesok;
             if (pesokTransfers.length) {
               lines.push('');
               lines.push('Движение песка:');
               pesokTransfers.forEach(w => lines.push(`- ${w.text}`));
+              state._transferRendered.pesok = true;
             }
-            renderMaterialBalance('песка', 'м³', pesokMats, pesokTransfers);
+            // Расход песка за смену (если указан напрямую)
+            if (pesokUsedMats.length) {
+              lines.push('');
+              pushBorder('📤 ИСПОЛЬЗОВАНО ПЕСКА НА РАБОТЫ');
+              let pesokTotal = 0;
+              pesokUsedMats.forEach(m => {
+                const Vraw = (m.values && m.values.V) || '0';
+                pesokTotal += parseFloat(String(Vraw).replace(',', '.')) || 0;
+              });
+              const pesokTotalStr = (Math.round(pesokTotal * 1000) / 1000).toString().replace('.', ',');
+              lines.push(`  Песок — ${pesokTotalStr} м³`);
+            }
+            renderMaterialBalance('песка', 'м³', pesokMats, pesokTransfers, pesokUsedMats);
             state._pesokBalanceRendered = true;
             // Блок ПРИНЯТЫЙ МАТЕРИАЛ (прочие материалы) - после раздела Основания
             if (generalMats.length && !state._generalMatsRendered) {
@@ -3760,23 +3779,18 @@ function renderPreview() {
   if (abMats.length && !state._asphaltMatRendered) {
     lines.push('');
     pushBorder('🛢 ПРИНЯТО АСФАЛЬТА ЗА СМЕНУ');
-    const byAbz = {};
     abMats.forEach(m => {
       const abz = (m.values && m.values.abz) || 'без указания АБЗ';
       const mark = (m.values && m.values.mark) || '—';
       const Mraw = (m.values && m.values.m) || '0';
       const M = parseFloat(String(Mraw).replace(',', '.')) || 0;
-      if (!byAbz[abz]) byAbz[abz] = {};
-      if (!byAbz[abz][mark]) byAbz[abz][mark] = 0;
-      byAbz[abz][mark] += M;
-    });
-    Object.keys(byAbz).forEach(abz => {
-      lines.push(`  АБЗ ${abz}:`);
-      Object.keys(byAbz[abz]).forEach(mark => {
-        const total = byAbz[abz][mark];
-        const totalStr = (Math.round(total * 100) / 100).toString().replace('.', ',');
-        lines.push(`${mark} - V = ${totalStr} т`);
-      });
+      const totalStr = (Math.round(M * 100) / 100).toString().replace('.', ',');
+      const reisy = (m.values && m.values.reisy) || '';
+      const note = (m.values && m.values.note) || '';
+      let line = `  АБЗ ${abz}: ${mark} - V = ${totalStr} т`;
+      if (reisy) line += `, ${reisy} рейс`;
+      if (note) line += ` (${note})`;
+      lines.push(line);
     });
     state._asphaltMatRendered = true;
   }
@@ -3790,23 +3804,18 @@ function renderPreview() {
   if (betonMats.length && !state._betonRendered) {
     lines.push('');
     pushBorder('🧱 ПРИНЯТО БЕТОНА ЗА СМЕНУ');
-    const byPlant = {};
     betonMats.forEach(m => {
       const plant = (m.values && m.values.plant) || 'без указания завода';
       const mark = (m.values && m.values.mark) || '—';
       const Vraw = (m.values && m.values.V) || '0';
       const V = parseFloat(String(Vraw).replace(',', '.')) || 0;
-      if (!byPlant[plant]) byPlant[plant] = {};
-      if (!byPlant[plant][mark]) byPlant[plant][mark] = 0;
-      byPlant[plant][mark] += V;
-    });
-    Object.keys(byPlant).forEach(plant => {
-      lines.push(`  ${plant}:`);
-      Object.keys(byPlant[plant]).forEach(mark => {
-        const total = byPlant[plant][mark];
-        const totalStr = (Math.round(total * 1000) / 1000).toString().replace('.', ',');
-        lines.push(`Бетон ${mark} - V = ${totalStr} м³`);
-      });
+      const totalStr = (Math.round(V * 1000) / 1000).toString().replace('.', ',');
+      const reisy = (m.values && m.values.reisy) || '';
+      const note = (m.values && m.values.note) || '';
+      let line = `  ${plant}: Бетон ${mark} - V = ${totalStr} м³`;
+      if (reisy) line += `, ${reisy} рейс`;
+      if (note) line += ` (${note})`;
+      lines.push(line);
     });
     state._betonRendered = true;
   }
@@ -3817,37 +3826,30 @@ function renderPreview() {
     if (schebMats.length) {
       lines.push('');
       pushBorder('🪨 ПРИНЯТО ЩЕБНЯ ЗА СМЕНУ');
-      const bySrc = {};
       schebMats.forEach(m => {
         const src = (m.values && m.values.src) || 'без указания источника';
         const fr = (m.values && m.values.fr) || '—';
+        const type = (m.values && m.values.type) || '';
         const Vraw = (m.values && m.values.V) || '0';
         const V = parseFloat(String(Vraw).replace(',', '.')) || 0;
         let dRaw = (m.values && m.values.density) || '';
         let d = parseFloat(String(dRaw).replace(',', '.'));
         if (!d || d <= 0) d = getSchebDensity(fr);
-        if (!bySrc[src]) bySrc[src] = {};
-        if (!bySrc[src][fr]) bySrc[src][fr] = { V: 0, m: 0, densities: new Set() };
-        bySrc[src][fr].V += V;
-        bySrc[src][fr].m += V * d;
-        bySrc[src][fr].densities.add(d);
-      });
-      Object.keys(bySrc).forEach(src => {
-        lines.push(`  ${src}:`);
-        Object.keys(bySrc[src]).forEach(fr => {
-          const data = bySrc[src][fr];
-          const totalStr = (Math.round(data.V * 1000) / 1000).toString().replace('.', ',');
-          const tonsStr = (Math.round(data.m * 100) / 100).toString().replace('.', ',');
-          let densityNote = '';
-          const densities = [...data.densities];
-          const defaultD = getSchebDensity(fr);
-          if (densities.length === 1 && Math.abs(densities[0] - defaultD) > 0.001) {
-            densityNote = `, ρ=${densities[0].toString().replace('.', ',')} т/м³`;
-          } else if (densities.length > 1) {
-            densityNote = `, ρ разные`;
-          }
-          lines.push(`Щебень фр. ${fr} - V = ${totalStr} м³ (= ${tonsStr} т${densityNote})`);
-        });
+        const tons = V * d;
+        const totalStr = (Math.round(V * 1000) / 1000).toString().replace('.', ',');
+        const tonsStr = (Math.round(tons * 100) / 100).toString().replace('.', ',');
+        const defaultD = getSchebDensity(fr);
+        let densityNote = '';
+        if (Math.abs(d - defaultD) > 0.001) {
+          densityNote = `, ρ=${d.toString().replace('.', ',')} т/м³`;
+        }
+        const typeStr = type ? (type[0].toUpperCase() + type.slice(1)) + ' щебень' : 'Щебень';
+        const reisy = (m.values && m.values.reisy) || '';
+        const note = (m.values && m.values.note) || '';
+        let line = `  ${src}: ${typeStr} фр. ${fr} - V = ${totalStr} м³ (= ${tonsStr} т${densityNote})`;
+        if (reisy) line += `, ${reisy} рейс`;
+        if (note) line += ` (${note})`;
+        lines.push(line);
       });
     }
     // Расход щебня за смену — fallback
@@ -3892,45 +3894,45 @@ function renderPreview() {
       state._schebBalanceRendered = true;
     }
   }
-  // Принято песка за смену — если не было выведено ранее
+  // Принято песка за смену — fallback (каждая запись отдельной строкой)
   if (pesokMats.length && !state._pesokRendered) {
     lines.push('');
     pushBorder('🟡 ПРИНЯТО ПЕСКА ЗА СМЕНУ');
-    const bySrcP2 = {};
     pesokMats.forEach(m => {
       const src = (m.values && m.values.src) || 'без указания источника';
       const Vraw = (m.values && m.values.V) || '0';
       const V = parseFloat(String(Vraw).replace(',', '.')) || 0;
       const reisy = (m.values && m.values.reisy) || '';
       const note = (m.values && m.values.note) || '';
-      if (!bySrcP2[src]) bySrcP2[src] = {V: 0, reisy: 0, notes: []};
-      bySrcP2[src].V += V;
-      if (reisy) bySrcP2[src].reisy += parseInt(reisy) || 0;
-      if (note) bySrcP2[src].notes.push(note);
-    });
-    Object.keys(bySrcP2).forEach(src => {
-      lines.push(`  ${src}:`);
-      const d = bySrcP2[src];
-      const totalStr = (Math.round(d.V * 1000) / 1000).toString().replace('.', ',');
-      let line = `Песок - V = ${totalStr} м³`;
-      if (d.reisy) line += `, ${d.reisy} рейс`;
-      if (d.notes.length) line += ` (${d.notes.join('; ')})`;
+      const totalStr = (Math.round(V * 1000) / 1000).toString().replace('.', ',');
+      let line = `  ${src}: Песок - V = ${totalStr} м³`;
+      if (reisy) line += `, ${reisy} рейс`;
+      if (note) line += ` (${note})`;
       lines.push(line);
     });
   }
   // Баланс песка в fallback
   if (!state._pesokBalanceRendered) {
-    const pesokTransfersFb = state.works.filter(w => {
-      if (w.catId !== 'transfer') return false;
-      const m = (w.values && w.values.mat) || '';
-      return /песок|песч/i.test(m);
-    });
-    if (pesokTransfersFb.length) {
+    const pesokTransfersFb = transferByType.pesok;
+    if (pesokTransfersFb.length && !state._transferRendered.pesok) {
       lines.push('');
       lines.push('Движение песка:');
       pesokTransfersFb.forEach(w => lines.push(`- ${w.text}`));
+      state._transferRendered.pesok = true;
     }
-    renderMaterialBalance('песка', 'м³', pesokMats, pesokTransfersFb);
+    // Расход песка — fallback
+    if (pesokUsedMats.length) {
+      lines.push('');
+      pushBorder('📤 ИСПОЛЬЗОВАНО ПЕСКА НА РАБОТЫ');
+      let pesokTotalFb = 0;
+      pesokUsedMats.forEach(m => {
+        const Vraw = (m.values && m.values.V) || '0';
+        pesokTotalFb += parseFloat(String(Vraw).replace(',', '.')) || 0;
+      });
+      const pesokTotalFbStr = (Math.round(pesokTotalFb * 1000) / 1000).toString().replace('.', ',');
+      lines.push(`  Песок — ${pesokTotalFbStr} м³`);
+    }
+    renderMaterialBalance('песка', 'м³', pesokMats, pesokTransfersFb, pesokUsedMats);
     state._pesokBalanceRendered = true;
   }
   // ПРИНЯТЫЙ МАТЕРИАЛ — если не было выведено ранее
@@ -4718,6 +4720,1357 @@ setTimeout(() => refreshAdminUI(), 100);
     };
   }
 })();
+
+// ═══════════════════════════════════════════════════════════════════
+// ДНИ РОЖДЕНИЯ СОТРУДНИКОВ
+// Формат: ["ФИО", "отдел", "должность", "телефон", "ГГГГ-ММ-ДД"]
+// ═══════════════════════════════════════════════════════════════════
+const BIRTHDAYS_DATA = [
+["Фролов Виктор Викторович", "Начальник комплекса", "Начальник комплекса", "8-925-430-70-56", "1984-03-13"],
+  ["Матвеев Александр Игоревич", "Заместитель начальника комплекса", "Заместитель начальника комплекса", "8-915-666-64-99", "1988-09-04"],
+  ["Толпеев Андрей Александрович", "Заместитель начальника комплекса", "Заместитель начальника комплекса", "8-916-369-93-06", "1985-08-08"],
+  ["Митюрин Павел Владимирович", "Заместитель начальника комплекса", "Заместитель начальника комплекса", "8-905-696-33-33", "1985-04-25"],
+  ["Киселёв Алексей Александрович", "Заместитель начальника комплекса", "Заместитель начальника комплекса", "8-901-711-99-01", "1975-04-06"],
+  ["Щербаков Сергей Сергеевич", "Автотранспортный участок", "Начальник участка", "8-903-143-85-86", "1982-05-29"],
+  ["Ивин Сергей Александрович", "Автотранспортный участок", "Заместитель начальника участка", "8-926-546-07-58", "1981-02-14"],
+  ["Леонов Владимир Сергеевич", "Автотранспортный участок", "Механик", "8-925-011-85-53", "1963-12-23"],
+  ["Свинарь Андрей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-999-705-19-30", "1971-05-07"],
+  ["Анищенко Александр Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-962-133-21-00", "1991-03-03"],
+  ["Анищенко Сергей Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-962-131-95-14", "1968-02-16"],
+  ["Жилин Андрей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-960-375-33-18", "1968-01-07"],
+  ["Лушечкин Алексей Евгеньевич", "Автотранспортный участок", "Старший механик", "8-903-819-21-65", "1977-02-10"],
+  ["Домрачев Сергей Леонидович", "Автотранспортный участок", "Водитель автомобиля", "8-904-436-95-35", "1966-01-18"],
+  ["Тупотило Сергей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-977-262-45-90", "1978-08-05"],
+  ["Чуйко Александр Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-906-500-01-35", "1971-06-02"],
+  ["Уваров Игорь Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-915-571-83-63", "1973-02-28"],
+  ["Кольцов Вячеслав Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-929-587-25-81", "1977-02-02"],
+  ["Степанов Вячеслав Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-903-597-71-60", "1961-06-12"],
+  ["Рассказов Олег Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-578-48-76", "1981-05-11"],
+  ["Гричишкин Юрий Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-977-318-13-27", "1966-10-20"],
+  ["Балашов Андрей Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-927-184-04-29", "1971-06-21"],
+  ["Рябов Матвей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-969-657-57-49", "1998-07-06"],
+  ["Мамедов Зягидулла Искакович", "Автотранспортный участок", "Водитель автомобиля", "8-915-744-53-59", "1966-05-01"],
+  ["Черников Алексей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-988-566-44-70", "1988-10-24"],
+  ["Андроник Сергей Харалампович", "Автотранспортный участок", "Водитель автомобиля", "8-926-265-55-03", "1968-10-30"],
+  ["Цыбайкин Сергей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-135-50-93", "1969-03-04"],
+  ["Муратов Александр Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-903-711-67-69", "1966-03-26"],
+  ["Мартынов Владимир Юрьевич", "Автотранспортный участок", "Старший механик", "8-977-300-51-60", "1982-04-10"],
+  ["Зубарев Виталий Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8- 903- 875-17-35", "1995-07-15"],
+  ["Волчков Андрей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-965-197-22-22", "1978-07-13"],
+  ["Нопин Андрей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-951-701-04-42 8-905-160-03-86", "1978-03-04"],
+  ["Кострюков Максим Михайлович", "Автотранспортный участок", "Механик", "8-910-756-63-88", "1988-07-11"],
+  ["Жданов Сергей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-977-330-03-36", "1976-08-21"],
+  ["Бобяков Владимир Григорьевич", "Автотранспортный участок", "Водитель автомобиля", "8-961-108-51-12", "1971-12-11"],
+  ["Сутормин Юрий Олегович", "Автотранспортный участок", "Водитель автомобиля", "8-910-238-79-78", "1979-12-14"],
+  ["Жареников Сергей Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-920-837-70-39", "1964-01-07"],
+  ["Козаров Юрий Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-906-406-19-02", "1972-04-01"],
+  ["Карташов Роман Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-919-162-52-45", "1993-04-25"],
+  ["Урляпов Сергей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-916-670-68-74", "1966-04-12"],
+  ["Беляев Дмитрий Евгеньевич", "Автотранспортный участок", "Водитель автомобиля", "8-962-966-01-25", "1972-09-21"],
+  ["Бикулов Рафаиль Радикович", "Автотранспортный участок", "Водитель автомобиля", "8-926-105-57-53", "1965-03-28"],
+  ["Теребинов Руслан Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-901-732-05-12", "1973-12-05"],
+  ["Белан Владимир Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-905-791-98-89", "1993-01-28"],
+  ["Строкин Валерий Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-960-338-71-56", "1969-08-13"],
+  ["Петров Владимир Валентинович", "Автотранспортный участок", "Водитель автомобиля", "8-915-885-96-15", "1967-06-11"],
+  ["Морозов Сергей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-919-201-12-10", "1976-06-25"],
+  ["Жданов Олег Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-930-415-87-99", "1989-01-29"],
+  ["Говоров Владислав Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-963-228-77-41", "1976-01-19"],
+  ["Мордвинцев Константин Олегович", "Автотранспортный участок", "Водитель автомобиля", "8-925-719-88-81", "1989-01-25"],
+  ["Булучевских Сергей Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-900-959-42-40", "1977-05-06"],
+  ["Ступников Владимир Федорович", "Автотранспортный участок", "Водитель автомобиля", "8-920-006-19-64", "1964-09-21"],
+  ["Кирпиченков Владимир Михайлович", "Автотранспортный участок", "Водитель", "8-910-766-76-23", "1985-04-09"],
+  ["Волчков Валерий Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-977-438-93-69", "1971-05-21"],
+  ["Бабин Алексей Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-937-515-25-17", "1979-02-26"],
+  ["Атаров Станислав Артурович", "Автотранспортный участок", "Водитель автомобиля", "8-905-176-67-00", "1993-09-30"],
+  ["Медведев Иван Андреевич", "Автотранспортный участок", "Водитель автомобиля", "8-926-292-54-42", "1971-11-27"],
+  ["Миндрин Вадим Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-937-222-43-77", "1975-05-05"],
+  ["Климов Александр Григорьевич", "Автотранспортный участок", "Водитель автомобиля", "8-961-104-84-94", "1984-06-19"],
+  ["Кошкин Алексей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-920-966-30-86", "1966-03-24"],
+  ["Винокуров Сергей Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-919-265-80-54", "1982-04-02"],
+  ["Дорохов Александр Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-903-733-61-59", "1966-03-23"],
+  ["Черногривов Иван Григорьевич", "Автотранспортный участок", "Водитель автомобиля", "8-919-294-17-21", "1985-09-11"],
+  ["Рябченков Александр Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-962-135-66-15", "1986-08-07"],
+  ["Чупрына Александр Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-926-459-20-53", "1965-08-07"],
+  ["Гридчин Виктор Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-720-93-27", "1971-03-30"],
+  ["Дурнев Александр Витальевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-532-17-41", "1974-10-10"],
+  ["Карибян Леонид Людвикович", "Автотранспортный участок", "Водитель автомобиля", "8-910-113-09-62", "1964-10-06"],
+  ["Хмелисский Михаил Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-916-840-67-75", "1981-04-25"],
+  ["Колесников Роман Артурович", "Автотранспортный участок", "Водитель", "8-953-623-31-12", "1992-07-28"],
+  ["Наташкин Иван Иванович", "Автотранспортный участок", "Водитель специализированного автотранспортного средства", "8-916-696-54-65", "1957-09-02"],
+  ["Жудин Андрей Викторович", "Автотранспортный участок", "Специалист по перемещению автотранспортных средств", "8-910-541-94-00", "1971-11-28"],
+  ["Оголенков Виктор Юрьевич", "Автотранспортный участок", "Водитель специализированного автотранспортного средства", "8-903-002-93-35", "1979-01-10"],
+  ["Тюрин Вячеслав Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-985-805-17-42", "1971-02-06"],
+  ["Воловиков Николай Евгеньевич", "Автотранспортный участок", "Водитель специализированного автотранспортного средства", "8-915-307-68-42", "1962-08-12"],
+  ["Мельников Алексей Николаевич", "Автотранспортный участок", "Водитель специализированного автотранспортного средства", "8-916-176-22-83", "1979-03-11"],
+  ["Неверов Павел Анатольевич", "Автотранспортный участок", "Специалист по перемещению автотранспортных средств", "8-905-699-03-23", "1982-05-17"],
+  ["Роганин Алексей Андреевич", "Автотранспортный участок", "Специалист по перемещению автотранспортных средств", "8-915-209-23-67", "1983-04-09"],
+  ["Булин Евгений Николаевич", "Автотранспортный участок", "Специалист по перемещению автотранспортных средств", "8-910-004-69-19", "1986-09-23"],
+  ["Попов Геннадий Евгеньевич", "Автотранспортный участок", "Водитель автомобиля", "8-929-624-31-71", "1961-04-11"],
+  ["Первушов Алексей Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-980-315-14-69", "1979-12-08"],
+  ["Соловьев Николай Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-901-056-67-27", "1961-08-13"],
+  ["Ткаченко Алексей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-953-960-61-62", "1982-11-06"],
+  ["Чернявский Алексей Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-911-583-31-57", "1988-11-24"],
+  ["Гусейнов Руслан Назимович", "Автотранспортный участок", "Водитель автомобиля", "8-977-368-40-75", "1984-05-10"],
+  ["Семма Павел Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-988-686-77-35", "1976-04-23"],
+  ["Федорин Карим Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-915-501-45-56", "1999-04-07"],
+  ["Хохлов Александр Александрович", "Автотранспортный участок", "Водитель", "8-906-088-53-29", "1983-01-11"],
+  ["Гребенщиков Виктор Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-916-034-23-47", "1961-04-23"],
+  ["Рогачев Анатолий Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-919-033-88-42", "1974-06-14"],
+  ["Ким Сергей Виталиевич", "Автотранспортный участок", "Водитель автомобиля", "8-900-493-42-51", "1996-07-23"],
+  ["Новиков Александр Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-920-864-82-92", "1977-04-27"],
+  ["Коротин Александр Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-915-823-60-02", "1978-08-12"],
+  ["Чавданов Михаил Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-926-416-07-44", "1984-08-07"],
+  ["Елисеев Вадим Валерьевич", "Автотранспортный участок", "Водитель автомобиля", "8-915-842-05-51", "1978-05-15"],
+  ["Коптелов Алексей Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-980-684-19-39", "1970-09-28"],
+  ["Синельников Роман Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-953-447-10-76", "1987-12-07"],
+  ["Федотов Игорь Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-903-598-82-38", "1977-04-14"],
+  ["Горелкин Александр Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-909-232-31-89", "1975-04-09"],
+  ["Максимов Андрей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-906-058-63-20", "1978-09-06"],
+  ["Веневцев Иван Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-950-911-02-02", "1982-01-17"],
+  ["Челядинов Дмитрий Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-964-762-31-03", "1987-01-15"],
+  ["Шавров Александр Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-900-016-31-14", "1977-08-09"],
+  ["Шатов Сергей Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-977-750-03-64", "1980-07-18"],
+  ["Кондрашев Алексей Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-999-113-14-92", "1979-07-13"],
+  ["Бахтин Виктор Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-300-60-16", "1990-11-02"],
+  ["Токарев Игорь Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-953-818-46-26", "1991-06-10"],
+  ["Егоров Анатолий Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-900-515-27-84", "1964-02-23"],
+  ["Конкин Андрей Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-910-348-05-67", "1980-11-02"],
+  ["Клименко Евгений Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-962-144-60-53", "1996-04-16"],
+  ["Пережогин Михаил Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-953-020-75-02", "1984-10-23"],
+  ["Козырев Олег Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-915-837-28-99", "1971-12-04"],
+  ["Глинский Виктор Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-999-971-73-26", "1970-08-20"],
+  ["Шевцов Евгений Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-937-709-28-29", "1974-11-16"],
+  ["Кондратьев Александр Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-878-30-19", "1990-01-20"],
+  ["Дрелин Сергей Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-904-213-94-35", "1973-04-10"],
+  ["Власов Вячеслав Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-500-13-74", "1978-12-14"],
+  ["Дороничев Александр Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-980-334-97-89", "1964-04-25"],
+  ["Козичев Юрий Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-910-296-53-36", "1962-12-07"],
+  ["Серов Евгений Александрович", "Автотранспортный участок", "Водитель", "8-910-118-67-91", "1983-11-29"],
+  ["Талько Анатолий Леонидович", "Автотранспортный участок", "Водитель автомобиля", "8-904-080-31-05", "1976-08-27"],
+  ["Махнытко Александр Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-920-845-61-85", "1986-11-30"],
+  ["Муратов Алтынбек Есимович", "Автотранспортный участок", "Водитель автомобиля", "8-902-389-07-41", "1976-03-14"],
+  ["Коротченко Дмитрий Аркадьевич", "Автотранспортный участок", "Водитель автомобиля", "8-968-810-32-01", "1990-03-26"],
+  ["Бородуля Иван Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-960-559-06-08", "1982-04-23"],
+  ["Исаев Николай Григорьевич", "Автотранспортный участок", "Водитель автомобиля", "8-991-700-81-74", "1964-07-20"],
+  ["Кайнов Андрей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-999-628-01-18", "1987-09-23"],
+  ["Шальнов Михаил Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-960-512-24-23", "1971-12-20"],
+  ["Дерюгин Роман Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-208-67-86", "1998-03-19"],
+  ["Цепковский Александр Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-952-958-21-44", "1978-07-14"],
+  ["Гостилов Александр Леонидович", "Автотранспортный участок", "Водитель автомобиля", "8-920-372-43-47", "1971-05-10"],
+  ["Емельянов Евгений Александрович", "Автотранспортный участок", "Механик", "8-925-321-58-00", "1983-07-17"],
+  ["Жучков Евгений Михайлович", "Автотранспортный участок", "Водитель", "8-900-366-13-06", "1995-07-03"],
+  ["Иванов Вячеслав Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-915-815-61-42", "1981-06-28"],
+  ["Климов Михаил Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-961-644-26-19", "1973-01-22"],
+  ["Глинский Александр Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-937-091-88-66", "1984-09-03"],
+  ["Лосев Евгений Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-919-207-26-31", "1987-12-14"],
+  ["Лихачев Андрей Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-961-325-44-60", "1973-06-28"],
+  ["Слепцов Кирилл Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-919-046-91-08", "2000-09-30"],
+  ["Моисеенко Игорь Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-980-308-31-98", "1972-04-21"],
+  ["Степочкин Алексей Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-915-014-58-28", "1965-04-15"],
+  ["Васильев Олег Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-960-302-95-53", "1975-03-14"],
+  ["Луковкин Иван Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-105-00-15", "1977-10-13"],
+  ["Евдокимов Александр Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-980-338-78-80", "1974-02-28"],
+  ["Новиков Максим Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-977-355-98-63", "1981-06-06"],
+  ["Андреев Евгений Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-920-811-78-56", "1989-02-28"],
+  ["Мурлыкин Иван Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-910-209-63-41", "1984-07-29"],
+  ["Мурлыкин Алексей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-910-209-36-45", "1990-12-24"],
+  ["Лютых Алексей Александрович", "Автотранспортный участок", "Водитель", "8-903-240-70-32", "1989-10-15"],
+  ["Пискунов Александр Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-905-116-82-95", "1963-04-19"],
+  ["Чуйко Александр Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-961-002-79-89", "1969-10-21"],
+  ["Андреев Сергей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-977-656-03-46", "1974-09-15"],
+  ["Фомин Алексей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-915-323-83-34", "1970-05-16"],
+  ["Рузаев Александр Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-909-163-97-25", "1974-05-29"],
+  ["Агибалов Александр Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-909-229-70-07", "1993-04-28"],
+  ["Маюров Дмитрий Геннадьевич", "Автотранспортный участок", "Водитель автомобиля", "8-905-054-41-08", "1997-06-05"],
+  ["Мичурин Сергей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-960-613-52-19", "1976-11-27"],
+  ["Сидоров Павел Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-980-367-22-30", "1998-01-19"],
+  ["Зайцев Евгений Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-920-856-05-60", "1990-10-16"],
+  ["Четвериков Владимир Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-908-546-40-53", "1969-02-15"],
+  ["Булохов Сергей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-953-289-57-67", "1968-01-20"],
+  ["Цуканов Виктор Павлович", "Автотранспортный участок", "Старший механик", "8-916-149-24-51", "1979-11-22"],
+  ["Самородов Виталий Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-905-034-64-60", "1971-05-30"],
+  ["Данилкин Владимир Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-919-263-37-50", "1968-11-04"],
+  ["Карев Максим Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-927-229-92-71", "1998-01-25"],
+  ["Панкратов Анатолий Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-937-636-11-22", "1995-12-04"],
+  ["Долбенько Виталий Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-920-864-37-30", "1986-01-02"],
+  ["Соловьев Иван Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-927-173-26-12", "1987-05-05"],
+  ["Зайцев Валерий Валерьевич", "Автотранспортный участок", "Водитель автомобиля", "8-900-696-54-07", "1984-03-30"],
+  ["Жуков Сергей Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-999-755-43-24", "1986-11-27"],
+  ["Пивоваров Михаил Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-222-68-98", "1971-10-20"],
+  ["Барсуков Алексей Андреевич", "Автотранспортный участок", "Водитель автомобиля", "8-901-719-04-71", "1995-02-15"],
+  ["Андрианов Никита Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-919-876-91-13", "1993-08-21"],
+  ["Михалев Александр Валентинович", "Автотранспортный участок", "Водитель", "8-915-651-99-19", "1969-10-06"],
+  ["Самохин Анатолий Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-977-381-33-85", "1983-07-07"],
+  ["Пантелеев Игорь Анатольевич", "Автотранспортный участок", "Механик", "8-960-489-14-94", "1978-06-24"],
+  ["Чертков Александр Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-920-600-20-08", "1984-04-05"],
+  ["Еремин Дмитрий Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-977-733-48-03", "1992-04-07"],
+  ["Белоусов Вячеслав Григорьевич", "Автотранспортный участок", "Водитель автомобиля", "8-916-590-17-44", "1965-01-06"],
+  ["Фирус Валентин Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-949-64-59", "1997-08-06"],
+  ["Кравченко Илья Андреевич", "Автотранспортный участок", "Водитель автомобиля", "8-918-523-09-99", "1993-06-17"],
+  ["Романов Максим Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-910-287-97-04", "1983-08-03"],
+  ["Костенко Василий Петрович", "Автотранспортный участок", "Водитель автомобиля", "8-905-391-62-29", "1963-12-13"],
+  ["Добарин Михаил Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-908-567-17-17", "1978-06-12"],
+  ["Максимов Алексей Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-927-068-47-87", "1982-04-28"],
+  ["Панкратов Сергей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-917-219-58-63", "1967-03-30"],
+  ["Архипов Артем Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-999-388-22-66", "1993-03-12"],
+  ["Шеренков Геннадий Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-906-669-15-89", "1968-05-18"],
+  ["Шипило Иван Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-920-555-38-47", "1991-06-12"],
+  ["Симонов Сергей Леонидович", "Автотранспортный участок", "Водитель автомобиля", "8-961-013-59-49", "1985-04-18"],
+  ["Фомкин Владимир Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-953-326-84-76", "1999-10-06"],
+  ["Егарев Николай Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-999-730-28-41", "1965-04-07"],
+  ["Кисель Алексей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-960-554-27-29", "1979-05-25"],
+  ["Дегтярёв Владимир Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-521-16-81", "1987-06-06"],
+  ["Денисенко Виктор Геннадьевич", "Автотранспортный участок", "Водитель автомобиля", "8-901-809-44-61", "1989-02-08"],
+  ["Залыгаев Валерий Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-967-196-66-89", "1985-01-16"],
+  ["Иванов Владимир Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-915-307-92-00", "1977-06-10"],
+  ["Малышкин Александр Георгиевич", "Автотранспортный участок", "Водитель специализированного автотранспортного средства", "8-926-521-30-20", "1964-03-10"],
+  ["Семерня Григорий Григорьевич", "Автотранспортный участок", "Водитель автомобиля", "8-980-337-13-85", "1983-12-23"],
+  ["Сподобец Владимир Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-960-554-73-98", "1991-11-25"],
+  ["Тряпышко Илья Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-920-486-39-21", "1986-04-22"],
+  ["Михренин Андрей Викторович", "Автотранспортный участок", "Водитель", "8-951-319-56-29", "1967-10-04"],
+  ["Пожарский Станислав Федорович", "Автотранспортный участок", "Водитель автомобиля", "8-916-400-89-95", "1965-10-18"],
+  ["Малофеев Вадим Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-999-783-04-19", "1972-10-20"],
+  ["Сустав Сергей Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-919-196-58-06", "1974-12-14"],
+  ["Шакиров Марат Ильдарович", "Автотранспортный участок", "Водитель", "8-982-361-59-68", "1966-08-22"],
+  ["Пьянзин Евгений Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-917-072-11-16", "1987-11-25"],
+  ["Грешнев Никита Сергеевич", "Автотранспортный участок", "Старший механик", "8-968-937-05-56", "1999-03-17"],
+  ["Кондратова Наталья Викторовна", "Автотранспортный участок", "Специалист по перемещению автотранспортных средств", "8-926-938-88-80", "1981-08-17"],
+  ["Максимов Андрей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-930-306-02-59", "1981-01-02"],
+  ["Комяженков Сергей Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-953-620-84-08", "1976-04-17"],
+  ["Лопухов Александр Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-937-968-84-88", "1971-09-06"],
+  ["Панкратов Евгений Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-986-993-44-03", "2000-06-30"],
+  ["Бармин Василий Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-902-651-80-42", "1989-02-21"],
+  ["Кляпчин Виктор Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-953-021-44-42", "1985-08-23"],
+  ["Колесников Анатолий Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-925-509-09-61", "1985-03-28"],
+  ["Кобылин Станислав Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-758-38-09", "1980-10-25"],
+  ["Рыбкин Михаил Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-903-233-04-76", "1981-08-05"],
+  ["Анищенко Александр Ильич", "Автотранспортный участок", "Водитель автомобиля", "8-961-105-88-40", "1977-09-01"],
+  ["Тарасов Анатолий Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-920-238-01-40", "1976-08-16"],
+  ["Анохин Вадим Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-920-801-36-70", "1972-03-27"],
+  ["Радаев Сергей Андреевич", "Автотранспортный участок", "Водитель автомобиля", "8-987-694-54-50", "1972-12-13"],
+  ["Бурзилов Сергей Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-902-234-22-43", "1998-10-08"],
+  ["Миханошин Алексей Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-902-657-90-47", "1995-07-22"],
+  ["Щеглов Петр Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-759-55-06", "1971-01-07"],
+  ["Калуга Михаил Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-906-504-15-35", "1984-01-27"],
+  ["Савинов Сергей Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-917-005-19-25", "1974-03-14"],
+  ["Курницкий Владимир Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-980-527-78-75", "1972-04-27"],
+  ["Кожушкин Анатолий Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-162-26-09", "1983-10-22"],
+  ["Хорошилов Иван Валерьевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-263-67-17", "1969-09-14"],
+  ["Родин Сергей Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-937-690-22-26", "1965-12-28"],
+  ["Егоров Анатолий Павлович", "Автотранспортный участок", "Водитель автомобиля", "8-951-999-51-81", "1966-04-29"],
+  ["Будник Евгений Михайлович", "Автотранспортный участок", "Механик", "8-968-767-44-55", "1983-02-12"],
+  ["Мицевич Евгений Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-919-293-27-94", "1985-10-02"],
+  ["Хандешин Николай Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-920-605-65-30", "1982-08-18"],
+  ["Рябочкин Александр Валерьевич", "Автотранспортный участок", "Водитель автомобиля", "8-909-229-68-87", "1992-10-24"],
+  ["Родькин Владимир Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-987-568-64-28", "1968-08-26"],
+  ["Непряхин Денис Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-915-666-44-84", "1994-07-02"],
+  ["Егоренков Дмитрий Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-968-420-01-01", "1976-07-26"],
+  ["Егурнов Евгений Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-919-204-13-49", "1998-09-23"],
+  ["Агапов Игорь Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-991-456-99-66", "2002-01-09"],
+  ["Климкин Алексей Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-915-504-26-71", "1976-08-12"],
+  ["Павлов Владимир Михайлович", "Автотранспортный участок", "Водитель автомобиля", "8-961-627-98-33", "1995-03-20"],
+  ["Шурша Алексей Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-996-449-36-25", "1985-08-07"],
+  ["Головкин Александр Вячеславович", "Автотранспортный участок", "Водитель автомобиля", "8-953-128-01-18", "1972-12-10"],
+  ["Хабибуллин Равиль Алиевич", "Автотранспортный участок", "Водитель автомобиля", "8-903-003-22-25", "1973-01-13"],
+  ["Литвинюк Владимир Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-915-563-55-27", "1970-04-22"],
+  ["Дерновой Дмитрий Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-919-293-17-43", "1995-03-25"],
+  ["Скорляков Денис Дмитриевич", "Автотранспортный участок", "Водитель автомобиля", "8-964-871-15-08", "1993-01-20"],
+  ["Андреев Павел Андреевич", "Автотранспортный участок", "Водитель автомобиля", "8-900-693-59-78", "1994-10-10"],
+  ["Легчилин Алексей Петрович", "Автотранспортный участок", "Водитель автомобиля", "8-905-101-86-20", "1963-11-16"],
+  ["Азимов Дмитрий Равшанович", "Автотранспортный участок", "Водитель автомобиля", "8-920-456-62-61", "1993-04-18"],
+  ["Пырсиков Дмитрий Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-987-999-00-78", "1977-07-17"],
+  ["Пакин Павел Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-920-955-55-84", "1981-05-03"],
+  ["Гусев Алексей Евгеньевич", "Автотранспортный участок", "Водитель автомобиля", "8-927-847-17-37", "1983-11-26"],
+  ["Журавлёв Виктор Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-909-321-23-18", "1963-02-01"],
+  ["Барышев Евгений Петрович", "Автотранспортный участок", "Водитель автомобиля", "8-926-307-31-96", "1969-04-20"],
+  ["Обухов Андрей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-960-555-67-94", "1983-02-02"],
+  ["Пак Алексей Евгеньевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-889-58-56", "1997-01-26"],
+  ["Фролов Николай Владимирович", "Автотранспортный участок", "Водитель", "8-927-507-85-74", "1981-09-25"],
+  ["Веремеенко Анатолий Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-293-28-64", "1987-05-14"],
+  ["Панасенков Павел Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-964-591-32-31", "1968-11-23"],
+  ["Орлянский Владимир Ильич", "Автотранспортный участок", "Водитель автомобиля", "8-910-863-71-68", "1979-02-12"],
+  ["Шиенков Николай Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-953-280-33-07", "1984-05-22"],
+  ["Карпунин Олег Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-937-630-21-92", "1975-07-22"],
+  ["Заика Михаил Евгеньевич", "Автотранспортный участок", "Водитель автомобиля", "8-926-449-40-88", "1968-12-15"],
+  ["Чернов Александр Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-996-358-66-70", "1963-11-14"],
+  ["Быркин Андрей Евгеньевич", "Автотранспортный участок", "Водитель автомобиля", "8-906-403-47-76", "1970-06-09"],
+  ["Шабалин Владимир Валентинович", "Автотранспортный участок", "Водитель автомобиля", "8-953-705-83-09", "1971-05-02"],
+  ["Белогуб Василий Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-917-326-06-83", "1967-01-22"],
+  ["Плуталов Никита Русланович", "Автотранспортный участок", "Водитель автомобиля", "8-900-513-93-98", "2003-09-10"],
+  ["Веневцев Андрей Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-953-182-28-95", "2003-03-31"],
+  ["Гусев Александр Вячеславович", "Автотранспортный участок", "Водитель автомобиля", "8-977-559-22-82", "1999-09-23"],
+  ["Лукьянчиков Андрей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-919-201-06-05", "1984-06-01"],
+  ["Красницкий Сергей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-920-848-86-80", "1995-03-31"],
+  ["Лось Михаил Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-920-858-86-40", "1979-08-30"],
+  ["Ефанов Игорь Леонидович", "Автотранспортный участок", "Водитель автомобиля", "8-905-578-60-91", "1970-10-21"],
+  ["Кузьмин Артём Андреевич", "Автотранспортный участок", "Водитель автомобиля", "8-927-506-21-90", "2003-09-30"],
+  ["Борисенко Алексей Витальевич", "Автотранспортный участок", "Водитель автомобиля", "8-930-833-67-17", "2001-05-20"],
+  ["Ландышев Сергей Константинович", "Автотранспортный участок", "Водитель автомобиля", "8-951-056-48-74", "1988-09-19"],
+  ["Бибик Константин Павлович", "Автотранспортный участок", "Водитель автомобиля", "8-951-084-91-53", "2004-10-02"],
+  ["Петров Сергей Вячеславович", "Автотранспортный участок", "Водитель автомобиля", "8-903-227-08-32", "1978-12-09"],
+  ["Немченко Геннадий Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-909-244-18-04", "1974-09-08"],
+  ["Четвериков Андрей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8902-904-96-18", "1999-05-29"],
+  ["Васина Елизавета Владимировна", "Автотранспортный участок", "Водитель автомобиля", "8-985-804-70-12", "1983-10-08"],
+  ["Крутов Александр Дмитриевич", "Автотранспортный участок", "Водитель автомобиля", "8-953-669-62-79", "2002-12-20"],
+  ["Еремченко Анатолий Евгеньевич", "Автотранспортный участок", "Водитель автомобиля", "8-926-012-00-92", "1973-05-07"],
+  ["Моргунов Олег Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-928-149-06-49", "1984-09-10"],
+  ["Лавринович Денис Валерьевич", "Автотранспортный участок", "Водитель автомобиля", "8-903-391-42-57", "1979-10-01"],
+  ["Каинов Александр Семенович", "Автотранспортный участок", "Водитель автомобиля", "8-910-336-15-53", "1964-05-25"],
+  ["Зайцев Юрий Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-960-555-35-71", "1984-01-12"],
+  ["Викторов Александр Вячеславович", "Автотранспортный участок", "Водитель автомобиля", "8-902-045-28-42", "1990-08-14"],
+  ["Лукьянчиков Алексей Игоревич", "Автотранспортный участок", "Водитель автомобиля", "8-904-280-46-69", "2004-03-29"],
+  ["Власов Алексей Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-996-165-45-23", "1983-02-28"],
+  ["Иванов Олег Альбертович", "Автотранспортный участок", "Водитель автомобиля", "8-912-295-91-00", "1993-10-01"],
+  ["Гришкин Валерий Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-209-51-57", "1970-02-24"],
+  ["Хохлов Александр Геннадьевич", "Автотранспортный участок", "Водитель автомобиля", "8-917-672-35-06", "1985-11-07"],
+  ["Молчанов Владимир Петрович", "Автотранспортный участок", "Водитель автомобиля", "8-986-935-09-04", "1992-08-04"],
+  ["Морозов Александр Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-904-853-80-27", "1983-06-30"],
+  ["Шиндяпкин Виталий Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-963-100-79-79", "1986-02-26"],
+  ["Кузьменков Владимир Викторович", "Автотранспортный участок", "Механик", "8-905-162-70-41", "1980-08-26"],
+  ["Черний Руслан Анатольевич", "Автотранспортный участок", "Водитель автомобиля", "8-919-293-61-83", "1976-08-10"],
+  ["Хохлов Алексей Геннадьевич", "Автотранспортный участок", "Водитель автомобиля", "8-919-659-22-40", "1987-11-05"],
+  ["Локтев Алексей Константинович", "Автотранспортный участок", "Водитель автомобиля", "8-960-512-23-88", "1975-06-19"],
+  ["Топильский Геннадий Михайлович", "Автотранспортный участок", "Механик", "8-916-376-90-25", "1968-06-09"],
+  ["Гурин Борис Игоревич", "Автотранспортный участок", "Водитель специализированного автотранспортного средства", "8-910-415-87-70", "1979-05-15"],
+  ["Прокофьев Денис Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-980-698-57-46", "2002-06-29"],
+  ["Хецуриани Данил Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-904-777-82-46", "1998-02-28"],
+  ["Зайцев Анатолий Владимирович", "Автотранспортный участок", "Водитель специализированного автотранспортного средства", "8-905-525-09-46", "1976-10-18"],
+  ["Бабенков Дмитрий Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-920-802-76-06", "1982-01-21"],
+  ["Найденков Анатолий Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-203-80-16", "1985-01-05"],
+  ["Скуров Дмитрий Валерьевич", "Автотранспортный участок", "Водитель автомобиля", "8-995-424-45-64", "2003-06-16"],
+  ["Ровбуть Константин Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-915-800-72-06", "2000-06-21"],
+  ["Волобуев Сергей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-910-206-43-27", "1980-08-16"],
+  ["Исайкин Игорь Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-925-134-33-13", "1986-12-20"],
+  ["Атаров Казбек Артурович", "Автотранспортный участок", "Водитель автомобиля", "8-905-102-91-09", "2001-09-16"],
+  ["Хальзев Павел Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-977-261-55-94", "1993-03-05"],
+  ["Шумкин Максим Васильевич", "Автотранспортный участок", "Водитель автомобиля", "8-987-694-36-12", "1987-12-07"],
+  ["Терехов Сергей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-980-330-15-76", "1978-04-11"],
+  ["Гридчин Алексей Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-915-678-01-70", "1993-01-01"],
+  ["Синюгин Александр Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-909-224-61-48", "1977-01-09"],
+  ["Муратов Данат Алтынбекович", "Автотранспортный участок", "Водитель автомобиля", "8-902-094-14-59", "2004-06-21"],
+  ["Карпов Владимир Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-920-805-34-10", "1992-02-04"],
+  ["Курбатов Алексей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-910-263-82-96", "1975-03-20"],
+  ["Волков Вячеслав Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-987-568-09-79", "1980-09-02"],
+  ["Насонов Вячеслав Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-953-129-34-72", "1992-07-07"],
+  ["Копылов Сергей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-910-780-07-08", "1973-01-16"],
+  ["Савин Денис Олегович", "Автотранспортный участок", "Водитель автомобиля", "8-919-263-89-26", "2001-11-09"],
+  ["Жареников Дмитрий Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-962-144-37-86", "2001-10-23"],
+  ["Гарцев Роман Петрович", "Автотранспортный участок", "Водитель автомобиля", "8-909-694-66-80", "1981-07-31"],
+  ["Геннеберг Сергей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-965-246-10-59", "1975-09-02"],
+  ["Бадаев Александр Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-928-157-70-57", "1978-02-02"],
+  ["Ходулапов Игорь Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-905-101-34-28", "1978-08-22"],
+  ["Жогин Сергей Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-960-332-84-21", "1985-04-24"],
+  ["Бусалаев Евгений Иванович", "Автотранспортный участок", "Водитель автомобиля", "8-952-420-15-55", "1983-02-20"],
+  ["Чуклайкина Лилия Александровна", "Автотранспортный участок", "Специалист по перемещению автотранспортных средств", "8-964-771-58-83", "1984-12-23"],
+  ["Фадеев Сергей Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-925-864-05-45", "1971-04-30"],
+  ["Минаков Игорь Игоревич", "Автотранспортный участок", "Водитель автомобиля", "8-920-084-45-52", "1988-02-02"],
+  ["Чернявский Андрей Юрьевич", "Автотранспортный участок", "Водитель автомобиля", "8-927-621-38-39", "1990-09-03"],
+  ["Кузьмин Кирилл Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-900-488-35-31", "2004-02-24"],
+  ["Хохлов Александр Анатольевич", "Автотранспортный участок", "Водитель специализированного автотранспортного средства", "8-916-876-32-03", "1985-03-07"],
+  ["Чикалин Александр Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-304-58-57", "1984-04-05"],
+  ["Чистяков Павел Майевич", "Автотранспортный участок", "Водитель специализированного автотранспортного средства", "8-916-538-22-34", "1973-02-09"],
+  ["Агашков Владимир Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-980-366-84-20", "1970-12-04"],
+  ["Харитонов Николай Петрович", "Автотранспортный участок", "Водитель автомобиля", "8-920-852-82-96", "1985-10-15"],
+  ["Веселовский Данила Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-927-122-12-33", "2003-12-30"],
+  ["Иванов Юрий Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-910-650-12-76", "1985-02-21"],
+  ["Шахомиров Андрей Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-980-743-40-97", "1968-03-05"],
+  ["Агарков Юрий Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-915-503-81-99", "1994-05-06"],
+  ["Фокин Иван Павлович", "Автотранспортный участок", "Водитель автомобиля", "8-999-627-20-06", "1985-01-21"],
+  ["Лакеенко Илья Александрович", "Автотранспортный участок", "Водитель автомобиля", "8-906-214-92-67", "2003-09-09"],
+  ["Демченко Дмитрий Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-953-293-81-44", "1984-07-02"],
+  ["Михайлов Даниил Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-950-874-70-92", "2004-06-15"],
+  ["Мулянов Евгений Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-915-205-13-87", "1980-02-22"],
+  ["Жуков Петр Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-910-656-67-03", "1982-08-20"],
+  ["Четвериков Алексей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-905-167-72-38", "1971-03-28"],
+  ["Поляков Андрей Владимирович", "Автотранспортный участок", "Водитель автомобиля", "8-903-882-21-04\n8-910-300-60-84", "1975-03-31"],
+  ["Сысоев Николай Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-920-818-05-55", "1985-12-05"],
+  ["Чувилов Александр Сергеевич", "Автотранспортный участок", "Водитель автомобиля", "8-926-420-92-63", "1984-04-20"],
+  ["Каретников Павел Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-906-668-08-71", "2000-01-19"],
+  ["Никоноров Алексей Алексеевич", "Автотранспортный участок", "Водитель автомобиля", "8-927-819-02-58", "1986-12-11"],
+  ["Бруев Андрей Викторович", "Автотранспортный участок", "Водитель автомобиля", "8-903-176-46-39", "1982-05-10"],
+  ["Кулагин Павел Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-906-530-13-13", "1980-02-13"],
+  ["Зубков Сергей Николаевич", "Автотранспортный участок", "Водитель автомобиля", "8-903-402-70-05", "1971-03-02"],
+  ["Бузыгин Сергей Николаевич", "отдел обеспечения", "Комендант", "8-915-889-84-65", "1969-11-07"],
+  ["Алексеев Олег Алексеевич", "отдел обеспечения", "Комендант", "8-919-820-55-75", "1968-11-08"],
+  ["Орлянская Ирина Петровна", "отдел обеспечения", "Уборщик производственных помещений", "8-937-093-24-41", "1971-06-09"],
+  ["Кондратов Евгений Александрович", "отдел обеспечения", "Заведующий складом", "8-926-763-22-26", "1979-10-29"],
+  ["Макаров Александр Иванович", "отдел обеспечения", "Начальник отдела", "8-903-120-08-04", "1971-04-21"],
+  ["Ежова Елена Николаевна", "отдел обеспечения", "Уборщик производственных помещений", "8-920-983-36-83", "1985-03-03"],
+  ["Самитова Оксана Юрьевна", "отдел обеспечения", "Техник", "8-926-346-57-72", "1974-06-02"],
+  ["Вырупаев Валерий Валерьевич", "отдел обеспечения", "Заведующий складом", "8-985-937-28-26", "1971-01-02"],
+  ["Десинов Сергей Борисович", "отдел обеспечения", "Оператор котельной", "8-927-172-52-88", "1984-02-27"],
+  ["Первенцева Елизавета Николаевна", "отдел обеспечения", "Специалист по материально-техническому снабжению", "8-916-483-80-72", "2003-12-20"],
+  ["Петрусенко Ирина Александровна", "отдел обеспечения", "Уборщик производственных помещений", "8-960-120-69-65", "1982-05-26"],
+  ["Писаных Владимир Владимирович", "отдел обеспечения", "Техник", "8-903-174-51-44", "1971-01-09"],
+  ["Андреев Александр Николаевич", "отдел обеспечения", "Техник", "8-926-953-44-96", "1976-12-30"],
+  ["Гусев Дмитрий Николаевич", "отдел обеспечения", "Техник", "8-903-770-67-44", "1973-09-25"],
+  ["Сидоров Дмитрий Владимирович", "отдел обеспечения", "Заместитель начальника отдела", "8-915-126-27-66", "2002-01-07"],
+  ["Ильяшенко Наталия Анатольевна", "отдел обеспечения", "Уборщик производственных помещений", "8-987-800-94-16", "1977-11-27"],
+  ["Синицын Алексей Владимирович", "участок ремонта техники", "Механик", "8-967-141-14-14", "1981-09-02"],
+  ["Рыбкин Анатолий Моисеевич", "участок ремонта техники", "Слесарь-ремонтник", "8-906-380-96-99", "1973-02-15"],
+  ["Почепцов Михаил Вениаминович", "участок ремонта техники", "Оператор моечной установки", "8-919-995-17-79", "1953-02-23"],
+  ["Дударь Евгений Викторович", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-999-863-98-16", "1978-01-29"],
+  ["Петров Алексей Владимирович", "участок ремонта техники", "Слесарь-ремонтник", "8-915-573-92-77", "1977-11-14"],
+  ["Жуков Иван Николаевич", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-980-627-95-46", "1996-04-14"],
+  ["Виноградов Александр Борисович", "участок ремонта техники", "Слесарь-ремонтник", "8-905-601-93-75", "1979-09-28"],
+  ["Фоменков Алексей Анатольевич", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-915-656-37-39", "1974-01-07"],
+  ["Маринчук Евгений Георгиевич", "участок ремонта техники", "Монтировщик шин", "8-960-460-21-42", "1972-07-18"],
+  ["Жуков Анатолий Николаевич", "участок ремонта техники", "Слесарь-ремонтник", "8-915-721-81-63 8-919-055-03-61", "1985-06-10"],
+  ["Белов Сергей Владимирович", "участок ремонта техники", "Слесарь-ремонтник", "8-910-179-55-87", "1981-12-22"],
+  ["Мишин Сергей Николаевич", "участок ремонта техники", "Электрогазосварщик", "8-910-766-37-17", "1982-05-06"],
+  ["Пасичник Ярослав Сергеевич", "участок ремонта техники", "Оператор моечной установки", "8-977-736-38-65", "1977-01-12"],
+  ["Смирнов Владимир Валентинович", "участок ремонта техники", "Слесарь-ремонтник", "8-910-420-26-31", "1968-01-15"],
+  ["Нуриев Гаджиахмед Жамалович", "участок ремонта техники", "Начальник участка", "8-902-853-21-34", "1990-07-24"],
+  ["Пузанов Алексей Владимирович", "участок ремонта техники", "Электрогазосварщик", "8-910-754-49-47", "1971-07-16"],
+  ["Глазков Виталий Александрович", "участок ремонта техники", "Монтировщик шин", "8-916-488-38-33", "1973-08-04"],
+  ["Юрков Сергей Сергеевич", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-965-193-82-45", "1979-06-23"],
+  ["Максимов Павел Николаевич", "участок ремонта техники", "Слесарь-ремонтник", "8-919-043-28-30", "1977-02-05"],
+  ["Мишин Дмитрий Николаевич", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-915-641-86-03", "1984-02-02"],
+  ["Артемов Олег Викторович", "участок ремонта техники", "Слесарь-ремонтник", "8-910-789-50-71", "1976-06-18"],
+  ["Мазилин Юрий Николаевич", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-915-660-66-26", "1980-03-29"],
+  ["Петров Николай Викторович", "участок ремонта техники", "Старший механик", "8-916-054-20-85", "1969-12-20"],
+  ["Фролов Василий Геннадьевич", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-905-058-75-87", "1976-06-29"],
+  ["Жуков Павел Юрьевич", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-999-688-08-08", "1988-11-26"],
+  ["Жуликов Дмитрий Александрович", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-915-625-00-12", "2000-03-08"],
+  ["Бородин Александр Николаевич", "участок ремонта техники", "Электрогазосварщик", "8-980-366-74-61", "1996-08-24"],
+  ["Школьник Максим Григорьевич", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-915-612-24-46", "2004-11-07"],
+  ["Слепцов Сергей Кириллович", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-952-932-49-87", "1965-08-01"],
+  ["Щербак Николай Анатольевич", "участок ремонта техники", "Слесарь по ремонту автомобилей", "8-928-292-42-66", "2003-12-19"],
+  ["Зверева Татьяна Сергеевна", "отдел по ремонту дорог", "Ведущий специалист по ведению технической документации", "8-916-133-89-23", "1981-11-10"],
+  ["Малкерова Елена Вячеславовна", "отдел по ремонту дорог", "Заместитель начальника отдела", "8-916-551-97-74", "1978-01-16"],
+  ["Первенцева Софья Михайловна", "отдел по ремонту дорог", "Начальник отдела", "8-916-712-01-00", "1985-06-01"],
+  ["Хамзина Марина Сергеевна", "отдел по ремонту дорог", "Главный специалист по ведению технической документации", "8-905-519-27-90", "1981-06-09"],
+  ["Сычева Ирина Александровна", "отдел по ремонту дорог", "Главный специалист по ведению технической документации", "8-977-883-85-20", "1986-11-01"],
+  ["Лагутина Алина Сергеевна", "отдел по ремонту дорог", "Ведущий специалист по ведению технической документации", "8-916-790-19-86", "1997-11-19"],
+  ["Безкоровайная Анна Александровна", "отдел по ремонту дорог", "Заместитель начальника отдела", "8-909-688-17-91", "1979-12-24"],
+  ["Ряховских Оксана Игоревна", "отдел по ремонту дорог", "Ведущий специалист по ведению технической документации", "8-985-360-70-12", "1986-11-16"],
+  ["Фролова Наталья Сергеевна", "отдел по ремонту дорог", "Главный специалист по ведению технической документации", "8-960-855-33-30", "1979-09-04"],
+  ["Гусарова Олеся Алексеевна", "отдел по ремонту дорог", "Специалист по ведению технической документации", "8-977-574-15-63", "2001-10-03"],
+  ["Савина Инна Викторовна", "диспетчерская служба № 28", "Заместитель начальника службы", "8-977-394-89-18", "1980-12-20"],
+  ["Гурина Людмила Валерьевна", "диспетчерская служба № 28", "Специалист по ведению технической документации", "8-916-933-57-23", "1979-08-24"],
+  ["Маршалова Эльза Алексеевна", "диспетчерская служба № 28", "Специалист по расчетам", "8-927-595-96-90", "1988-03-08"],
+  ["Винюкова Светлана Николаевна", "диспетчерская служба № 28", "Специалист по ведению технической документации", "8-916-371-11-23", "1964-09-08"],
+  ["Боровских Наталья Александровна", "диспетчерская служба № 28", "Диспетчер", "8-967-203-67-53", "1981-01-10"],
+  ["Кера Анастасия Павловна", "диспетчерская служба № 28", "Диспетчер", "8-977-858-73-28", "1993-04-01"],
+  ["Камышникова Алена Владимировна", "диспетчерская служба № 28", "Начальник службы", "8-919-960-26-41", "1984-02-11"],
+  ["Черний Артём Русланович", "диспетчерская служба № 28", "Оператор единой транспортной системы", "8-919-190-76-91", "1998-05-03"],
+  ["Цыганкова Юлия Олеговна", "диспетчерская служба № 28", "Специалист по расчетам", "8-950-704-83-32", "1992-12-04"],
+  ["Антонова Евгения Геннадьевна", "диспетчерская служба № 28", "Диспетчер", "8-927-171-69-92", "2002-02-27"],
+  ["Рязанцева Мария Ивановна", "диспетчерская служба № 28", "Специалист по ведению технической документации", "8-915-275-84-96", "1988-04-11"],
+  ["Савин Алексей Викторович", "диспетчерская служба № 28", "Диспетчер", "8-926-035-86-28", "1977-10-21"],
+  ["Новикова София Александровна", "диспетчерская служба № 28", "Диспетчер", "8-996-448-59-14", "2002-02-28"],
+  ["Савин Нил Валерьевич", "диспетчерская служба № 28", "Оператор единой транспортной системы", "8-902-666-10-30", "2002-12-30"],
+  ["Голубева Юлия Владимировна", "диспетчерская служба № 28", "Диспетчер", "8-910-717-82-14", "2000-03-01"],
+  ["Андреева Светлана Вадимовна", "диспетчерская служба № 28", "Диспетчер", "8-996-927-14-14", "1991-03-31"],
+  ["Маврычева Антонина Александровна", "диспетчерская служба № 28", "Диспетчер", "8-991-362-71-86", "2004-11-17"],
+  ["Чернова Ирина Сергеевна", "диспетчерская служба № 28", "Диспетчер", "8-913-416-28-19", "1992-04-30"],
+  ["Голованов Кирилл Дмитриевич", "диспетчерская служба № 28", "Оператор единой транспортной системы", "8-916-412-00-74", "2004-05-09"],
+  ["Аносов Георгий Владимирович", "диспетчерская служба № 28", "Диспетчер", "8-968-895-38-45", "2006-11-02"],
+  ["Кузнецов Кирилл Дмитриевич", "диспетчерская служба № 28", "Диспетчер", "8-968-946-98-44", "2006-09-02"],
+  ["Бадаев Иван Александрович", "диспетчерская служба № 28", "Оператор единой транспортной системы", "8-960-466-94-28", "2001-01-20"],
+  ["Доманина Юлия Сергеевна", "диспетчерская служба № 28", "Диспетчер", "8-977-460-05-60", "1983-11-28"],
+  ["Никоноров Алексей Геннадьевич", "отдел геодезии", "Начальник отдела", "8-985-055-99-56", "1987-08-10"],
+  ["Собакин Валерий Вячеславович", "отдел геодезии", "Ведущий геодезист", "8-917-586-63-08 8-901-789-13-24", "1962-06-21"],
+  ["Роскошный Николай Николаевич", "отдел геодезии", "Ведущий геодезист", "8-999-850-28-24", "2000-11-30"],
+  ["Сливин Дмитрий Александрович", "отдел геодезии", "Заметитель начальника отдела", "8-919-542-81-24", "1989-01-28"],
+  ["Даниличев Андрей Викторович", "отдел геодезии", "Техник-геодезист", "8-919-980-46-66", "1989-01-05"],
+  ["Сизов Владимир Михайлович", "отдел геодезии", "Техник-геодезист", "8-980-624-85-33", "1984-12-09"],
+  ["Лискин Илья Сергеевич", "отдел геодезии", "Техник-геодезист", "8-991-841-96-02", "2004-01-06"],
+  ["Павлов Александр Михайлович", "отдел геодезии", "Ведущий геодезист", "8-953-544-68-77", "1996-10-18"],
+  ["Коробов Всеволод Вадимович", "отдел геодезии", "Техник-геодезист", "8-903-531-11-18", "2002-12-27"],
+  ["Каргина Мария Александровна", "отдел геодезии", "Ведущий геодезист", "8-937-725-79-72", "2000-12-09"],
+  ["Семенов Иван Сергеевич", "отдел геодезии", "Техник-геодезист", "8-977-836-86-65", "2003-07-15"],
+  ["Малыхин Дмитрий Сергеевич", "отдел геодезии", "Ведущий геодезист", "8-985-788-05-55", "1985-08-26"],
+  ["Ахмадуллин Азат Наилович", "Участок Асфальтирования № 1", "Механизатор асф.укладчик", "8-965-194-33-22", "1964-09-17"],
+  ["Барышев Алексей Викторович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-977-135-49-23", "1984-03-26"],
+  ["Бородулин Артём Сергеевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-920-317-08-54", "1998-11-16"],
+  ["Исаченко Сергей Николаевич", "Участок Асфальтирования № 1", "Механизатор каток", "8-903-868-45-03", "1968-09-16"],
+  ["Квасов Дмитрий Александрович", "Участок Асфальтирования № 1", "Механизатор каток", "8-901-730-03-02", "1986-02-19"],
+  ["Крутяков Вячеслав Иванович", "Участок Асфальтирования № 1", "Машинист укладчика асфальтобетона", "8-977-403-97-82", "1958-04-01"],
+  ["Кулькин Дмитрий Вячеславович", "Участок Асфальтирования № 1", "Начальник участка", "8-925-449-10-66", "1990-07-23"],
+  ["Митраков Сергей Юрьевич", "Участок Асфальтирования № 1", "Механизатор каток", "8-903-684-73-11", "1968-10-03"],
+  ["Морозов Александр Васильевич", "Участок Асфальтирования № 1", "Механизатор каток", "8-960-602-22-95", "1975-01-21"],
+  ["Новиков Виктор Валерьевич", "Участок Асфальтирования № 1", "Механизатор (экс.погр)", "8-996-349-09-63", "1964-05-17"],
+  ["Подзоров Виталий Викторович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-977-262-84-03", "1990-09-03"],
+  ["Попа Виталий Аксентьевич", "Участок Асфальтирования № 1", "Механизатор каток", "8-926-470-03-25", "1968-09-22"],
+  ["Пчелинцев Максим Сергеевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-916-799-31-84", "1986-02-11"],
+  ["Ратников Сергей Сергеевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-977-274-75-00", "1984-05-03"],
+  ["Рыжов Сергей Михайлович", "Участок Асфальтирования № 1", "Машинист укладчика асфальтобетона", "8-900-499-59-44", "1974-04-30"],
+  ["Самаркин Михаил Александрович", "Участок Асфальтирования № 1", "Механизатор (экс.погр)", "8-987-994-07-44", "1992-11-27"],
+  ["Тарасов Руслан Игоревич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-987-661-04-88", "1988-01-30"],
+  ["Трутнев Михаил Павлинович", "Участок Асфальтирования № 1", "Машинист укладчика асфальтобетона", "8-916-95922-34", "1980-10-18"],
+  ["Ханипов Радик Загитович", "Участок Асфальтирования № 1", "Механизатор каток", "8-910-473-90-69", "1964-04-23"],
+  ["Хацкевич Олег Андреевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-915-504-57-90", "1988-07-07"],
+  ["Ченцов Константин Юрьевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-985-383-82-01", "1967-07-02"],
+  ["Шатилин Алексей Александрович", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-925-784-48-25", "1953-02-20"],
+  ["Жильцов Алексей Михайлович", "Участок Асфальтирования № 1", "Механизатор бобкет", "8-915-881-35-39", "1988-10-25"],
+  ["Сапаров Сергей Владимирович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-922-838-56-32", "1981-08-02"],
+  ["Кунавин Сергей Дмитриевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-964-462-54-21", "1998-09-03"],
+  ["Савочкин Сергей Васильевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-917-325-36-30", "1983-09-15"],
+  ["Сивин Николай Геннадьевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-900-373-78-53 8-919-190-91-01", "1981-12-24"],
+  ["Рычаков Игорь Михайлович", "Участок Асфальтирования № 1", "Механизатор каток", "8-987-694-12-43", "1988-06-03"],
+  ["Лапутин Александр Владимирович", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-977-883-51-20 8-900-369-90-63", "1983-07-01"],
+  ["Вычеров Андрей Иванович", "Участок Асфальтирования № 1", "Механизатор каток", "8-906-694-37-48", "1978-03-10"],
+  ["Пономарев Владислав Константинович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-903-478-95-63", "1998-01-08"],
+  ["Кумов Олег Викторович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-977-581-23-57", "1992-10-08"],
+  ["Лебович Сергей Сергеевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-925-523-39-69", "1983-07-19"],
+  ["Кутузов Михаил Викторович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-977-261-65-73", "1975-05-03"],
+  ["Радынов Александр Андреевич", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-917-697-88-35", "1973-09-14"],
+  ["Исаченко Виталий Андреевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-996-511-04-08", "1997-12-31"],
+  ["Сирош Сергей Владимирович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-960-625-19-69", "1987-08-23"],
+  ["Пахомов Дмитрий Алексеевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-952-420-39-91", "1980-07-29"],
+  ["Батраков Андрей Вадимович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-917-025-67-81", "1987-03-16"],
+  ["Жуков Дмитрий Иванович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-950-900-32-10", "1983-04-06"],
+  ["Петрусенко Алексей Александрович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-900-368-03-37", "1979-09-15"],
+  ["Юхтанов Николай Александрович", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-937-454-65-21", "1978-02-26"],
+  ["Кондратов Александр Васильевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-920-231-38-08", "1964-01-12"],
+  ["Глухов Сергей Юрьевич", "Участок Асфальтирования № 1", "Механизатор каток", "8-910-355-22-02", "1968-11-30"],
+  ["Епсилов Василий Николаевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-960-727-82-29", "1982-12-22"],
+  ["Хританков Алексей Леонидович", "Участок Асфальтирования № 1", "Механизатор бобкет", "8-917-546-71-27", "1972-03-10"],
+  ["Арсентьев Искандер Искандерович", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-904-753-11-28", "1997-07-19"],
+  ["Кургуз Александр Васильевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-920-839-84-51", "1978-09-26"],
+  ["Орлов Алексей Павлович", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-915-981-19-78", "1997-01-01"],
+  ["Бодров Александр Владимирович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-925-033-25-23", "1984-04-06"],
+  ["Геращенко Юрий Николаевич", "Участок Асфальтирования № 1", "Механизатор каток", "8-960-557-29-74", "1987-09-17"],
+  ["Скоблов Павел Сергеевич", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-937-973-76-79", "1985-11-28"],
+  ["Одинцов Иван Викторович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-960-642-63-20", "1987-11-27"],
+  ["Карпов Сергей Сергеевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-900-363-39-37", "1998-01-15"],
+  ["Пустовойтов Данила Владимирович", "Участок Асфальтирования № 1", "Механизатор МТЗ", "8-951-560-98-80", "2002-12-16"],
+  ["Катков Василий Иванович", "Участок Асфальтирования № 1", "Механизатор каток", "8-927-192-06-66", "1989-05-11"],
+  ["Крапчетов Евгений Александрович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-996-356-16-35", "2000-03-08"],
+  ["Алимов Константин Константинович", "Участок Асфальтирования № 1", "Старший мастер", "8-929-579-22-97", "1998-07-26"],
+  ["Сапаров Дмитрий Викторович", "Участок Асфальтирования № 1", "Механизатор каток", "8-922-810-13-17", "1974-08-26"],
+  ["Кренев Сергей Леонидович", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-920-763-62-68", "1979-08-05"],
+  ["Акашин Егор Павлович", "Участок Асфальтирования № 1", "Механизатор каток", "8-927-835-59-30", "1992-11-27"],
+  ["Терехов Анатолий Петрович", "Участок Асфальтирования № 1", "Механизатор каток", "8-953-715-27-93", "1986-10-18"],
+  ["Черняков Александр Викторович", "Участок Асфальтирования № 1", "Механизатор каток", "8-909-238-71-75", "1978-08-14"],
+  ["Пустовалов Евгений Александрович", "Участок Асфальтирования № 1", "Заместитель начальника участка", "8-937-409-63-36", "1989-10-01"],
+  ["Тюрин Павел Викторович", "Участок Асфальтирования № 1", "Механизатор каток", "8-977-568-80-63", "1978-12-01"],
+  ["Алексеев Андрей Александрович", "Участок Асфальтирования № 1", "Механизатор каток", "8-903-349-45-30", "1979-03-07"],
+  ["Бирюлин Денис Владимирович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-902-122-59-17", "1994-09-13"],
+  ["Просников Александр Васильевич", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-995-426-10-86", "1998-08-19"],
+  ["Новиков Сергей Евгеньевич", "Участок Асфальтирования № 1", "Механизатор МТЗ", "8-927-170-53-32", "1977-10-19"],
+  ["Кравцов Владислав Владимирович", "Участок Асфальтирования № 1", "Механизатор МТЗ", "8-958-641-92-44", "1999-09-07"],
+  ["Кривцов Денис Анатольевич", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-937-715-06-15", "1996-09-30"],
+  ["Белоусов Иван Вячеславович", "Участок Асфальтирования № 1", "Старший мастер", "8-917-215-75-52", "1992-11-22"],
+  ["Фролов Игорь Иванович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-906-664-65-05", "1978-08-29"],
+  ["Лобакин Григорий Николаевич", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-937-550-72-44", "1969-10-29"],
+  ["Ефимов Александр Александрович", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-927-818-74-54", "1991-02-27"],
+  ["Кулькин Вячеслав Анатольевич", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-917-531-40-66", "1961-12-19"],
+  ["Королев Владислав Владимирович", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-917-023-18-08", "1997-05-17"],
+  ["Ротов Николай Витальевич", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-911-230-23-56", "1998-12-31"],
+  ["Калашников Сергей Юрьевич", "Участок Асфальтирования № 1", "Заместитель начальника участка", "8-953-290-16-19", "2001-11-12"],
+  ["Князев Алексей Сергеевич", "Участок Асфальтирования № 1", "Старший мастер", "8-937-400-58-06", "1985-03-02"],
+  ["Феоктистов Андрей Владимирович", "Участок Асфальтирования № 1", "Асфальтобетонщик", "8-926-138-87-51", "1987-11-25"],
+  ["Паничкин Алексей Константинович", "Участок Асфальтирования № 1", "Механизатор JСB (экс погр)", "8-917-996-99-30", "1985-07-07"],
+  ["Шевченко Станислав Викторович", "Участок Асфальтирования № 1", "Дорожный рабочий", "8-927-056-80-41", "1989-03-14"],
+  ["Склемин Руслан Иванович", "Участок Асфальтирования № 1", "Механизатор JСB (экс погр)", "8-915-867-91-51", "1981-02-01"],
+  ["Крисанов Игорь Николаевич", "Участок Асфальтирования № 1", "Механизатор каток", "8-920-830-21-91", "1990-01-01"],
+  ["Лапухов Виктор Васильевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-900-314-09-59", "1980-05-19"],
+  ["Филиппов Роман Алексеевич", "Участок Асфальтирования № 2", "Механизатор (экс.погр)", "8-977-445-63-95", "1991-06-12"],
+  ["Романов Сергей Юрьевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-900-221-67-55", "1987-08-01"],
+  ["Хабаров Дмитрий Валерьевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-920-661-00-16", "1992-08-28"],
+  ["Кирилюк Кирилл Викторович", "Участок Асфальтирования № 2", "Машинист укладчика асфальтобетона", "8-916-408-49-48", "1990-05-29"],
+  ["Глухов Николай Валерьевич", "Участок Асфальтирования № 2", "Механизатор каток", "8-915-885-97-52", "1989-07-10"],
+  ["Комаров Александр Владимирович", "Участок Асфальтирования № 2", "Механизатор каток", "8-960-701-27-21", "1974-11-13"],
+  ["Ивашкин Артём Игоревич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-909-231-95-93", "1994-01-13"],
+  ["Тувышкин Иван Григорьевич", "Участок Асфальтирования № 2", "Механизатор бобкет", "8-902-230-73-05", "1966-02-01"],
+  ["Гусаков Николай Владимирович", "Участок Асфальтирования № 2", "Механизатор каток", "8-980-376-14-57", "1957-05-21"],
+  ["Фаюстов Дмитрий Евгеньевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-965-630-86-49", "1987-03-06"],
+  ["Бахтеров Александр Юрьевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-987-664-68-05", "1991-05-22"],
+  ["Горохов Александр Сергеевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-915-849-45-98", "1981-05-21"],
+  ["Султанов Девлетхан Гафланович", "Участок Асфальтирования № 2", "Машинист укладчика асфальтобетона", "8-985-540-27-09", "1963-05-08"],
+  ["Антонов Георгий Вячеславович", "Участок Асфальтирования № 2", "Машинист укладчика асфальтобетона", "8-999-973-12-00", "1984-02-22"],
+  ["Муравьев Андрей Николаевич", "Участок Асфальтирования № 2", "Старший мастер", "8-953-705-30-47", "1987-07-14"],
+  ["Смоленов Андрей Николаевич", "Участок Асфальтирования № 2", "Механизатор каток", "8-928-148-19-62", "1983-05-06"],
+  ["Лелеков Алексей Константинович", "Участок Асфальтирования № 2", "Механизатор каток", "8-920-440-65-69", "1992-11-10"],
+  ["Медведев Сергей Иванович", "Участок Асфальтирования № 2", "Механизатор МТЗ", "8-917-00622-56", "1975-08-19"],
+  ["Четвертков Ярослав Викторович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-902-723-92-95", "1994-09-19"],
+  ["Марков Владимир Юрьевич", "Участок Асфальтирования № 2", "Машинист укладчика асфальтобетона", "8-988-706-27-50", "1991-03-05"],
+  ["Девликамов Эльмир Фяритович", "Участок Асфальтирования № 2", "Заместитель начальника участка", "8-909-153-35-01", "1985-09-04"],
+  ["Мурзагалиев Кадыргали Ибрагимович", "Участок Асфальтирования № 2", "Механизатор каток", "8-937-663-40-56", "1965-05-22"],
+  ["Мурунов Базарбай Кадырбаевич", "Участок Асфальтирования № 2", "Механизатор каток", "8-927-066-50-49", "1965-05-12"],
+  ["Гришин Денис Александрович", "Участок Асфальтирования № 2", "Механизатор каток", "8-960-615-92-78", "1992-09-03"],
+  ["Лобанов Алексей Иванович", "Участок Асфальтирования № 2", "Старший мастер", "8-910-302-07-22", "1973-10-25"],
+  ["Прудников Евгений Андреевич", "Участок Асфальтирования № 2", "Заместитель начальника участка", "8-953-282-85-82", "1989-02-03"],
+  ["Демидов Никита Владимирович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-996-448-96-10", "1994-12-25"],
+  ["Гуреев Михаил Андреевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-902-097-01-41", "1992-10-06"],
+  ["Гуд Сергей Брониславович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-977-760-16-31", "1988-03-17"],
+  ["Мурзаев Василий Семенович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-952-074-85-37", "1977-11-27"],
+  ["Карасев Андрей Владимирович", "Участок Асфальтирования № 2", "Механизатор каток", "8-980-264-83-95", "1975-08-01"],
+  ["Беликов Эрдни Николаевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-965-25-05-12", "1983-06-27"],
+  ["Ивлев Иван Александрович", "Участок Асфальтирования № 2", "Механизатор каток", "8-927-984-35-09", "1991-10-10"],
+  ["Михайличенко Максим Владимирович", "Участок Асфальтирования № 2", "Механизатор каток", "8-988-710-17-43", "1990-11-14"],
+  ["Михайличенко Георгий Юрьевич", "Участок Асфальтирования № 2", "Механизатор каток", "8-928-413-79-66", "1986-08-18"],
+  ["Гусев Владимир Евгеньевич", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-937-460-55-63", "1972-05-22"],
+  ["Снегирев Андрей Антонович", "Участок Асфальтирования № 2", "Механизатор (экс.погр)", "8-910-113-34-47", "1970-01-19"],
+  ["Симонов Олег Анатольевич", "Участок Асфальтирования № 2", "Механизатор (экс.погр)", "8-909-259-24-67", "1965-02-13"],
+  ["Ананьев Виктор Анатольевич", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-980-787-99-68", "2002-06-22"],
+  ["Заколпин Андрей Федорович", "Участок Асфальтирования № 2", "Механизатор каток", "8-985-545-54-10", "1981-11-22"],
+  ["Максаков Олег Викторович", "Участок Асфальтирования № 2", "Механизатор каток", "8-952-073-80-08", "1985-09-21"],
+  ["Карандашов Сергей Геннадиевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-977-899-2767", "1989-10-10"],
+  ["Круглов Константин Глебович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-927-830-93-32", "1986-08-14"],
+  ["Кобельков Дмитрий Анатольевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-927-811-40-74", "1977-05-29"],
+  ["Дженусов Аскарик Киньжебаевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-905-386-86-96", "1981-05-21"],
+  ["Тюжин Виктор Николаевич", "Участок Асфальтирования № 2", "Механизатор МТЗ", "8-953-034-67-04", "1985-03-09"],
+  ["Буров Сергей Александрович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-927-805-65-84", "1969-12-25"],
+  ["Горюшкин Геннадий Алексеевич", "Участок Асфальтирования № 2", "Машинист укладчика асфальтобетона", "8-910-709-51-88", "1967-07-07"],
+  ["Кравченко Евгений Александрович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-915-806-30-89", "1976-06-18"],
+  ["Толстов Александр Юрьевич", "Участок Асфальтирования № 2", "Механизатор каток", "8-937-724-95-45", "1987-06-18"],
+  ["Сабитов Ренат Фэритович", "Участок Асфальтирования № 2", "Начальник участка", "8-900-311-15-05", "1991-12-13"],
+  ["Черняев Владимир Викторович", "Участок Асфальтирования № 2", "Механизатор бобкет", "8-977-473-98-61", "1978-09-01"],
+  ["Василати Ольга Владимировна", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-965-175-25-20", "1976-02-16"],
+  ["Чудинов Виктор Петрович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-925-416-53-83", "1970-03-22"],
+  ["Витебский Василий Владимирович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-985-460-44-47", "1982-02-28"],
+  ["Гришин Максим Андреевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-904-777-25-63", "2001-09-06"],
+  ["Марков Андрей Юрьевич", "Участок Асфальтирования № 2", "Механизатор асф.укладчик", "8-928-009-96-69", "1994-05-08"],
+  ["Бибиков Олег Владимирович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-926-480-82-27", "1997-11-06"],
+  ["Худин Сергей Владимирович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-988-104-08-69", "1989-02-04"],
+  ["Кравцов Владимир Анатольевич", "Участок Асфальтирования № 2", "Механизатор (экс.погр)", "8-920-322-84-43", "1977-12-02"],
+  ["Шестов Алексей Николаевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-917-312-35-28", "1989-04-19"],
+  ["Дженусов Рушан Асылбекович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-901-807-08-91", "2004-06-27"],
+  ["Болгарин Александр Иванович", "Участок Асфальтирования № 2", "Механизатор (экс.погр)", "8-989-990-82-84", "1986-08-19"],
+  ["Кулагин Евгений Владимирович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-951-051-54-63", "1991-10-24"],
+  ["Пожаркин Аркадий Андреевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-906-661-70-02", "2002-11-22"],
+  ["Антоничев Данила Андреевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-919-202-62-89", "2003-04-09"],
+  ["Рудаков Павел Владимирович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-917-327-79-85", "1992-06-01"],
+  ["Крамин Евгений Александрович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-927-288-11-18", "1991-11-16"],
+  ["Чаркин Андрей Петрович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-960-310-20-88", "1988-07-20"],
+  ["Саввов Михаил Вячеславович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-951-886-92-97", "1993-01-30"],
+  ["Мищенко Владимир Валерьевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-987-354-85-07", "1990-10-03"],
+  ["Мананков Павел Юрьевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-904-211-93-68", "1988-03-18"],
+  ["Кузнецов Николай Сергеевич", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-961-298-03-78", "1999-12-09"],
+  ["Смирнов Андрей Александрович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-910-649-51-68", "1974-04-04"],
+  ["Кабанов Евгений Викторович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-987-309-17-64", "1988-07-28"],
+  ["Попов Роман Сергеевич", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-960-877-30-46", "1976-12-02"],
+  ["Барынкин Алексей Александрович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-927-743-94-50", "1975-11-06"],
+  ["Булин Александр Александрович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-980-364-86-59", "2003-01-01"],
+  ["Нечаев Александр Алексеевич", "Участок Асфальтирования № 2", "Механизатор каток", "8-980-679-43-65", "1984-12-14"],
+  ["Андросенко Юрий Николаевич", "Участок Асфальтирования № 2", "Механизатор бобкет", "8-915-806-54-85", "1974-02-26"],
+  ["Милаш Давид Давлятшоевич", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-903-868-73-64", "1992-03-08"],
+  ["Кетриджян Роман Андреевич", "Участок Асфальтирования № 2", "Механизатор каток", "8-918-616-67-61", "1987-11-13"],
+  ["Данилочкин Олег Владимирович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-904-362-20-86", "1968-03-22"],
+  ["Садофьев Дмитрий Матвеевич", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-915-454-46-27", "1974-02-11"],
+  ["Геворкян Гарик Геворгович", "Участок Асфальтирования № 2", "Дорожный рабочий", "8-977-775-36-13", "1984-03-11"],
+  ["Комаров Игорь Юрьевич", "Участок Асфальтирования № 2", "Механизатор каток", "8-953-290-32-60 \n8-980-308-36-75", "1989-03-07"],
+  ["Жуков Валерий Валентинович", "Участок Асфальтирования № 2", "Асфальтобетонщик", "8-915-181-50-66", "1963-08-12"],
+  ["Щукин Александр Алексеевич", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-920-080-22-97", "1990-05-18"],
+  ["Мастепанов Алексей Петрович", "Участок Асфальтирования № 3", "Машинист укладчика асфальтобетона", "8-985-335-15-64", "1979-05-19"],
+  ["Джамалов Маллашахбан Джамалутдинович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-968-993-69-04", "1977-12-01"],
+  ["Байжанов Максот Каиргалиевич", "Участок Асфальтирования № 3", "Механизатор каток", "8-908-546-46-36", "1980-05-11"],
+  ["Федосеев Вячеслав Валерьевич", "Участок Асфальтирования № 3", "Машинист укладчика асфальтобетона", "8-926-898-27-60", "1971-12-20"],
+  ["Абдулин Иркен Усманович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-937-428-85-54", "1996-10-09"],
+  ["Кулагин Алексей Владимирович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-939-709-65-19", "1995-04-30"],
+  ["Ларин Дмитрий Сергеевич", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-926-606-16-76", "1976-07-23"],
+  ["Аитов Илдар Камилевич", "Участок Асфальтирования № 3", "механизатор каток", "8-927-179-01-27", "1986-08-09"],
+  ["Шкуратов Сергей Александрович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-929784-44-94", "1989-03-15"],
+  ["Гордиенко Сергей Сергеевич", "Участок Асфальтирования № 3", "Машинист укладчика асфальтобетона", "8-920-202-31-56", "1984-11-14"],
+  ["Буянов Виктор Васильевич", "Участок Асфальтирования № 3", "Механизатор каток", "8-910-992-23-03", "1966-05-25"],
+  ["Кадыйханов Руслан Расилович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-968-995-88-09", "1979-06-21"],
+  ["Фаррахов Алексей Олегович", "Участок Асфальтирования № 3", "Механизатор каток", "8-927-026-35-65", "1993-09-16"],
+  ["Циунель Александр Олегович", "Участок Асфальтирования № 3", "Механизатор (экс.погр)", "8-985-470-25-11", "1983-09-10"],
+  ["Новиков Виктор Викторович", "Участок Асфальтирования № 3", "Механизатор JСB (экс погр)", "8-919-207-89-39", "1985-07-26"],
+  ["Белозеров Владимир Юрьевич", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-950-706-36-47", "1979-12-11"],
+  ["Сысоев Сергей Александрович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-903-556-51-88", "1978-09-19"],
+  ["Симоненко Юрий Витальевич", "Участок Асфальтирования № 3", "Механизатор каток", "8-917-529-45-29", "1965-02-05"],
+  ["Поздняков Алексей Викторович", "Участок Асфальтирования № 3", "Машинист укладчика асфальтобетона", "8-977-488-76-95", "1974-06-26"],
+  ["Хуторян Александр Викторович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-910-400-45-24", "1975-12-05"],
+  ["Мухин Александр Михайлович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-915-650-46-22", "1978-10-31"],
+  ["Ефремов Алексей Михайлович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-916-077-57-21", "1975-01-26"],
+  ["Чикаров Александр Николаевич", "Участок Асфальтирования № 3", "Механизатор каток", "8-927-642-28-98", "1983-11-22"],
+  ["Максимов Василий Владимирович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-953-297-99-62", "1962-03-23"],
+  ["Ключников Станислав Владимирович", "Участок Асфальтирования № 3", "Начальник участка", "8-901-796-33-24", "1990-01-26"],
+  ["Гиморов Алексей Владимирович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-906-518-07-97", "1986-03-22"],
+  ["Байжанов Аманжол Хазизулович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-937-222-71-57", "1984-01-14"],
+  ["Бандурко Данил Сергеевич", "Участок Асфальтирования № 3", "Механизатор каток", "8-909-499-01-29", "1995-12-13"],
+  ["Голощапов Виктор Вячеславович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-952-843-34-87", "1992-12-28"],
+  ["Кузин Алексей Иванович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-910-204-49-03", "2001-08-24"],
+  ["Данилочкин Борис Олегович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-903-891-49-22", "1994-04-13"],
+  ["Батищев Денис Александрович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-927-109-35-33", "1983-06-21"],
+  ["Шапкин Александр Александрович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-917-814-79-08", "1973-04-11"],
+  ["Пялкин Виталий Сергеевич", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-996-953-15-26", "1975-10-27"],
+  ["Ерёмин Михаил Александрович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-905-063-51-70", "1985-12-20"],
+  ["Сапроненков Анатолий Александрович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-910-726-67-67", "1984-01-27"],
+  ["Кушнарев Петр Евгеньевич", "Участок Асфальтирования № 3", "Механизатор МТЗ", "8-920-574-85-28", "1982-09-18"],
+  ["Мишуренков Сергей Борисович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-920-330-14-12", "1982-09-15"],
+  ["Федуленков Владимир Анатольевич", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-915-635-97-59", "1963-07-09"],
+  ["Копа Александр Андреевич", "Участок Асфальтирования № 3", "Механизатор каток", "8-937-214-10-96", "1989-01-02"],
+  ["Ильин Денис Юрьевич", "Участок Асфальтирования № 3", "Заместитель начальника участка", "8-919-665-55-36", "1988-05-08"],
+  ["Болотов Алексей Александрович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-950-772-88-40", "1995-05-20"],
+  ["Школьник Григорий Иванович", "Участок Асфальтирования № 3", "Машинист укладчика асфальтобетона", "8-961-132-81-79", "1974-09-19"],
+  ["Тимохин Николай Николаевич", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-980-364-57-91", "1994-06-06"],
+  ["Федоренков Владислав Владимирович", "Участок Асфальтирования № 3", "Механизатор каток", "8-930-303-35-70", "2001-03-31"],
+  ["Коршунов Андрей Александрович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-951-713-07-99", "1999-12-26"],
+  ["Герасев Николай Владимирович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-910-747-95-21", "1988-09-07"],
+  ["Фатьянов Иван Геннадьевич", "Участок Асфальтирования № 3", "Механизатор каток", "8-929-714-01-81", "1989-06-10"],
+  ["Петрюк Сергей Викторович", "Участок Асфальтирования № 3", "Механизатор каток", "8-927-794-64-20", "1986-04-16"],
+  ["Затонский Игорь Сергеевич", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-920-444-69-84", "1991-06-18"],
+  ["Буянов Павел Викторович", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-961-118-88-88", "1992-02-14"],
+  ["Цупин Кирилл Валерьевич", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-910-112-06-96", "1988-04-28"],
+  ["Василевский Алексей Юрьевич", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-927-379-83-19", "1976-08-20"],
+  ["Печкуров Андрей Николаевич", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-951-704-46-98", "1987-01-26"],
+  ["Прокопенков Сергей Николаевич", "Участок Асфальтирования № 3", "Старший мастер", "8-920-330-25-10", "1995-09-18"],
+  ["Елецков Сергей Владимирович", "Участок Асфальтирования № 3", "Механизатор МТЗ", "8-969-288-31-56", "1993-01-18"],
+  ["Новоженов Максим Сергеевич", "Участок Асфальтирования № 3", "Механизатор каток", "8-927-099-93-50", "1996-02-08"],
+  ["Зудилин Владимир Евгеньевич", "Участок Асфальтирования № 3", "Механизатор бобкет", "8-915-591-26-01", "1988-02-18"],
+  ["Мясников Александр Николаевич", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-927-388-43-98", "1976-09-21"],
+  ["Мурыгин Дмитрий Анатольевич", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-987-524-27-78", "1976-11-17"],
+  ["Сурженко Алексей Вячеславович", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-925-851-48-49", "1975-07-07"],
+  ["Ананьев Альберт Федорович", "Участок Асфальтирования № 3", "Механизатор бобкет", "8-930-475-79-83", "1975-01-09"],
+  ["Нефёдов Евгений Сергеевич", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-920-487-94-40", "1988-04-11"],
+  ["Дементьев Артем Владимирович", "Участок Асфальтирования № 3", "Механизатор каток", "8-925-101-66-46", "1991-07-12"],
+  ["Шалунов Алексей Евгеньевич", "Участок Асфальтирования № 3", "Механизатор каток", "8-903-892-79-17", "1978-10-29"],
+  ["Хавлин Павел Владимирович", "Участок Асфальтирования № 3", "Механизатор каток", "8-920-203-91-78", "1987-04-10"],
+  ["Дельмухамбетов Камиль Сапарович", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-999-600-54-75", "1996-12-12"],
+  ["Конев Владислав Викторович", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-960-863-77-54", "1996-09-13"],
+  ["Газинаев Рамазан Газинаевич", "Участок Асфальтирования № 3", "Механизатор JСB (экс погр)", "8-950-864-20-66", "1986-09-02"],
+  ["Евстратов Иосиф Анатольевич", "Участок Асфальтирования № 3", "Механизатор асф.укладчик", "8-995-426-11-07", "1991-06-15"],
+  ["Тарасов Егор Александрович", "Участок Асфальтирования № 3", "Машинист укладчика асфальтобетона", "8-952-824-33-03", "1989-07-10"],
+  ["Мельников Владимир Викторович", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-910-765-49-81", "1977-03-08"],
+  ["Малинин Дмитрий Викторович", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-951-699-88-06", "1979-11-22"],
+  ["Желтоногов Сергей Павлович", "Участок Асфальтирования № 3", "Механизатор асф.укладчик", "8-927-894-80-25", "1996-06-06"],
+  ["Землянский Денис Александрович", "Участок Асфальтирования № 3", "Механизатор каток", "8-927-796-36-43", "1995-06-12"],
+  ["Синенко Николай Сергеевич", "Участок Асфальтирования № 3", "Асфальтобетонщик", "8-999-699-68-91", "1979-07-10"],
+  ["Поколявин Анатолий Викторович", "Участок Асфальтирования № 3", "Механизатор JCB", "8-901-361‑53‑36", "1987-10-28"],
+  ["Беззубов Михаил Валерьевич", "Участок Асфальтирования № 3", "Заместитель начальника участка", "8-910-896-33-71", "1996-06-15"],
+  ["Куцебо Владимир Владимирович", "Участок Асфальтирования № 3", "Старший мастер", "8-910-295-49-95", "1998-03-28"],
+  ["Леонов Сергей Сергеевич", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-995-134-31-62", "1997-09-08"],
+  ["Югов Дмитрий Александрович", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-927-117-07-25", "1987-04-04"],
+  ["Макаров Дмитрий Васильевич", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-915-365-61-48", "1997-11-11"],
+  ["Богданов Рашид Аминуллович", "Участок Асфальтирования № 3", "Дорожный рабочий", "8-917-694-26-04", "1992-09-28"],
+  ["Орехов Андрей Петрович", "Участок подготовительных работ № 4", "Начальник участка", "8-903-148-82-17", "1983-02-12"],
+  ["Пойда Евгений Викторович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-952-106-87-62", "1996-01-10"],
+  ["Струков Владимир Николаевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-905-698-56-04", "1979-02-02"],
+  ["Матвеев Виктор Александрович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-920-668-57-55", "1988-04-26"],
+  ["Ведякин Валерий Валентинович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-919-046-66-18", "1974-11-06"],
+  ["Демин Сергей Михайлович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-960-646-94-01", "1962-06-04"],
+  ["Луговской Виктор Иванович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-960-648-35-72", "1970-05-27"],
+  ["Павличенко Павел Григорьевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-920-817-82-88", "1972-07-09"],
+  ["Пантелеев Владимир Николаевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-910-201-10-64", "1991-10-09"],
+  ["Ротарь Владимир Иванович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-961-625-22-35", "1968-03-23"],
+  ["Крюков Кирилл Сергеевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-915-869-28-15", "1992-07-16"],
+  ["Сергеев Вячеслав Николаевич", "Участок подготовительных работ № 4", "Механизатор бобкет", "8-999-121-10-37", "1960-06-09"],
+  ["Прокопов Дмитрий Юрьевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-906-663-92-27", "1988-01-29"],
+  ["Стаханов Сергей Сергеевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-909-665-63-29", "1994-06-28"],
+  ["Салов Валерий Викторович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-960-505-67-64", "1968-04-30"],
+  ["Тимошенко Алексей Иванович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-953-299-79-05", "1989-08-10"],
+  ["Путренков Олег Васильевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-900-690-06-09", "1983-04-21"],
+  ["Облогин Николай Николаевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-967-302-36-56", "1980-06-06"],
+  ["Пойда Виктор Николаевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-920-421-09-41", "1971-02-14"],
+  ["Герасенков Игорь Витальевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-910-724-87-96", "1975-12-02"],
+  ["Леденёв Денис Александрович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-960-662-26-96", "1986-07-25"],
+  ["Тактаев Александр Михайлович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-960-165-38-22", "1982-08-22"],
+  ["Мартынов Игорь Николаевич", "Участок подготовительных работ № 4", "Заместитель начальника участка", "8-977-940-12-92", "1993-10-01"],
+  ["Митченко Иван Владимирович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-960-558-27-39", "1977-05-17"],
+  ["Надточей Александр Иванович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-960-546-68-26", "1970-10-31"],
+  ["Леденев Сергей Александрович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-960-666-76-25", "1983-06-10"],
+  ["Бочков Владимир Викторович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-902-216-20-40", "1964-12-13"],
+  ["Садрутдинов Руслан Тагирович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-902-883-54-86", "1978-01-03"],
+  ["Суровов Игорь Вячеславович", "Участок подготовительных работ № 4", "Механизатор (экс.погр)", "8-920-911-62-46", "1984-01-03"],
+  ["Тютяев Александр Иванович", "Участок подготовительных работ № 4", "Механизатор (экс.погр)", "8-927-172-89-27", "1978-08-05"],
+  ["Кутуков Николай Евгеньевич", "Участок подготовительных работ № 4", "Механизатор бобкет", "8-988-109-40-57", "1964-04-12"],
+  ["Лебедев Сергей Михайлович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-999-866-22-57", "1984-11-11"],
+  ["Манцуров Александр Викторович", "Участок подготовительных работ № 4", "Механизатор (экс.погр)", "8-929-543-24-23", "1977-01-27"],
+  ["Папоян Намес Ншанович", "Участок подготовительных работ № 4", "Механизатор (полнопов)", "8-999-828-15-23", "1985-08-15"],
+  ["Рекало Александр Иванович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-905-168-33-24", "1970-02-01"],
+  ["Кокорев Евгений Викторович", "Участок подготовительных работ № 4", "Механизатор (экс.погр)", "8-961-649-06-48", "1975-11-15"],
+  ["Петрушин Игорь Витальевич", "Участок подготовительных работ № 4", "Старший мастер", "8-958-643-14-19", "1980-03-05"],
+  ["Сазонов Сергей Александрович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-977-676-26-77", "1984-08-17"],
+  ["Люхин Николай Александрович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-917-656-44-71 8-917-670-24-79", "1987-01-08"],
+  ["Артемьев Николай Владимирович", "Участок подготовительных работ № 4", "Механизатор (фронт.погр)", "8-905-434-57-76 8-961-684-54-87", "1995-02-15"],
+  ["Сушков Сергей Васильевич", "Участок подготовительных работ № 4", "Механизатор бобкет", "8-920-554-86-20 8-920-597-51-31", "1976-05-13"],
+  ["Василькин Андрей Павлович", "Участок подготовительных работ № 4", "Заместитель начальника участка", "8-927-972-45-05 8-927-177-61-91", "1989-01-11"],
+  ["Широков Максим Андреевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-977-589-06-72", "1999-06-30"],
+  ["Смоленкин Антон Петрович", "Участок подготовительных работ № 4", "Механизатор (экс.погр)", "8-937-426-83-68", "1986-08-08"],
+  ["Емельянов Евгений Евгеньевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-905-167-16-05", "1982-06-07"],
+  ["Землянов Олег Владимирович", "Участок подготовительных работ № 4", "Механизатор (полнопов)", "8-927-379-66-15", "1991-05-16"],
+  ["Ерошенков Андрей Анатольевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-915-638-66-03", "1982-12-15"],
+  ["Язов Владимир Александрович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-912-119-17-77", "1962-10-07"],
+  ["Бибиксаров Игорь Владимирович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-917-657-50-95", "1973-02-15"],
+  ["Парфененко Виктор Степанович", "Участок подготовительных работ № 4", "Механизатор (полнопов)", "8-906-500-34-04", "1966-12-01"],
+  ["Стаханов Егор Сергеевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-996-161-66-80", "2000-11-16"],
+  ["Лобейко Роман Викторович", "Участок подготовительных работ № 4", "Механизатор бобкет", "8-919-104-58-26", "1983-02-12"],
+  ["Титовец Игорь Васильевич", "Участок подготовительных работ № 4", "Заместитель начальника участка", "8-911-608-09-55", "1976-08-02"],
+  ["Рословец Александр Николаевич", "Участок подготовительных работ № 4", "Механизатор (экс.погр)", "8-915-806-53-20", "1981-05-05"],
+  ["Краморев Сергей Геннадьевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-977-262-85-44", "1974-02-26"],
+  ["Горбачёв Пётр Евгеньевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-920-857-16-28", "1978-10-15"],
+  ["Алутин Алексей Федорович", "Участок подготовительных работ № 4", "Механизатор (полнопов)", "8-951-322-7107", "1984-03-23"],
+  ["Шульдешов Василий Иванович", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-919-266-04-72", "1980-02-06"],
+  ["Романенков Владимир Александрович", "Участок подготовительных работ № 4", "Механизатор (фронт.погр)", "8-960-585-89-11", "1989-09-14"],
+  ["Гудилин Александр Васильевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-910-303-15-82", "1990-02-15"],
+  ["Бувин Алексей Евгеньевич", "Участок подготовительных работ № 4", "Механизатор (экс.погр)", "8-977-268-84-19", "1979-12-08"],
+  ["Клеванов Антон Олегович", "Участок подготовительных работ № 4", "Механизатор МТЗ", "8-906-662-42-44", "1996-12-24"],
+  ["Гришин Николай Анатольевич", "Участок подготовительных работ № 4", "Механизатор бобкет", "8-910-718-57-42", "1963-08-25"],
+  ["Дроблев Геннадий Николаевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-930-822-64-60", "1965-11-21"],
+  ["Дёмин Андрей Юрьевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-999-832-15-69", "1985-03-20"],
+  ["Кунаков Геннадий Викторович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-953-716-16-67", "1972-09-23"],
+  ["Чернявский Сергей Михайлович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-953-275-12-44", "1977-08-21"],
+  ["Михальченко Геннадий Сергеевич", "Участок подготовительных работ № 4", "Механизатор бобкет", "8-919-101-74-27", "1980-03-04"],
+  ["Собко Данил Александрович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-938-121-21-80", "2002-09-07"],
+  ["Зудилин Николай Евгеньевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-910-638-04-65", "1974-01-02"],
+  ["Матвиенко Андрей Иванович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-996-611-85-47", "1999-09-24"],
+  ["Макарский Никита Александрович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-908-513-59-33", "1999-09-25"],
+  ["Антошин Михаил Алексеевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-919-261-52-22", "1986-10-02"],
+  ["Зюганов Андрей Леонидович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-930-725-58-59", "1982-04-10"],
+  ["Синтюрин Николай Михайлович", "Участок подготовительных работ № 4", "Механизатор МТЗ", "8-902-232-74-84", "2003-10-26"],
+  ["Броженков Сергей Юрьевич", "Участок подготовительных работ № 4", "Асфальтобетонщик", "8-929-599-22-53", "1979-07-27"],
+  ["Хайлов Владимир Андреевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-960-648-25-70", "1962-03-03"],
+  ["Хохлов Олег Сергеевич", "Участок подготовительных работ № 4", "Старший мастер", "8-920-858-75-48", "2002-12-07"],
+  ["Асмоловский Сергей Александрович", "Участок подготовительных работ № 4", "Механизатор бобкет", "8-999-220-64-23", "1983-06-20"],
+  ["Шавеко Сергей Сергеевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-900-358-61-50", "1994-04-11"],
+  ["Ильин Эдуард Петрович", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-919-658-05-89", "1975-11-21"],
+  ["Чикалин Иван Николаевич", "Участок подготовительных работ № 4", "Дорожный рабочий", "8-953-418-12-08", "1989-08-27"],
+  ["Митюхин Андрей Александрович", "Участок подготовительных работ № 4", "Старший мастер", "8-953-810-90-95", "1989-04-26"],
+  ["Сергеев Федор Сергеевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-999-856-75-62", "1995-10-17"],
+  ["Сазонов Александр Александрович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-952-765-87-77", "1992-09-29"],
+  ["Ковалев Александр Викторович", "Участок подготовительных работ № 5", "Заместитель начальника участка", "8-953-271-08-25", "1992-10-25"],
+  ["Баловнев Вячеслав Николаевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-905-699-47-24", "1956-03-20"],
+  ["Гончаров Сергей Валерьевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-951-328-91-67", "1983-04-21"],
+  ["Яргонский Андрей Юрьевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-917-671-94-61", "1986-12-29"],
+  ["Хватов Александр Юрьевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-917-702-30-96", "1963-07-12"],
+  ["Торейкин Роман Ильич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-977-987-60-38", "1983-07-08"],
+  ["Баловнев Олег Вячеславович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-915-657-98-19", "1978-07-24"],
+  ["Кошкин Сергей Иванович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-951-079-09-35", "1983-08-10"],
+  ["Савкин Алексей Викторович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-909-243-12-59", "1974-07-17"],
+  ["Дубковский Николай Евгеньевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-950-771-32-33", "1985-12-18"],
+  ["Фролов Андрей Анатольевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-903-021-77-48", "1971-03-03"],
+  ["Волосатов Евгений Николаевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-920-813-67-57", "1972-03-11"],
+  ["Чернов Сергей Иванович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-920-816-38-61", "1979-09-20"],
+  ["Шламов Роман Анатольевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-918-516-15-56", "1972-10-30"],
+  ["Шишов Николай Александрович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-920-816-38-60", "1983-11-26"],
+  ["Худяков Николай Александрович", "Участок подготовительных работ № 5", "Механизатор (фронт.погр)", "8-964-649-52-16", "1960-08-27"],
+  ["Белаш Денис Валерьевич", "Участок подготовительных работ № 5", "Механизатор (экс.погр)", "8-910-291-14-62", "1991-11-24"],
+  ["Ульянов Владимир Алексеевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-903-844-65-44", "1966-04-25"],
+  ["Самошкин Игорь Васильевич", "Участок подготовительных работ № 5", "дорожный рабочий", "8-927-970-57-59", "1969-05-05"],
+  ["Куряков Александр Викторович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-969-255-38-38", "1980-10-16"],
+  ["Кириллов Андрей Владимирович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-960-550-53-95", "1982-06-22"],
+  ["Чулков Василий Александрович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-964-867-46-28", "1981-01-06"],
+  ["Шеремет Александр Викторович", "Участок подготовительных работ № 5", "Старший мастер", "8-965-889-46-00", "1991-05-31"],
+  ["Кентнер Вячеслав Григорьевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-999-518-83-56", "1980-08-27"],
+  ["Ряховский Олег Николаевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-895-396-71-45", "1972-12-16"],
+  ["Череповский Владимир Иванович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-977-448-03-32", "1986-09-05"],
+  ["Умяров Руслан Рушанович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-927-985-75-12", "1991-06-28"],
+  ["Козик Игорь Иванович", "Участок подготовительных работ № 5", "Механизатор бобкет", "8-961-106-03-71", "1972-11-28"],
+  ["Умяров Рушан Мавлютович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-999-194-13-64", "1968-02-26"],
+  ["Парамонов Сергей Николаевич", "Участок подготовительных работ № 5", "Механизатор бобкет", "8-927-381-70-77", "1967-03-13"],
+  ["Тюленев Михаил Михайлович", "Участок подготовительных работ № 5", "Механизатор МТЗ", "8-999-871-43-17 8-926-385-41-22", "1992-07-30"],
+  ["Боровков Евгений Александрович", "Участок подготовительных работ № 5", "Механизатор (экс.погр)", "8-999-960-41-97", "1986-07-03"],
+  ["Недобежкин Владимир Валентинович", "Участок подготовительных работ № 5", "Механизатор МТЗ", "8-961-677-95-83", "1963-07-01"],
+  ["Васькин Максим Алексеевич", "Участок подготовительных работ № 5", "Механизатор бобкет", "8-960-552-57-53", "1987-02-01"],
+  ["Иванов Юрий Владимирович", "Участок подготовительных работ № 5", "Механизатор (полнопов)", "8-919-068-91-49", "1981-11-15"],
+  ["Айзатуллов Марат Тевкилович", "Участок подготовительных работ № 5", "Механизатор бобкет", "8-905-029-61-08", "1975-05-24"],
+  ["Куриленко Алексей Михайлович", "Участок подготовительных работ № 5", "Механизатор (экс.погр)", "8-962-131-89-64", "1983-02-27"],
+  ["Савинов Артур Николаевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-937-870-43-65", "1988-09-29"],
+  ["Буров Алексей Алексеевич", "Участок подготовительных работ № 5", "Старший мастер", "8-953-988-88-38", "1993-05-25"],
+  ["Атьков Александр Иванович", "Участок подготовительных работ № 5", "Механизатор вил. Погр.", "8-977-281-66-76", "1971-12-07"],
+  ["Поздняков Николай Николаевич", "Участок подготовительных работ № 5", "Начальник участка", "8-910-218-00-81", "1982-09-04"],
+  ["Колупаев Сергей Александрович", "Участок подготовительных работ № 5", "Механизатор (подменный)", "8-905-030-48-26", "1978-09-09"],
+  ["Цынкалов Ярослав Владимирович", "Участок подготовительных работ № 5", "Механизатор (экс.погр)", "8-915-885-68-39", "1987-08-16"],
+  ["Фролов Олег Викторович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-977-571-81-42", "1976-12-05"],
+  ["Прокопенков Алексей Владимирович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-915-650-02-95", "1977-06-24"],
+  ["Лоскутов Вадим Алексеевич", "Участок подготовительных работ № 5", "Старший мастер", "8-917-314-72-58", "1991-06-01"],
+  ["Лобанов Александр Анатольевич", "Участок подготовительных работ № 5", "Механизатор (подменный)", "8-910-756-18-46", "1970-10-23"],
+  ["Попов Андрей Сергеевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-967-171-68-52", "1978-02-26"],
+  ["Артюков Валерий Михайлович", "Участок подготовительных работ № 5", "Механизатор вил. Погр.", "8-987-668-59-84", "1971-04-02"],
+  ["Стародубец Василий Николаевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-920-855-39-06", "1987-04-04"],
+  ["Савинов Илья Павлович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-902-007-53-52", "2001-07-05"],
+  ["Чекризов Владислав Андреевич", "Участок подготовительных работ № 5", "Механизатор бобкет", "8-951-312-10-18", "2000-12-23"],
+  ["Чекризов Андрей Николаевич", "Участок подготовительных работ № 5", "Механизатор (фронт.погр)", "8-960-676-55-04", "1976-04-09"],
+  ["Евдокимов Алексей Владимирович", "Участок подготовительных работ № 5", "Механизатор (экс.погр)", "8-919-194-72-48", "1994-06-01"],
+  ["Романов Дмитрий Сергеевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-987-758-47-30", "1993-05-16"],
+  ["Балашов Сергей Викторович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-900-013-64-60", "1987-07-02"],
+  ["Гнусин Александр Сергеевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-993-456-07-03", "2002-03-07"],
+  ["Тимошинов Максим Анатольевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-930-867-52-71", "1986-07-28"],
+  ["Буров Дмитрий Алексеевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-908-480-22-63", "1983-08-15"],
+  ["Морщаков Михаил Александрович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-908-471-63-31", "1988-04-01"],
+  ["Печников Эдуард Владимирович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-920-838-96-18", "1978-07-06"],
+  ["Маслов Юрий Николаевич", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-920-857-35-73", "1990-08-31"],
+  ["Мельяновский Сергей Александрович", "Участок подготовительных работ № 5", "Асфальтобетонщик", "8-920-604-09-45", "1992-04-16"],
+  ["Гавриленко Алексей Петрович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-952-962-84-71", "1987-01-12"],
+  ["Концов Сергей Геннадьевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-900-333-39-14", "1985-08-27"],
+  ["Сафаралиев Рамазан Сафаралиевич", "Участок подготовительных работ № 5", "Механизатор (экс.погр)", "8-916-393-14-11", "1989-10-10"],
+  ["Боков Иван Андреевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-930-088-02-34", "2003-04-07"],
+  ["Ворон Олег Александрович", "Участок подготовительных работ № 5", "Механизатор бобкет", "8-967-222-02-52", "1992-09-14"],
+  ["Великодный Юрий Петрович", "Участок подготовительных работ № 5", "Старший мастер", "8-930-873-46-60", "1967-07-11"],
+  ["Горелов Данила Михайлович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-927-800-35-49", "2001-04-08"],
+  ["Сафонов Олег Анатольевич", "Участок подготовительных работ № 5", "Заместитель начальника участка", "8-925-702-31-21", "1995-10-13"],
+  ["Бурыкин Максим Александрович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-904-196-12-57", "1987-04-06"],
+  ["Титова Людмила Сергеевна", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-964-993-20-35", "1976-08-10"],
+  ["Поздняков Олег Николаевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-925-610-91-44", "1984-08-12"],
+  ["Беляев Дмитрий Владимирович", "Участок подготовительных работ № 5", "Заместитель начальника участка", "8-952-495-18-82", "1987-11-30"],
+  ["Концов Евгений Геннадьевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-953-010-62-32", "1983-08-24"],
+  ["Слободчиков Сергей Викторович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-920-800-98-39", "1977-09-07"],
+  ["Петрусенко Иван Александрович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-950-697-24-38", "2004-02-12"],
+  ["Скороходов Иван Евгеньевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-904-421-49-19", "2002-11-16"],
+  ["Самойлов Дмитрий Александрович", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-919-271-31-17", "1983-03-24"],
+  ["Жиганков Алексей Евгеньевич", "Участок подготовительных работ № 5", "Дорожный рабочий", "8-996-922-13-38", "1987-10-10"],
+  ["Наугольных Игорь Леонидович", "Участок дорожных фрез № 6", "Начальник участка", "8-904-410-55-76", "1990-10-29"],
+  ["Ульянкин Максим Александрович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-904-417-21-25", "1984-07-07"],
+  ["Соломатин Евгений Евгеньевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8 (999) 626-92-06", "1994-11-15"],
+  ["Голованов Остап Владимирович", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-916-608-69-65", "1975-09-28"],
+  ["Огородник Алексей Игоревич", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-977-315-53-88", "1991-01-09"],
+  ["Павлов Максим Сергеевич", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-917-007-62-88", "1989-11-18"],
+  ["Шатров Сергей Вячеславович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8 (905) 6950307", "1971-12-30"],
+  ["Смаженков Егор Викторович", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-920-637-82-99", "1976-10-28"],
+  ["Бородин Николай Николаевич", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-952-185-71-71", "1982-05-31"],
+  ["Веркин Валерий Александрович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-961-139-59-50", "1997-10-07"],
+  ["Конаков Александр Анатольевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-904-413-19-55", "1973-06-07"],
+  ["Петросян Георгий Оникович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-953-478-19-13", "1984-06-19"],
+  ["Кубышкин Михаил Сергеевич", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-926-262-71-10", "1987-07-05"],
+  ["Бондарь Евгений Евгеньевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-915-278-25-55", "1998-09-17"],
+  ["Костарев Кирилл Евгеньевич", "Участок дорожных фрез № 6", "Заместитель начальника участка", "8-960-648-88-82", "1990-03-10"],
+  ["Савенков Андрей Алексеевич", "Участок дорожных фрез № 6", "Механизатор МТЗ", "8-931-371-70-46", "1966-12-04"],
+  ["Худякова Татьяна Юрьевна", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-977-490-71-30", "1965-04-26"],
+  ["Шипило Анатолий Иванович", "Участок дорожных фрез № 6", "Механизатор МТЗ", "8-920-555-38-47", "1964-06-11"],
+  ["Сукачев Дмитрий Алексеевич", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-916-635-37-93", "1986-03-24"],
+  ["Роганов Андрей Анатольевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-909-319-10-69", "2000-05-25"],
+  ["Должиков Иван Игоревич", "Участок дорожных фрез № 6", "Заместитель начальника участка", "8-991-344-78-02", "1990-08-19"],
+  ["Мелешенко Василий Васильевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-905-188-42-03", "1986-05-14"],
+  ["Просин Виктор Васильевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-995-424-04-17", "2001-02-10"],
+  ["Магон Владимир Михайлович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-930-725-72-35", "1974-12-07"],
+  ["Сосновский Геннадий Алексеевич", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-999-975-97-34", "1977-11-13"],
+  ["Мотузок Леонид Алексеевич", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-906-046-71-87", "1978-10-10"],
+  ["Хандаков Денис Михайлович", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-985-309-09-62", "1988-06-03"],
+  ["Цыганков Иван Александрович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-927-508-45-88", "1988-03-07"],
+  ["Татуйко Павел Константинович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-999-620-62-77", "1983-03-11"],
+  ["Лебедев Виктор Александрович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-915-806-47-73", "1976-07-12"],
+  ["Аниськин Роман Алексеевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-927-095-07-70", "1985-04-30"],
+  ["Евлампьев Андрей Алексеевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-904-406-78-53", "1995-03-21"],
+  ["Чердаков Сергей Олегович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-960-825-86-45", "1977-11-22"],
+  ["Ким Данил Витальевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-953-712-16-30", "2003-01-08"],
+  ["Войтович Илья Игоревич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-999-602-57-36", "2000-05-11"],
+  ["Старожук Александр Юрьевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-916-587-99-00", "2002-03-12"],
+  ["Глухов Константин Борисович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-951-719-58-63", "1977-12-21"],
+  ["Чистов Александр Викторович", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-977-296-56-69", "1983-04-01"],
+  ["Шкорко Сергей Владимирович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-953-283-24-42", "1990-07-02"],
+  ["Кашаев Михаил Михайлович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-900-316-49-90", "1979-11-16"],
+  ["Капитанов Дмитрий Николаевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-962-148-75-73", "1994-03-05"],
+  ["Ивашов Алексей Анатольевич", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-915-500-53-24", "1983-09-21"],
+  ["Бородин Олег Викторович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-910-750-86-63", "1976-12-17"],
+  ["Майсак Михаил Михайлович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-906-569-84-43", "1981-07-26"],
+  ["Топилин Андрей Иванович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-995-422-23-48", "1965-12-28"],
+  ["Петрищев Никита Александрович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-996-266-10-06", "1987-11-01"],
+  ["Романюк Сергей Игорьевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-910-656-07-40", "1970-12-12"],
+  ["Несудимов Алексей Александрович", "Участок дорожных фрез № 6", "Старший мастер", "8-906-159-71-00", "1975-05-17"],
+  ["Муфтяхятдинов Александр Рафикович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-999-723-83-81", "2003-11-25"],
+  ["Дивисенко Александр Васильевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-905-103-83-92", "1988-07-27"],
+  ["Хайров Айдар Айратович", "Участок дорожных фрез № 6", "Механизатор МТЗ", "8-937-870-73-44", "2004-12-22"],
+  ["Целобанов Владимир Николаевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-996-447-51-47", "1990-06-26"],
+  ["Жук Александр Сергеевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-960-560-18-95", "2001-02-09"],
+  ["Туляков Артем Игоревич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-920-843-32-00", "2002-08-15"],
+  ["Колотуша Денис Игоревич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-988-553-65-08", "1992-04-08"],
+  ["Цыбисов Кирилл Викторович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-903-325-64-26", "2004-07-16"],
+  ["Баранов Михаил Михайлович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-919-297-81-91", "1988-07-01"],
+  ["Грибанов Андрей Васильевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-900-696-88-98", "2003-12-11"],
+  ["Борисенко Сергей Владимирович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-980-304-93-72", "1969-04-12"],
+  ["Поленок Александр Григорьевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-900-369-73-28", "2003-12-14"],
+  ["Родькин Евгений Евгеньевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-953-028-95-07", "2005-08-05"],
+  ["Кочанова Лариса Юрьевна", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-977-537-28-12", "1969-07-13"],
+  ["Лисевский Андрей Александрович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-961-697-93-55", "1974-06-07"],
+  ["Сманцер Алексей Викторович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-929-786-72-73", "1972-10-13"],
+  ["Прокопенкова Виктория Николаевна", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-920-334-06-76", "2005-11-05"],
+  ["Корхов Иван Анатольевич", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-910-307-90-81", "1987-03-16"],
+  ["Гришин Иван Закирович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-960-649-35-21", "1991-01-26"],
+  ["Махмудов Руслан Мунахварович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-996-809-69-17", "2005-09-16"],
+  ["Боков Александр Юрьевич", "Участок дорожных фрез № 6", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-910-280-86-43", "1980-06-29"],
+  ["Бандарчук Анатолий Петрович", "Участок дорожных фрез № 6", "Механизатор МТЗ", "8-902-093-18-93", "1967-09-22"],
+  ["Билалов Альберт Фергатович", "Участок дорожных фрез № 6", "Механизатор МТЗ", "8-937-521-39-51", "1983-04-13"],
+  ["Гайнуллин Альфред Габдрахманович", "Участок дорожных фрез № 6", "Дорожный рабочий", "8-902-736-04-31", "1983-09-27"],
+  ["Кирилов Владимир Александрович", "Участок дорожных фрез № 7", "Старший мастер", "8-906-399-91-20", "1983-10-25"],
+  ["Дребнев Владимир Николаевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-902-223-46-60", "1975-10-11"],
+  ["Исаев Сергей Сергеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-950-709-60-79", "1977-06-10"],
+  ["Докучаев Владимир Борисович", "Участок дорожных фрез № 7", "Механизатор фреза", "8-926-530-35-52", "1960-04-21"],
+  ["Гореликов Роман Владимирович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-985-005-39-08", "1996-03-29"],
+  ["Яфаров Ринат Шамилевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-927-388-47-01", "1994-04-02"],
+  ["Егоров Виктор Сергеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-920-453-56-37", "1985-01-28"],
+  ["Нургалеев Марат Гаппасович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-913-150-05-45", "1970-03-21"],
+  ["Геращенко Евгений Викторович", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-967-971-90-07", "1992-11-06"],
+  ["Субботина Ирина Александровна", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-953-717-07-16", "1976-01-18"],
+  ["Белякова Алла Николаевна", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-915-712-79-14", "1976-06-21"],
+  ["Лысенков Сергей Александрович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-910-728-35-28", "1983-08-15"],
+  ["Аракелян Карен Ншанович", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-996-249-16-19", "1993-07-06"],
+  ["Копылов Виктор Константинович", "Участок дорожных фрез № 7", "Механизатор фреза", "8-903-225-81-00", "1959-03-24"],
+  ["Арифуллин Наиль Ряшидович", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-906-398-87-83", "1995-06-16"],
+  ["Мотузок Эдуард Алексеевич", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-965-246-34-51", "1974-02-01"],
+  ["Крижановский Эдуард Андреевич", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-963-633-85-90", "1975-04-24"],
+  ["Косарыгин Константин Александрович", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-904-208-50-60", "1982-01-06"],
+  ["Мухин Сергей Эдуардович", "Участок дорожных фрез № 7", "Начальник участка", "8-910-615-21-03", "1992-10-11"],
+  ["Кубышев Игорь Бурканович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-927-278-68-97", "1973-01-24"],
+  ["Гербуцкий Сергей Николаевич", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-999-800-42-29", "1974-01-01"],
+  ["Ревин Борис Васильевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-900-110-18-32", "1973-03-11"],
+  ["Чудинов Вадим Николаевич", "Участок дорожных фрез № 7", "Заместитель начальника участка", "8-915-657-36-86", "2000-09-01"],
+  ["Глинский Евгений Викторович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-902-044-62-58", "2000-03-25"],
+  ["Фонарев Иван Евгеньевич", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-964-497-01-71", "1988-09-08"],
+  ["Завьялов Сергей Геннадьевич", "Участок дорожных фрез № 7", "Механизатор МТЗ", "8-915-723-19-91", "1977-10-20"],
+  ["Вербицкий Максим Михайлович", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-926-099-99-15", "1983-12-26"],
+  ["Абаськин Алексей Владимирович", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-919-667-41-57", "1980-11-08"],
+  ["Кочеров Никита Олегович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-915-889-29-79", "2000-05-09"],
+  ["Михайлов Виктор Дмитриевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-964-645-43-28", "2000-02-02"],
+  ["Моисеев Дмитрий Валентинович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-900-519-57-85", "1999-06-15"],
+  ["Горбачев Сергей Петрович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-953-744-72-67", "1970-11-12"],
+  ["Воронцов Алексей Валентинович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-980-638-00-64", "1974-07-16"],
+  ["Самородов Иван Витальевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-962-620-54-59", "1994-01-09"],
+  ["Виданов Дмитрий Сергеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-902-727-64-27", "1992-12-23"],
+  ["Лунёв Роман Владимирович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-996-204-42-63", "2002-05-08"],
+  ["Самойлов Роман Николаевич", "Участок дорожных фрез № 7", "Механизатор МТЗ", "8-905-167-10-53", "1980-03-31"],
+  ["Крылов Иван Иванович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-902-723-31-41", "1989-09-27"],
+  ["Васильев Кирилл Викторович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-977-424-56-36", "1995-07-20"],
+  ["Аникин Евгений Викторович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-951-342-99-39", "1988-05-04"],
+  ["Наумов Алексей Владимирович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-952-027-88-48", "1992-09-26"],
+  ["Лысенков Александр Александрович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-950-709-62-61", "1987-08-23"],
+  ["Пантелеев Александр Алексеевич", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-930-342-35-52", "1995-11-06"],
+  ["Рогатин Алексей Владимирович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-908-466-81-12", "2000-02-02"],
+  ["Алексеев Артур Владимирович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-903-890-14-93", "1994-09-29"],
+  ["Выжанов Геннадий Владимирович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-980-670-12-32", "1983-07-20"],
+  ["Тиунов Артём Алексеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-960-585-96-83", "2005-10-11"],
+  ["Данилин Александр Петрович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-904-009-90-58", "1980-09-24"],
+  ["Ткачев Павел Владимирович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-999-621-48-22", "1988-10-26"],
+  ["Мищук Артем Викторович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-901-121-08-21", "1986-03-23"],
+  ["Борзенков Николай Анатольевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-919-203-23-35", "1980-12-14"],
+  ["Крылов Антон Сергеевич", "Участок дорожных фрез № 7", "Механизатор МТЗ", "8-950-692-64-99", "1992-07-16"],
+  ["Головизнин Дмитрий Александрович", "Участок дорожных фрез № 7", "Старший мастер", "8-987-322-57-55", "1989-08-11"],
+  ["Воронков Александр Сергеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-993-563-28-09", "2004-09-28"],
+  ["Решетов Глеб Игоревич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-986-784-10-00", "2001-12-07"],
+  ["Рамазанов Равиль Нягимович", "Участок дорожных фрез № 7", "Механизатор МТЗ", "8-967-443-75-61", "1973-11-13"],
+  ["Голубев Андрей Владимирович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-980-686-28-24", "1971-10-12"],
+  ["Мухин Александр Александрович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-997-213-86-85", "2001-07-23"],
+  ["Мельников Виктор Владимирович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-988-553-36-90", "1983-06-16"],
+  ["Рыбаков Данила Алексеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-999-629-14-19", "2004-01-18"],
+  ["Худяков Андрей Михайлович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-968-980-22-32", "1987-02-28"],
+  ["Григоров Михаил Павлович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-905-110-32-86", "1966-11-18"],
+  ["Платонов Дмитрий Андреевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-920-664-04-29", "1995-12-11"],
+  ["Бурыкин Михаил Александрович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-977-900-11-71", "1992-11-21"],
+  ["Ольшанников Александр Иванович", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-926-212-52-11", "1977-02-15"],
+  ["Панченко Павел Григорьевич", "Участок дорожных фрез № 7", "Механизатор МТЗ", "8-906-302-98-36", "1977-04-29"],
+  ["Крижановский Артём Эдуардович", "Участок дорожных фрез № 7", "Заместитель начальника участка", "8-985-019-26-67", "1998-02-17"],
+  ["Романишкин Максим Сергеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-996-628-92-36", "1999-04-02"],
+  ["Шамин Захар Тимофеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-908-287-14-99", "2006-10-15"],
+  ["Гниломедов Александр Александрович", "Участок дорожных фрез № 7", "Механизатор МТЗ", "8-904-430-37-01", "2002-05-18"],
+  ["Побережский Вячеслав Владимирович", "Участок дорожных фрез № 7", "Заместитель начальника участка", "8-953-477-07-67", "1989-08-01"],
+  ["Сторож Дмитрий Александрович", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-981-160-01-92", "1984-10-07"],
+  ["Кузнецов Кирилл Алексеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-903-892-77-72", "2007-08-30"],
+  ["Киреев Анатолий Петрович", "Участок дорожных фрез № 7", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-937-698-47-73", "1984-06-16"],
+  ["Маланьин Анатолий Александрович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-919-789-91-57", "1966-10-05"],
+  ["Конорбаев Кайрат Кинжигалиевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-987-328-00-09", "1984-09-22"],
+  ["Ахмедов Александр Александрович", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-917-203-91-73", "1997-03-10"],
+  ["Шляпников Петр Сергеевич", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-937-261-62-48", "1988-09-25"],
+  ["Блинова Людмила Дмитриевна", "Участок дорожных фрез № 7", "Дорожный рабочий", "8-937-516-91-21", "1979-12-29"],
+  ["Мордвинцев Алексей Олегович", "Участок подготовительных работ № 8", "Начальник участка", "8-916-195-90-64", "1978-12-12"],
+  ["Торопов Александр Юрьевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-910-690-19-66", "1980-12-01"],
+  ["Егорченков Дмитрий Николаевич", "Участок подготовительных работ № 8", "Заместитель начальника участка", "8-962-141-02-79", "1989-04-19"],
+  ["Иванов Роман Петрович", "Участок подготовительных работ № 8", "Старший мастер", "8-991-887-70-78", "1986-10-13"],
+  ["Ким Виталий Сергеевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8 953-704-15-49", "1970-08-06"],
+  ["Каргин Александр Васильевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-966-325-74-96", "1976-06-29"],
+  ["Соболев Алексей Геннадьевич", "Участок подготовительных работ № 8", "Заместитель начальника участка", "8-910-309-58-20", "1978-01-16"],
+  ["Нечаев Виктор Александрович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-909-328-58-16", "1987-01-04"],
+  ["Школьник Иван Григорьевич", "Участок подготовительных работ № 8", "Механизатор (экс.погр)", "8-915-216-92-96", "1996-09-08"],
+  ["Пихтов Кирилл Алексеевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-910-723-91-79\n8-915-636-83-66", "1998-04-21"],
+  ["Поцелуев Владимир Витальевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-920-814-73-99", "1963-01-17"],
+  ["Макаров Илья Владимирович", "Участок подготовительных работ № 8", "Старший мастер", "8-999-837-96-24", "1991-07-23"],
+  ["Гордеев Олег Владимирович", "Участок подготовительных работ № 8", "Механизатор термит", "8-920-840-13-88", "1973-02-25"],
+  ["Юров Сергей Иванович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-918-126-29-35", "1988-03-08"],
+  ["Нечаев Николай Сергеевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-915-873-02-54", "1982-01-24"],
+  ["Марочкин Антон Сергеевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-920-221-53-73", "2001-03-19"],
+  ["Куклин Александр Александрович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-904-771-38-11", "2001-02-05"],
+  ["Пимкин Сергей Вячеславович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-906-662-75-57", "1987-12-28"],
+  ["Парлюк Юрий Викторович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-901-683-56-26", "1993-06-12"],
+  ["Семёнов Максим Юрьевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-900-491-16-88", "1994-07-23"],
+  ["Касьянов Алексей Алексеевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-918-749-79-64", "1982-04-27"],
+  ["Мельников Николай Николаевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-996-912-17-95", "1993-06-09"],
+  ["Косарыгин Александр Александрович", "Участок подготовительных работ № 8", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-910-766-36-57", "1979-08-22"],
+  ["Макаров Александр Владимирович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-999-194-62-27", "1986-12-20"],
+  ["Теслин Юрий Валентинович", "Участок подготовительных работ № 8", "Механизатор (экс.погр)", "8-906-503-96-43", "1985-07-17"],
+  ["Бикулов Анвар Радикович", "Участок подготовительных работ № 8", "Машинист машин для устройства оснований и покрытий автомобильных дорог и аэродромов", "8-964-991-85-77", "1973-06-13"],
+  ["Чернявский Александр Юрьевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-905-385-85-86", "1994-09-19"],
+  ["Морозов Александр Викторович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-915-642-07-62", "1977-01-27"],
+  ["Мельниченко Василий Петрович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-961-107-33-29", "1967-04-28"],
+  ["Воронин Сергей Сергеевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-950-765-46-60", "1986-08-21"],
+  ["Конкин Алексей Андреевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-939-856-60-33", "2002-07-17"],
+  ["Маврычева Надежда Алексеевна", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-955-401-73-63", "1977-09-20"],
+  ["Орлов Павел Александрович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-915-641-06-50", "1971-08-07"],
+  ["Лядов Иван Юрьевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-937-457-8641", "1999-03-08"],
+  ["Шарапов Сергей Андреевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-910-751-99-63", "1983-08-31"],
+  ["Смирнов Владимир Михайлович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-900-367-45-13", "1982-04-23"],
+  ["Ветров Иван Викторович", "Участок подготовительных работ № 8", "Механизатор (фронт.погр)", "8-953-719-74-73", "2000-11-05"],
+  ["Афанасов Сергей Васильевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-964-867-99-73", "1983-03-14"],
+  ["Воловик Вадим Викторович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-963-110-07-42", "1989-05-03"],
+  ["Смольников Василий Сергеевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-968-461-19-98", "1988-03-01"],
+  ["Баранов Сергей Владимирович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-967-441-98-64", "1976-12-04"],
+  ["Рекало Максим Александрович", "Участок подготовительных работ № 8", "Механизатор (полнопов)", "8-953-475-36-06", "1995-06-30"],
+  ["Фуголь Александр Александрович", "Участок подготовительных работ № 8", "Механизатор термит", "8-951-400-50-00", "1982-08-17"],
+  ["Филиппов Петр Васильевич", "Участок подготовительных работ № 8", "Механизатор (фронт.погр)", "8-960-881-72-14", "1975-07-22"],
+  ["Абуталипов Рамиль Джамильевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-902-355-33-87", "2001-01-30"],
+  ["Алексеев Виталий Александрович", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-987-317-47-81", "1983-03-02"],
+  ["Салихов Ильдар Мизбахович", "Участок подготовительных работ № 8", "Механизатор термит", "8-963-103-10-09", "1990-12-12"],
+  ["Шарапов Александр Андреевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-916-383-20-90", "1988-03-06"],
+  ["Клевцов Федор Викторович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-937-244-11-60", "1985-09-27"],
+  ["Иванов Дмитрий Николаевич", "Участок подготовительных работ № 8", "Механизатор (экс.погр)", "8-962-478-63-36", "1974-05-05"],
+  ["Сивенок Сергей Викторович", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-929-024-54-01", "1980-01-06"],
+  ["Корецкий Александр Викторович", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-920-838-01-79", "1983-10-28"],
+  ["Пакуев Дмитрий Юрьевич", "Участок подготовительных работ № 8", "Механизатор термит", "8-977-294-90-75", "1992-08-04"],
+  ["Попов Александр Николаевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-906-599-06-55", "1998-04-23"],
+  ["Москальков Олег Николаевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-900-096-67-19", "2004-09-06"],
+  ["Исаченко Вадим Александрович", "Участок подготовительных работ № 8", "Механизатор термит", "8-900-372-45-23", "2003-01-31"],
+  ["Воротилин Дмитрий Сергеевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-910-851-67-22", "1966-12-01"],
+  ["Синельников Алексей Сергеевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-950-922-47-44, 8-920-864-87-66", "2001-12-01"],
+  ["Тонких Александр Викторович", "Участок подготовительных работ № 8", "Механизатор (полнопов)", "8-965-300-74-88", "1971-08-07"],
+  ["Чеков Артем Сергеевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-915-874-44-02", "2004-05-04"],
+  ["Васильняк Владимир Юрьевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-910-782-94-27", "1964-08-15"],
+  ["Комягин Дмитрий Геннадиевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-980-945-93-36", "1991-06-24"],
+  ["Косарим Артём Васильевич", "Участок подготовительных работ № 8", "Механизатор экс.погр.(подменный)", "8-980-309-57-85", "2004-07-09"],
+  ["Голованов Игорь Алексеевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-910-721-59-32", "1969-05-26"],
+  ["Беляев Владислав Алексеевич", "Участок подготовительных работ № 8", "Заместитель начальника участка", "8-962-484-86-89", "1992-08-06"],
+  ["Морозов Иван Павлович", "Участок подготовительных работ № 8", "Механизатор JCB", "8-927-144-78-31", "1970-04-24"],
+  ["Аношин Роман Николаевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-991-220-65-08", "2005-05-12"],
+  ["Пенязь Александр Евгеньевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-900-360-34-73", "2002-06-15"],
+  ["Смирнов Юрий Юрьевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-917-957-80-48", "1987-11-23"],
+  ["Халецкий Петр Владимирович", "Участок подготовительных работ № 8", "Механизатор JCB", "8-977-340-08-86", "1991-07-12"],
+  ["Борисенко Виктор Анатольевич", "Участок подготовительных работ № 8", "Асфальтобетонщик", "8-920-864-87-66", "1976-02-13"],
+  ["Бавин Анатолий Александрович", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-917-098-86-02", "1975-08-26"],
+  ["Михайлов Никита Алексеевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-930-723-19-28", "2002-07-08"],
+  ["Кузьменков Сергей Сергеевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-951-693-39-37", "1996-11-13"],
+  ["Жиров Сергей Александрович", "Участок подготовительных работ № 8", "Механизатор экс.погр.", "8-906-334-61-98", "1973-05-15"],
+  ["Першин Владимир Сергеевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-915-889-00-03", "1987-03-04"],
+  ["Геворкян Максим Андраникович", "Участок подготовительных работ № 8", "Механизатор JCB", "8-980-314-11-86", "1997-09-07"],
+  ["Бровкин Никита Сергеевич", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-915-603-89-43", "1999-04-18"],
+  ["Рыжков Игорь Викторович", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-908-794-48-42", "1984-06-29"],
+  ["Лямов Александр Владимирович", "Участок подготовительных работ № 8", "Дорожный рабочий", "8-925-687-60-08", "1980-12-15"],
+  ["Майданов Сергей Васильевич", "Участок Асфальтирования № 9", "Начальник участка", "8-905-509-31-85", "1985-05-03"],
+  ["Егорченков Владик Николаевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-953-278-65-25", "1990-11-30"],
+  ["Ксенофонтов Александр Сергеевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-900-372-29-12", "2000-04-05"],
+  ["Горбань Дмитрий Сергеевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-920-307-74-63", "2002-04-20"],
+  ["Лукьянов Александр Николаевич", "Участок Асфальтирования № 9", "Механизатор каток", "8-920-800-16-99", "1977-06-15"],
+  ["Саврук Виктор Васильевич", "Участок Асфальтирования № 9", "Механизатор каток", "8-920-285-12-51", "1979-02-01"],
+  ["Синельников Евгений Анатольевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-963-110-71-13", "1985-04-21"],
+  ["Райм Николай Андреевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-905-031-96-84", "1996-02-09"],
+  ["Сирош Алексей Владимирович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-920-202-97-74", "1986-04-02"],
+  ["Терентьев Михаил Александрович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-917-662-09-90", "1970-11-25"],
+  ["Бондарь Пётр Евгеньевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-900-155-57-07", "2002-01-30"],
+  ["Каргин Дмитрий Александрович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-995-413-04-89", "1999-12-12"],
+  ["Черных Игорь Анатольевич", "Участок Асфальтирования № 9", "Механизатор каток", "8-912-765-32-61", "1975-01-20"],
+  ["Воробьев Павел Юрьевич", "Участок Асфальтирования № 9", "Механизатор каток", "8-903-891-73-26", "1978-09-22"],
+  ["Ротаев Максим Владимирович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-995-428-69-21", "2000-08-31"],
+  ["Елин Иван Олегович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-967-441-03-91", "1991-05-26"],
+  ["Семенов Виктор Иванович", "Участок Асфальтирования № 9", "Механизатор каток", "8-961-077-05-81", "1981-01-14"],
+  ["Штырц Владислав Викторович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-904-244-91-46", "2003-11-06"],
+  ["Бойцов Андрей Михайлович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-900-224-62-65", "1994-02-22"],
+  ["Гапеенко Станислав Вячеславович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-930-427-77-94", "2003-07-02"],
+  ["Волостнов Роман Андреевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-999-964-76-35", "2004-01-27"],
+  ["Зудилин Никита Николаевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-953-747-52-06", "2005-01-21"],
+  ["Красавин Андрей Владимирович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-950-706-82-82", "2004-10-17"],
+  ["Еркасов Александр Сергеевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-930-302-62-47", "2002-04-27"],
+  ["Бобков Алексей Викторович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-950-703-64-99", "1990-05-24"],
+  ["Поденный Димитрий Дмитриевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-920 305-01-31", "2000-02-09"],
+  ["Исаев Игорь Алексеевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-999-110-45-07", "2004-03-09"],
+  ["Яндудин Эльмир Русланович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-904-853-49-69", "2004-08-06"],
+  ["Клюев Иван Русланович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-937-434-36-52", "2003-08-11"],
+  ["Извеков Александр Юрьевич", "Участок Асфальтирования № 9", "Машинист укладчика асфальтобетона", "8-999-604-93-01", "1977-05-23"],
+  ["Иванова Альбина Васильевна", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-906-133-78-95", "1965-11-06"],
+  ["Шештанов Владимир Константинович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-937-441-94-97", "1986-11-26"],
+  ["Фейлер Денис Владимирович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-952-192-20-41", "1988-12-13"],
+  ["Ломидзе Александр Георгиевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-927-224-05-39", "1970-12-26"],
+  ["Воронкин Сергей Александрович", "Участок Асфальтирования № 9", "Машинист укладчика асфальтобетона", "8-977-597-55-81", "1981-08-10"],
+  ["Евтюшин Владислав Вадимович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-961-106-12-32", "2003-01-22"],
+  ["Курайсов Игорь Юрьевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-953-630-89-21", "2005-04-04"],
+  ["Яковенко Вячеслав Иванович", "Участок Асфальтирования № 9", "Заместитель начальника участка", "8-928-900-14-72", "1972-06-17"],
+  ["Антонов Андрей Андреевич", "Участок Асфальтирования № 9", "Заместитель начальника участка", "8-900-222-71-71", "1992-11-25"],
+  ["Кокнаев Андрей Михайлович", "Участок Асфальтирования № 9", "Механизатор каток", "8-980-782-79-74", "1981-03-22"],
+  ["Золоило Игорь Игоревич", "Участок Асфальтирования № 9", "Старший мастер", "8-993-309-29-82", "2002-03-14"],
+  ["Евстратов Владимир Николаевич", "Участок Асфальтирования № 9", "Механизатор Терекс", "8-920-832-27-08", "1986-11-07"],
+  ["Хомуткин Геннадий Петрович", "Участок Асфальтирования № 9", "Механизатор Термит", "8-922-841-39-61", "1977-08-08"],
+  ["Попов Федор Константинович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-962-138-50-16", "1982-07-14"],
+  ["Юрченков Антон Александрович", "Участок Асфальтирования № 9", "Заместитель начальника участка", "8-917-075-04-80", "1993-09-08"],
+  ["Акаев Аскар Салаватович", "Участок Асфальтирования № 9", "Механизатор Термит", "8-927-167-53-82", "1995-07-16"],
+  ["Летюшов Евгений Юрьевич", "Участок Асфальтирования № 9", "Механизатор Терекс", "8-952-072-37-96", "1988-12-23"],
+  ["Тюлюкин Анатолий Александрович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-985-086-36-48", "1984-05-17"],
+  ["Поленок Владимир Григорьевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-905-101-34-24", "2003-06-15"],
+  ["Папоян Ншан Жорович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-953-285-43-89", "2004-11-24"],
+  ["Буянов Антон Валерьевич", "Участок Асфальтирования № 9", "Механизатор каток", "8-960-847-32-38", "2000-07-25"],
+  ["Кочетков Александр Владимирович", "Участок Асфальтирования № 9", "Механизатор МТЗ", "8-962-470-10-91", "1999-03-07"],
+  ["Арсентьев Евгений Александрович", "Участок Асфальтирования № 9", "Механизатор подмен", "8-908-298-17-29", "2000-08-21"],
+  ["Павлов Юрий Васильевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-905-345-45-05", "1969-01-27"],
+  ["Шевченко Сергей Александрович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-995-031-80-16", "1977-08-21"],
+  ["Капков Ринат Рафикович", "Участок Асфальтирования № 9", "Старший мастер", "8-920-191-15-57", "1979-12-01"],
+  ["Щербаков Станислав Михайлович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-969-108-18-18", "1995-07-04"],
+  ["Кульков Евгений Викторович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-953-274-03-18", "1991-02-13"],
+  ["Любезнов Алексей Михайлович", "Участок Асфальтирования № 9", "Механизатор каток", "8-960-727-12-47", "1978-10-10"],
+  ["Перов Владислав Анатольевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-927-050-03-43", "1995-07-25"],
+  ["Балакин Роман Сергеевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-908-759-42-21", "2001-02-25"],
+  ["Кузнецов Денис Александрович", "Участок Асфальтирования № 9", "Механизатор каток", "8-960-837-63-30", "2002-08-18"],
+  ["Никитенко Александр Михайлович", "Участок Асфальтирования № 9", "Механизатор каток", "8-927-989-09-45", "1971-11-15"],
+  ["Екименков Артем Сергеевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-953-276-11-64", "1986-01-15"],
+  ["Глазков Максим Анатольевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-965-880-02-14", "1981-01-15"],
+  ["Чебан Николай Александрович", "Участок Асфальтирования № 9", "Механизатор Терекс", "8-919-194-64-72", "1992-03-20"],
+  ["Фоминов Иван Иванович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-927-163-02-40", "1975-01-06"],
+  ["Курепин Александр Евгеньевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-952-076-60-81", "1981-04-17"],
+  ["Лейман Николай Александрович", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-906-404-90-08", "1987-01-18"],
+  ["Надеждин Александр Николаевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-965-655-48-00", "2002-11-24"],
+  ["Ушаков Александр Георгиевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-961-853-62-37", "1972-08-08"],
+  ["Болгов Дмитрий Андреевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-918-519-81-16", "1993-11-22"],
+  ["Рубцов Николай Евгеньевич", "Участок Асфальтирования № 9", "Механизатор каток", "8-927-786-78-18", "1992-02-17"],
+  ["Барышев Роман Александрович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-987-523-27-23", "1992-06-26"],
+  ["Черненков Дмитрий Петрович", "Участок Асфальтирования № 9", "Старший мастер", "8-908-566-25-44", "1972-04-14"],
+  ["Хрулин Алексей Алексеевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-917-697-31-88", "1984-05-12"],
+  ["Гайрбеков Руслан Умарович", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-915-644-36-99", "1999-12-06"],
+  ["Черненков Александр Дмитриевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-901-031-20-46", "2001-06-08"],
+  ["Лебедь Виктор Сергеевич", "Участок Асфальтирования № 9", "Машинист укладчика асфальтобетона", "8-985-710-88-99", "1988-01-01"],
+  ["Колесников Андрей Анатольевич", "Участок Асфальтирования № 9", "Механизатор МТЗ", "8-927-615-32-94", "1969-11-22"],
+  ["Черняк Владимир Сергеевич", "Участок Асфальтирования № 9", "Асфальтобетонщик", "8-915-641-98-96", "1986-08-31"],
+  ["Андреев Николай Васильевич", "Участок Асфальтирования № 9", "Дорожный рабочий", "8-968-184-32-23", "1991-09-23"],
+  ["Синяев Дмитрий Сергеевич", "Участок Асфальтирования № 9", "Механизатор каток", "8-919-810-97-90", "1987-08-10"],
+  ["Харин Эдуард Олегович", "Участок Асфальтирования № 9", "Машинист укладчика асфальтобетона", "8-977-620-91-02", "1978-04-21"],
+  ["Сметанин Федор Витальевич", "Участок Асфальтирования № 9", "Механизатор МТЗ", "8-987-836-24-64", "1998-12-30"]
+];
+
+let _bdFilter = 'all';
+
+function bdSetFilter(name) {
+  _bdFilter = name;
+  // Обновляем кнопки
+  ['today','week','month','all'].forEach(k => {
+    const btn = document.getElementById('bd-tab-' + k);
+    if (!btn) return;
+    if (k === name) {
+      btn.style.background = '#1F4E79';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#1F4E79';
+    } else {
+      btn.style.background = '#fff';
+      btn.style.color = '#1F4E79';
+      btn.style.borderColor = '#d0d7e0';
+    }
+  });
+  renderBirthdaysTab();
+}
+
+function bdParse() {
+  return BIRTHDAYS_DATA.map(row => {
+    const [fio, dept, pos, phone, dob] = row;
+    const m = dob.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const year = +m[1], month = +m[2], day = +m[3];
+    return { fio, dept, pos, phone, year, month, day, dob };
+  }).filter(Boolean);
+}
+
+function bdDaysUntil(month, day) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let bd = new Date(now.getFullYear(), month - 1, day);
+  if (bd < today) bd = new Date(now.getFullYear() + 1, month - 1, day);
+  return Math.round((bd - today) / 86400000);
+}
+
+function bdAgeOnNextBd(year, month, day) {
+  const now = new Date();
+  const yearOfBd = bdDaysUntil(month, day) === 0 && now.getMonth() + 1 === month && now.getDate() === day ? now.getFullYear() : (new Date(now.getFullYear(), month - 1, day) < new Date(now.getFullYear(), now.getMonth(), now.getDate()) ? now.getFullYear() + 1 : now.getFullYear());
+  return yearOfBd - year;
+}
+
+function bdFormatDate(month, day) {
+  const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+  return day + ' ' + months[month-1];
+}
+
+function bdGenderFromMiddleName(fio) {
+  // Простая эвристика: отчество заканчивается на -на/-вна/-чна/-щна → жен., иначе муж.
+  const parts = (fio || '').split(/\s+/);
+  const patronymic = parts[2] || '';
+  if (/(на|чна|щна|вна)$/i.test(patronymic)) return 'f';
+  return 'm';
+}
+
+function renderBirthdaysTab() {
+  const listEl = document.getElementById('bd-list');
+  const counterEl = document.getElementById('bd-counter');
+  if (!listEl) return;
+  
+  const all = bdParse();
+  const search = (document.getElementById('bd-search').value || '').toLowerCase().trim();
+  const deptFilter = (document.getElementById('bd-dept').value || '');
+  
+  // Заполнить список отделов
+  const deptSel = document.getElementById('bd-dept');
+  if (deptSel && deptSel.options.length <= 1) {
+    const depts = [...new Set(all.map(p => p.dept))].sort((a,b) => a.localeCompare(b, 'ru'));
+    deptSel.innerHTML = '<option value="">Все отделы (' + all.length + ')</option>' +
+      depts.map(d => '<option value="' + d.replace(/"/g, '&quot;') + '">' + d + '</option>').join('');
+  }
+  
+  // Считаем дни до ДР для каждого
+  const withDays = all.map(p => Object.assign({}, p, {
+    daysUntil: bdDaysUntil(p.month, p.day),
+    nextAge: bdAgeOnNextBd(p.year, p.month, p.day)
+  }));
+  
+  // Счётчики для табов
+  const cntToday = withDays.filter(p => p.daysUntil === 0).length;
+  const cntWeek = withDays.filter(p => p.daysUntil >= 0 && p.daysUntil <= 7).length;
+  const cntMonth = withDays.filter(p => p.daysUntil >= 0 && p.daysUntil <= 30).length;
+  document.getElementById('bd-cnt-today').textContent = '(' + cntToday + ')';
+  document.getElementById('bd-cnt-week').textContent = '(' + cntWeek + ')';
+  document.getElementById('bd-cnt-month').textContent = '(' + cntMonth + ')';
+  document.getElementById('bd-cnt-all').textContent = '(' + all.length + ')';
+  
+  // Фильтрация
+  let filtered = withDays;
+  if (_bdFilter === 'today') filtered = filtered.filter(p => p.daysUntil === 0);
+  else if (_bdFilter === 'week') filtered = filtered.filter(p => p.daysUntil >= 0 && p.daysUntil <= 7);
+  else if (_bdFilter === 'month') filtered = filtered.filter(p => p.daysUntil >= 0 && p.daysUntil <= 30);
+  
+  if (deptFilter) filtered = filtered.filter(p => p.dept === deptFilter);
+  
+  if (search) {
+    filtered = filtered.filter(p => 
+      p.fio.toLowerCase().includes(search) ||
+      p.dept.toLowerCase().includes(search) ||
+      p.pos.toLowerCase().includes(search) ||
+      (p.phone || '').toLowerCase().includes(search)
+    );
+  }
+  
+  // Сортировка по дням до ДР, затем по ФИО
+  filtered.sort((a, b) => a.daysUntil - b.daysUntil || a.fio.localeCompare(b.fio, 'ru'));
+  
+  counterEl.textContent = 'Найдено: ' + filtered.length + (filtered.length !== all.length ? ' из ' + all.length : '');
+  
+  if (!filtered.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888">Никого не найдено</div>';
+    return;
+  }
+  
+  listEl.innerHTML = filtered.map(p => {
+    const dateStr = bdFormatDate(p.month, p.day);
+    let daysLabel;
+    if (p.daysUntil === 0) daysLabel = '🎉 СЕГОДНЯ';
+    else if (p.daysUntil === 1) daysLabel = 'завтра';
+    else if (p.daysUntil <= 7) daysLabel = 'через ' + p.daysUntil + ' дн.';
+    else daysLabel = 'через ' + p.daysUntil + ' дн.';
+    
+    const isToday = p.daysUntil === 0;
+    const isSoon = p.daysUntil > 0 && p.daysUntil <= 7;
+    
+    const bg = isToday ? '#fef2f2' : (isSoon ? '#fffbeb' : '#fafbfc');
+    const border = isToday ? '#dc2626' : (isSoon ? '#d97706' : '#e0e4ea');
+    const labelColor = isToday ? '#dc2626' : (isSoon ? '#d97706' : '#666');
+    
+    // Телефон — clickable tel:
+    const phoneClean = (p.phone || '').replace(/[^\d+]/g, '');
+    const phoneLink = phoneClean ? '<a href="tel:' + phoneClean + '" style="color:#1F4E79;text-decoration:none">📞 ' + p.phone + '</a>' : '';
+    
+    return '<div style="border:1px solid ' + border + ';border-left:4px solid ' + border + ';border-radius:6px;padding:10px 12px;margin-bottom:8px;background:' + bg + '">' +
+      '<div style="font-weight:600;font-size:14px;color:#1a2733">' + p.fio + '</div>' +
+      '<div style="font-size:12px;color:#555;margin-top:3px">' + p.pos + '</div>' +
+      '<div style="font-size:12px;color:#777;margin-top:2px">' + p.dept + '</div>' +
+      (phoneLink ? '<div style="font-size:13px;margin-top:5px">' + phoneLink + '</div>' : '') +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding-top:6px;border-top:1px dashed #e0e4ea">' +
+      '<span style="font-size:13px;font-weight:600;color:#1F4E79">🎂 ' + dateStr + ' · ' + p.nextAge + ' лет</span>' +
+      '<span style="font-size:12px;font-weight:600;color:' + labelColor + '">' + daysLabel + '</span>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
 </script>
 <!-- ═══ PWA: регистрация service worker + автоматическое обнаружение обновлений ═══ -->
 <script>
