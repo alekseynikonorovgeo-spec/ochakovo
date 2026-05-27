@@ -664,7 +664,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V79';
+const APP_VERSION = 'V80';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -3989,6 +3989,13 @@ function renderPreview() {
 function copyReport() {
   if (!state.profile) { alert('Сначала заполните профиль'); return; }
   if (!state.works.length && !state.materials.length) { alert('Добавьте материалы или работы'); return; }
+  
+  // Напоминание про завершение объекта (только если не отмечено)
+  if (!state.objectComplete) {
+    const ok = confirm('📌 ВНИМАНИЕ\n\nЕсли этим отчётом объект ЗАВЕРШЁН — нажмите «Отмена», прокрутите вниз и нажмите кнопку «🏁 Отметить «Объект завершён»».\n\nИначе нажмите «OK» чтобы продолжить копирование.');
+    if (!ok) return;
+  }
+  
   const text = document.getElementById('preview').textContent;
   copyTextToClipboard(text, 'Скопировано! Откройте BiP и вставьте');
 }
@@ -4106,7 +4113,9 @@ function loadDraft() {
     }
     if (d.works) state.works = d.works;
     if (d.materials) state.materials = d.materials;
-    state.objectComplete = !!d.objectComplete;
+    // objectComplete НЕ восстанавливаем — кнопка всегда выключена при загрузке программы.
+    // Прораб должен явно нажать её, если объект завершён именно сегодня.
+    state.objectComplete = false;
     refreshObjectCompleteUI();
   } catch(e) {}
 }
