@@ -664,7 +664,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V83';
+const APP_VERSION = 'V84';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -960,7 +960,7 @@ const WORKS = {
 
   bk: [
     {id:'razrab_tr_bk', name:'Разработка траншеи под БК', fields:[{k:'L',type:'num',label:'L, м.п.'},{k:'b',type:'num',label:'b, см',v:60},{k:'h',type:'num',label:'h, см',v:40}], tpl:'Разработка траншеи под монтаж бортового камня — L={L} м.п., b={b:m} м, h={h:m} м'},
-    {id:'osn_sch_bk', name:'Устройство основания из щебня по БК', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['5-10','5-20','20-40','40-70'],label:'Фракция',v:'20-40'},{k:'L',type:'num',label:'L, м.п.'},{k:'h',type:'num',label:'h, см',v:10},{k:'b',type:'num',label:'b, см',v:60}], tpl:'Устройство основания из {?type|{type:gen} }щебня по БК фр. {fr} — L={L} м.п., b={b:m} м, h={h:m} м'},
+    {id:'osn_sch_bk', name:'Устройство основания из щебня под БК', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['5-10','5-20','20-40','40-70'],label:'Фракция',v:'20-40'},{k:'L',type:'num',label:'L, м.п.'},{k:'h',type:'num',label:'h, см',v:10},{k:'b',type:'num',label:'b, см',v:60}], tpl:'Устройство основания из {?type|{type:gen} }щебня под БК фр. {fr} — L={L} м.п., b={b:m} м, h={h:m} м'},
     {id:'osn_bet_bk', name:'Устройство бетонного основания под БК', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'L',type:'num',label:'L, м.п.'},{k:'h',type:'num',label:'h, см',v:10},{k:'b',type:'num',label:'b, см',v:60}], tpl:'Устройство бетонного основания под БК из {beton} — L={L} м.п., b={b:m} м, h={h:m} м'},
     {id:'mont_bet', name:'Монтаж бетонного БК (прямой)', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_BET,label:'Марка БК'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж бетонного бортового камня {mark}{?where| на {where}} — L={L} м.п.'},
     {id:'mont_granit', name:'Монтаж гранитного БК (прямой)', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_GR,label:'Марка'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж гранитного бортового камня {mark}{?where| на {where}} — L={L} м.п.'},
