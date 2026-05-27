@@ -735,7 +735,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V93';
+const APP_VERSION = 'V94';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -6092,24 +6092,30 @@ function bdRenderDropdownList() {
     const checked = _bdDropdownTempSet.has(v);
     const vEsc = v.replace(/"/g, '&quot;').replace(/</g, '&lt;');
     const escSingle = v.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    let rightCol;
-    let labelContent;
+    
+    // Визуальная "галочка" слева вместо нативного checkbox (надёжнее на iOS)
+    const checkBox = checked 
+      ? '<div style="flex-shrink:0;width:22px;height:22px;border-radius:5px;background:#1F4E79;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold">✓</div>'
+      : '<div style="flex-shrink:0;width:22px;height:22px;border-radius:5px;background:#fff;border:2px solid #c0c7d0"></div>';
+    
+    let mainCol, rightCol;
     if (key === 'fio') {
       const extraEsc = String(extra || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-      labelContent = '<div style="flex:1;min-width:0">' +
-        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + vEsc + '</div>' +
+      mainCol = '<div style="flex:1;min-width:0">' +
+        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:' + (checked ? '600' : '400') + '">' + vEsc + '</div>' +
         '<div style="color:#888;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + extraEsc + '</div>' +
         '</div>';
       rightCol = '';
     } else {
-      labelContent = '<span style="flex:1">' + vEsc + '</span>';
-      rightCol = '<span style="color:#888;font-size:11px;flex-shrink:0">' + extra + '</span>';
+      mainCol = '<div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:' + (checked ? '600' : '400') + '">' + vEsc + '</div>';
+      rightCol = '<div style="color:#888;font-size:11px;flex-shrink:0;background:#f0f3f7;padding:1px 7px;border-radius:10px;min-width:24px;text-align:center">' + extra + '</div>';
     }
-    return '<label style="display:flex;align-items:center;gap:8px;padding:7px 8px;cursor:pointer;border-radius:4px;font-size:13px;' + (checked ? 'background:#f0f4ff;' : '') + '">' +
-      '<input type="checkbox"' + (checked ? ' checked' : '') + ' onchange="bdToggleItem(\'' + escSingle + '\')" style="flex-shrink:0">' +
-      labelContent +
+    
+    return '<div onclick="bdToggleItem(\'' + escSingle + '\')" style="display:flex;align-items:center;gap:10px;padding:9px 10px;cursor:pointer;border-radius:6px;font-size:14px;margin-bottom:2px;' + (checked ? 'background:#e8f0fa;' : 'background:#fff;border:1px solid #f0f3f7') + '">' +
+      checkBox +
+      mainCol +
       rightCol +
-      '</label>';
+      '</div>';
   }).join('');
 }
 
