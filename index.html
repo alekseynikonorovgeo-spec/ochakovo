@@ -234,6 +234,13 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <button type="button" class="add-btn" style="flex:1;margin-top:0;background:#FFF5E0;border-color:#E0BD8B;color:#854F0B" onclick="openUserTemplates()">📋 Мои шаблоны</button>
   </div>
 
+  <!-- ОБЪЕКТ ЗАВЕРШЁН — отметка о закрытии объекта -->
+  <div id="object-complete-block" style="margin-top:14px;padding:12px;background:#fff5f5;border:2px dashed #dc3545;border-radius:8px;text-align:center">
+    <div style="font-weight:600;font-size:14px;color:#dc3545;margin-bottom:6px">🏁 Завершение объекта</div>
+    <div class="hint" style="margin-bottom:8px;color:#666">Нажмите когда выполняется последняя работа на объекте. В отчёте появится отметка «ОБЪЕКТ ЗАВЕРШЁН».</div>
+    <button type="button" id="object-complete-btn" onclick="toggleObjectComplete()" style="width:100%;padding:10px;font-size:14px;font-weight:600;background:#fff;color:#dc3545;border:1px solid #dc3545;border-radius:6px;cursor:pointer">🏁 Отметить «Объект завершён»</button>
+  </div>
+
   <div class="section-title">Готовый отчёт для BiP</div>
   <div class="card">
     <div class="preview-box" id="preview">—</div>
@@ -657,7 +664,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V78';
+const APP_VERSION = 'V79';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -3956,18 +3963,27 @@ function renderPreview() {
     state._zbiRendered = true;
   }
   // FALLBACK для всех непокрытых блоков передач — выводятся в конце
-  // (когда есть передача, но нет соответствующих работ - например "Получено от уч.5: ЩМА-20")
   renderTransferBlock('asphalt', 'Движение асфальта');
   renderTransferBlock('beton', 'Движение бетона');
   renderTransferBlock('scheben', 'Движение щебня');
   renderTransferBlock('other', 'Движение прочих материалов');
+  // ОБЪЕКТ ЗАВЕРШЁН — отметка в самом низу отчёта
+  if (state.objectComplete) {
+    lines.push('');
+    lines.push('');
+    lines.push('╔═══════════════════════════════╗');
+    lines.push('║  🏁 ОБЪЕКТ ЗАВЕРШЁН  🏁  ║');
+    lines.push('╚═══════════════════════════════╝');
+  }
   // Рендер: HTML с раскраской перерасхода/экономии, но textContent сохраняет чистый текст для копирования
   const fullText = lines.join('\n');
   const escaped = fullText.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   const colored = escaped
     .replace(/🔴 Перерасход: \+[\d,.]+ т/g, m => `<span style="color:#c00;font-weight:600">${m}</span>`)
     .replace(/🟢 Экономия: -?[\d,.]+ т/g, m => `<span style="color:#0a8a0a;font-weight:600">${m}</span>`)
-    .replace(/✓ Баланс сходится/g, m => `<span style="color:#1F4E79;font-weight:600">${m}</span>`);
+    .replace(/✓ Баланс сходится/g, m => `<span style="color:#1F4E79;font-weight:600">${m}</span>`)
+    .replace(/🏁 ОБЪЕКТ ЗАВЕРШЁН  🏁/g, m => `<span style="color:#dc3545;font-weight:700;font-size:18px">${m}</span>`)
+    .replace(/╔═══════════════════════════════╗|╚═══════════════════════════════╝|║  /g, m => `<span style="color:#dc3545;font-weight:700">${m}</span>`);
   document.getElementById('preview').innerHTML = colored;
 }
 function copyReport() {
@@ -4064,7 +4080,8 @@ function saveDraft(silent) {
     te: document.getElementById('time-end').value,
     direction: document.getElementById('direction').value,
     joint_uchs: document.getElementById('joint-uchs').value,
-    works: state.works, materials: state.materials
+    works: state.works, materials: state.materials,
+    objectComplete: state.objectComplete || false
   }));
   if (!silent) toast('Черновик сохранён');
 }
@@ -4073,8 +4090,6 @@ function loadDraft() {
   if (!saved) return;
   try {
     const d = JSON.parse(saved);
-    // Дату НЕ восстанавливаем из черновика — она всегда стартует с сегодняшней.
-    // Прораб может вручную поменять её для отчёта за прошлый день.
     if (d.shift) document.getElementById('shift').value = d.shift;
     if (d.ts) document.getElementById('time-start').value = d.ts;
     if (d.te) document.getElementById('time-end').value = d.te;
@@ -4091,6 +4106,8 @@ function loadDraft() {
     }
     if (d.works) state.works = d.works;
     if (d.materials) state.materials = d.materials;
+    state.objectComplete = !!d.objectComplete;
+    refreshObjectCompleteUI();
   } catch(e) {}
 }
 function toast(msg) {
@@ -4129,6 +4146,56 @@ renderMaterials(); renderWorks(); renderPreview();
   el.addEventListener('input', () => { saveDraft(true); renderPreview(); });
 });
 if (!state.profile) setTimeout(() => openProfile(), 300);
+
+// ═══════════════════════════════════════════════════════════════════
+// ОБЪЕКТ ЗАВЕРШЁН — отметка о завершении объекта
+// ═══════════════════════════════════════════════════════════════════
+function toggleObjectComplete() {
+  if (!state.objectComplete) {
+    const obj = (state.profile && state.profile.obj) || 'этом объекте';
+    if (!confirm(`Отметить, что объект «${obj}» ЗАВЕРШЁН?\n\nВ отчёте появится крупная красная отметка «ОБЪЕКТ ЗАВЕРШЁН» в самом низу.\n\nЭто отметка для разработчика и других участков — что работы на объекте окончены.`)) return;
+    state.objectComplete = true;
+  } else {
+    if (!confirm('Снять отметку «Объект завершён»?')) return;
+    state.objectComplete = false;
+  }
+  refreshObjectCompleteUI();
+  saveDraft(true);
+  renderPreview();
+}
+
+function refreshObjectCompleteUI() {
+  const btn = document.getElementById('object-complete-btn');
+  const block = document.getElementById('object-complete-block');
+  if (!btn || !block) return;
+  if (state.objectComplete) {
+    btn.textContent = '✓ ОБЪЕКТ ЗАВЕРШЁН — снять отметку';
+    btn.style.background = '#dc3545';
+    btn.style.color = '#fff';
+    block.style.background = '#fde2e2';
+    block.style.borderStyle = 'solid';
+  } else {
+    btn.textContent = '🏁 Отметить «Объект завершён»';
+    btn.style.background = '#fff';
+    btn.style.color = '#dc3545';
+    block.style.background = '#fff5f5';
+    block.style.borderStyle = 'dashed';
+  }
+}
+
+// Сбросим при clearAll
+(function hookClearAll() {
+  const origClear = window.clearAll;
+  if (typeof origClear === 'function') {
+    window.clearAll = function() {
+      state.objectComplete = false;
+      refreshObjectCompleteUI();
+      return origClear.apply(this, arguments);
+    };
+  }
+})();
+
+setTimeout(() => refreshObjectCompleteUI(), 200);
 
 // ═══════════════════════════════════════════════════════════════════
 // АРХИВ ОТЧЁТОВ (IndexedDB)
