@@ -1,8 +1,8 @@
 // ═══ ОЧАКОВО Конструктор отчёта — Service Worker ═══
-// При обновлении HTML или иконок — увеличивайте номер версии (v2 → v3 → v4 ...)
+// При обновлении HTML или иконок — увеличивайте номер версии (v4 → v5 → v6 ...)
 // чтобы новая версия гарантированно скачалась у всех прорабов.
 
-const CACHE_NAME = 'ochakovo-v4';
+const CACHE_NAME = 'ochakovo-v7';
 const FILES_TO_CACHE = [
   './',
   './index.html',
@@ -14,13 +14,20 @@ const FILES_TO_CACHE = [
   './icons/apple-touch-icon.png'
 ];
 
-// Установка — кешируем все статические файлы
+// Установка — кешируем все статические файлы.
+// БЕЗ skipWaiting() — новый SW будет ждать пока пользователь нажмёт "Обновить сейчас"
+// в баннере (или закроет все вкладки приложения).
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(FILES_TO_CACHE))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE))
   );
+});
+
+// Получили сообщение от приложения — пользователь нажал "Обновить сейчас"
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Активация — удаляем старые версии кеша

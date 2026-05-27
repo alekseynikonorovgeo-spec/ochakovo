@@ -138,11 +138,18 @@ button:disabled{opacity:.4;cursor:not-allowed}
 
 <header>
   <div>
-    <h1>ОЧАКОВО — Отчёт</h1>
+    <h1>ОЧАКОВО — Отчёт <span id="app-version-tag" style="font-size:11px;font-weight:400;opacity:0.6;margin-left:6px"></span></h1>
     <div class="sub" id="hdr-date">—</div>
   </div>
   <button onclick="openProfile()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:6px 12px;font-size:12px" id="profile-chip">Профиль</button>
 </header>
+
+<!-- Баннер обновления PWA (скрыт по умолчанию) -->
+<div id="update-banner" style="display:none;position:sticky;top:0;z-index:1000;background:#16a34a;color:#fff;padding:12px 16px;text-align:center;font-size:14px;box-shadow:0 2px 4px rgba(0,0,0,0.2)">
+  <span style="font-weight:600">✨ Доступна новая версия программы</span>
+  <button id="update-now-btn" style="margin-left:12px;background:#fff;color:#16a34a;border:none;padding:6px 14px;font-size:13px;font-weight:600;border-radius:4px;cursor:pointer">Обновить сейчас</button>
+  <button id="update-later-btn" style="margin-left:6px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.5);padding:6px 12px;font-size:13px;border-radius:4px;cursor:pointer">Позже</button>
+</div>
 
 <div class="container">
 
@@ -575,6 +582,18 @@ button:disabled{opacity:.4;cursor:not-allowed}
 
 <script>
 // ============================================================
+// ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
+// При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
+// ============================================================
+const APP_VERSION = 'V74';
+
+// Покажем версию в шапке после загрузки DOM
+document.addEventListener('DOMContentLoaded', () => {
+  const tag = document.getElementById('app-version-tag');
+  if (tag) tag.textContent = APP_VERSION;
+});
+
+// ============================================================
 // ТЕСТОВЫЙ РЕЖИМ — Дата истечения
 // При необходимости продлить — изменить TRIAL_EXPIRY на новую дату
 // ============================================================
@@ -752,7 +771,7 @@ const TRANSFER_MATERIALS = [
   // Асфальт
   'ЩМА-20','ЩМА-15','ПД-2','КЗБ-1','МЗБ-1','МЗВ-2',
   // Щебень (по фракциям)
-  'Щебень фр. 20-40','Щебень фр. 5-20','Щебень фр. 40-70','Щебень фр. 3-10',
+  'Щебень фр. 20-40','Щебень фр. 5-20','Щебень фр. 40-70','Щебень фр. 5-10','Щебень фр. 3-10',
   // Бетон (по маркам)
   'Бетон В7,5П2','Бетон В15Ж4','Бетон В15П2','Бетон В15П3','Бетон В20','Бетон В22,5','Бетон В25','Бетон В30',
   // ЦПС
@@ -3081,6 +3100,108 @@ function renderPreview() {
   }
   
   // Универсальная функция баланса материала за смену
+  // Специальный баланс ЩЕБНЯ — раздельно по фракциям (с тоннами)
+  function renderSchebBalance(schebMats, transfers, usedMats) {
+    // Собираем фракции из всех источников
+    const fractions = new Set();
+    const extractFr = (matStr) => {
+      const m = String(matStr || '').match(/фр\.\s*(\S+)/);
+      return m ? m[1] : null;
+    };
+    (schebMats || []).forEach(m => {
+      const fr = (m.values && m.values.fr); if (fr) fractions.add(fr);
+    });
+    (usedMats || []).forEach(m => {
+      const fr = (m.values && m.values.fr); if (fr) fractions.add(fr);
+    });
+    (transfers || []).forEach(w => {
+      const fr = extractFr(w.values && w.values.mat); if (fr) fractions.add(fr);
+    });
+    if (fractions.size === 0) return;
+    
+    // Сортировка фракций по нижней границе диапазона (3-10, 5-10, 5-20, 20-40, 40-70)
+    const sortedFractions = [...fractions].sort((a, b) => {
+      const numA = parseFloat(a.split('-')[0]) || 0;
+      const numB = parseFloat(b.split('-')[0]) || 0;
+      return numA - numB;
+    });
+    
+    const fmt = (v) => (Math.round(v * 1000) / 1000).toString().replace('.', ',');
+    const fmtT = (v) => (Math.round(v * 100) / 100).toString().replace('.', ',');
+    
+    // Для каждой фракции — отдельный блок
+    const blocks = [];
+    sortedFractions.forEach(fr => {
+      let zavoz = 0, fromPK = 0, toPK = 0, fromUch = 0, toUch = 0, used = 0;
+      let density = null;
+      const types = new Set();
+      
+      (schebMats || []).forEach(m => {
+        if (!m.values || m.values.fr !== fr) return;
+        const V = parseFloat(String(m.values.V || '0').replace(',', '.')) || 0;
+        zavoz += V;
+        if (m.values.type) types.add(m.values.type);
+        // Плотность из материала приёма (если указана) — используем для тонн
+        let dRaw = m.values.density || '';
+        let d = parseFloat(String(dRaw).replace(',', '.'));
+        if (d && d > 0 && !density) density = d;
+      });
+      if (!density) density = getSchebDensity(fr);
+      
+      (transfers || []).forEach(w => {
+        if (extractFr(w.values && w.values.mat) !== fr) return;
+        const V = parseFloat(String((w.values && w.values.amount) || '0').replace(',', '.')) || 0;
+        if (w.workId === 'tr_get_pk') fromPK += V;
+        else if (w.workId === 'tr_give_pk') toPK += V;
+        else if (w.workId === 'tr_get') fromUch += V;
+        else if (w.workId === 'tr_give') toUch += V;
+      });
+      
+      (usedMats || []).forEach(m => {
+        if (!m.values || m.values.fr !== fr) return;
+        const V = parseFloat(String(m.values.V || '0').replace(',', '.')) || 0;
+        used += V;
+        if (m.values.type) types.add(m.values.type);
+      });
+      
+      const totalIn = zavoz + fromPK + fromUch;
+      const totalOut = toPK + toUch + used;
+      if (totalIn === 0 && totalOut === 0) return; // пропускаем фракции без движений
+      
+      // Подпись фракции — с типом если есть
+      let header;
+      if (types.size === 1) {
+        const t = [...types][0];
+        const tCap = t[0].toUpperCase() + t.slice(1);
+        header = `  ${tCap} щебень фр. ${fr}:`;
+      } else if (types.size > 1) {
+        header = `  Щебень фр. ${fr} (разных типов):`;
+      } else {
+        header = `  Щебень фр. ${fr}:`;
+      }
+      
+      const block = [header];
+      if (zavoz)    block.push(`    Завезено (с карьера/поставщика): ${fmt(zavoz)} м³ (= ${fmtT(zavoz * density)} т)`);
+      if (fromPK)   block.push(`    Получено с ПК: ${fmt(fromPK)} м³ (= ${fmtT(fromPK * density)} т)`);
+      if (fromUch)  block.push(`    Получено от других участков: ${fmt(fromUch)} м³ (= ${fmtT(fromUch * density)} т)`);
+      if (toPK)     block.push(`    Передано на ПК: ${fmt(toPK)} м³ (= ${fmtT(toPK * density)} т)`);
+      if (toUch)    block.push(`    Передано на другие участки: ${fmt(toUch)} м³ (= ${fmtT(toUch * density)} т)`);
+      if (used)     block.push(`    → Использовано на работы: ${fmt(used)} м³ (= ${fmtT(used * density)} т)`);
+      blocks.push(block);
+    });
+    
+    if (blocks.length === 0) return;
+    
+    lines.push('');
+    lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    lines.push('📊 БАЛАНС ЩЕБНЯ ЗА СМЕНУ');
+    lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    blocks.forEach((block, i) => {
+      if (i > 0) lines.push('');
+      block.forEach(l => lines.push(l));
+    });
+  }
+
   // matNameGen: 'щебня' / 'песка' / 'бетона' / 'асфальта' (родит. падеж)
   // mats: массив принятых материалов (с .values.V)
   // transfers: массив работ из transfer с этим материалом
@@ -3451,6 +3572,17 @@ function renderPreview() {
             if (schebUsedMats.length) {
               lines.push('');
               pushBorder('📤 ИСПОЛЬЗОВАНО ЩЕБНЯ НА РАБОТЫ');
+              // Найдём плотности из приёма (по type+fr) — чтобы в расходе тоже использовать ту же плотность
+              const densityByKey = {};
+              schebMats.forEach(m => {
+                const fr = (m.values && m.values.fr) || '—';
+                const type = (m.values && m.values.type) || '';
+                const key = type ? `${type}|${fr}` : `|${fr}`;
+                let dRaw = (m.values && m.values.density) || '';
+                let d = parseFloat(String(dRaw).replace(',', '.'));
+                if (!d || d <= 0) d = getSchebDensity(fr);
+                if (!densityByKey[key]) densityByKey[key] = d;
+              });
               schebUsedMats.forEach(m => {
                 const fr = (m.values && m.values.fr) || '—';
                 const type = (m.values && m.values.type) || '';
@@ -3458,13 +3590,18 @@ function renderPreview() {
                 const V = parseFloat(String(Vraw).replace(',', '.')) || 0;
                 const totalStr = (Math.round(V * 1000) / 1000).toString().replace('.', ',');
                 const note = (m.values && m.values.note) || '';
+                // Тонны
+                const key = type ? `${type}|${fr}` : `|${fr}`;
+                const d = densityByKey[key] || getSchebDensity(fr);
+                const tons = V * d;
+                const tonsStr = (Math.round(tons * 100) / 100).toString().replace('.', ',');
                 // Капитализация типа: "известняковый" → "Известняковый щебень"
                 let line;
                 if (type) {
                   const typeCap = type[0].toUpperCase() + type.slice(1);
-                  line = `  ${typeCap} щебень фр. ${fr} — ${totalStr} м³`;
+                  line = `  ${typeCap} щебень фр. ${fr} — ${totalStr} м³ (= ${tonsStr} т)`;
                 } else {
-                  line = `  Щебень фр. ${fr} — ${totalStr} м³`;
+                  line = `  Щебень фр. ${fr} — ${totalStr} м³ (= ${tonsStr} т)`;
                 }
                 if (note) line += ` (${note})`;
                 lines.push(line);
@@ -3474,7 +3611,7 @@ function renderPreview() {
               renderTransferBlock('scheben', 'Движение щебня');
             }
             // Баланс щебня — приход / расход / штабель
-            renderMaterialBalance('щебня', 'м³', schebMats, transferByType.scheben, schebUsedMats);
+            renderSchebBalance(schebMats, transferByType.scheben, schebUsedMats);
             state._schebBalanceRendered = true;
             // Принято песка за смену — после щебня в том же разделе
             if (pesokMats.length) {
@@ -3629,18 +3766,41 @@ function renderPreview() {
     if (schebUsedMats.length) {
       lines.push('');
       pushBorder('📤 ИСПОЛЬЗОВАНО ЩЕБНЯ НА РАБОТЫ');
+      const densityByKeyFb = {};
+      schebMats.forEach(m => {
+        const fr = (m.values && m.values.fr) || '—';
+        const type = (m.values && m.values.type) || '';
+        const key = type ? `${type}|${fr}` : `|${fr}`;
+        let dRaw = (m.values && m.values.density) || '';
+        let d = parseFloat(String(dRaw).replace(',', '.'));
+        if (!d || d <= 0) d = getSchebDensity(fr);
+        if (!densityByKeyFb[key]) densityByKeyFb[key] = d;
+      });
       schebUsedMats.forEach(m => {
         const fr = (m.values && m.values.fr) || '—';
+        const type = (m.values && m.values.type) || '';
         const Vraw = (m.values && m.values.V) || '0';
         const V = parseFloat(String(Vraw).replace(',', '.')) || 0;
         const totalStr = (Math.round(V * 1000) / 1000).toString().replace('.', ',');
         const note = (m.values && m.values.note) || '';
-        lines.push(`  Щебень фр. ${fr} — ${totalStr} м³${note ? ` (${note})` : ''}`);
+        const key = type ? `${type}|${fr}` : `|${fr}`;
+        const d = densityByKeyFb[key] || getSchebDensity(fr);
+        const tons = V * d;
+        const tonsStr = (Math.round(tons * 100) / 100).toString().replace('.', ',');
+        let line;
+        if (type) {
+          const typeCap = type[0].toUpperCase() + type.slice(1);
+          line = `  ${typeCap} щебень фр. ${fr} — ${totalStr} м³ (= ${tonsStr} т)`;
+        } else {
+          line = `  Щебень фр. ${fr} — ${totalStr} м³ (= ${tonsStr} т)`;
+        }
+        if (note) line += ` (${note})`;
+        lines.push(line);
       });
     }
     if (transferByType.scheben.length) renderTransferBlock('scheben', 'Движение щебня');
     if (!state._schebBalanceRendered) {
-      renderMaterialBalance('щебня', 'м³', schebMats, transferByType.scheben, schebUsedMats);
+      renderSchebBalance(schebMats, transferByType.scheben, schebUsedMats);
       state._schebBalanceRendered = true;
     }
   }
@@ -3890,14 +4050,44 @@ renderMaterials(); renderWorks(); renderPreview();
 });
 if (!state.profile) setTimeout(() => openProfile(), 300);
 </script>
-<!-- ═══ PWA: регистрация service worker для офлайн-работы ═══ -->
+<!-- ═══ PWA: регистрация service worker + автоматическое обнаружение обновлений ═══ -->
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => console.log('PWA готов:', reg.scope))
-      .catch(err => console.log('PWA ошибка:', err));
+  let isReloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (isReloading) return;
+    isReloading = true;
+    window.location.reload();
   });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('PWA готов:', reg.scope);
+      setInterval(() => reg.update().catch(()=>{}), 30 * 60 * 1000);
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner(newWorker);
+          }
+        });
+      });
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        showUpdateBanner(reg.waiting);
+      }
+    }).catch(err => console.log('PWA ошибка:', err));
+  });
+  function showUpdateBanner(worker) {
+    const banner = document.getElementById('update-banner');
+    if (!banner) return;
+    banner.style.display = 'block';
+    document.getElementById('update-now-btn').onclick = () => {
+      worker.postMessage({ type: 'SKIP_WAITING' });
+    };
+    document.getElementById('update-later-btn').onclick = () => {
+      banner.style.display = 'none';
+    };
+  }
 }
 </script>
 </body>
