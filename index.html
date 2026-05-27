@@ -392,9 +392,14 @@ button:disabled{opacity:.4;cursor:not-allowed}
       </div>
       
       <!-- Кнопки экспорта -->
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         <button type="button" class="primary" style="flex:1;min-width:130px" onclick="exportArchiveFiltered()">💾 Скачать <span id="archive-export-label">весь архив</span></button>
-        <button type="button" style="flex:1;min-width:130px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0" onclick="importArchiveFromFile()">📥 Загрузить архив</button>
+        <button type="button" style="flex:1;min-width:130px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0" onclick="importArchiveFromFile()">📥 Загрузить файлы</button>
+      </div>
+      <!-- Дополнительные кнопки разработчика -->
+      <div id="archive-admin-buttons" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        <button type="button" style="flex:1;min-width:130px;background:#E8F2DD;color:#395619;border:1px solid #8EAB59" onclick="openBipImport()">📋 Импорт из BiP</button>
+        <button type="button" style="flex:1;min-width:130px;background:#fff3cd;color:#856404;border:1px solid #ffc107" onclick="openAnalytics()">📊 Аналитика</button>
       </div>
       <div id="archive-counter" style="font-size:12px;color:#666;margin-bottom:14px;text-align:center"></div>
       
@@ -407,6 +412,127 @@ button:disabled{opacity:.4;cursor:not-allowed}
 
 <!-- Скрытое поле для импорта файла -->
 <input type="file" id="archive-import-input" accept=".json" multiple style="display:none" onchange="onArchiveFileSelected(event)">
+
+<!-- Модалка: инструкция как получить GitHub-токен -->
+<div class="form-overlay" id="token-instruction-overlay">
+  <div class="form-modal" style="max-width:600px">
+    <h2>📖 Как получить токен GitHub <button class="close-btn" onclick="closeTokenInstruction()">×</button></h2>
+    <div style="font-size:13px;line-height:1.6;color:#333">
+      <p><strong>Шаг 1.</strong> Откройте <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener" style="color:#1F4E79;font-weight:600">github.com/settings/tokens</a> (вкладка «Fine-grained tokens»)</p>
+      
+      <p><strong>Шаг 2.</strong> Нажмите <code style="background:#f0f3f7;padding:2px 6px;border-radius:3px">Generate new token</code></p>
+      
+      <p><strong>Шаг 3.</strong> Заполните:</p>
+      <ul style="margin:6px 0 12px 18px;padding:0">
+        <li><strong>Token name:</strong> «ОЧАКОВО Конструктор»</li>
+        <li><strong>Expiration:</strong> 1 год (либо без срока)</li>
+        <li><strong>Repository access:</strong> «Only select repositories» → выбрать ваш репозиторий <code>ochakovo-report</code></li>
+      </ul>
+      
+      <p><strong>Шаг 4.</strong> В разделе <code>Repository permissions</code> найдите <code>Contents</code> и выберите <strong>Read and write</strong>. Остальные разрешения не нужны.</p>
+      
+      <p><strong>Шаг 5.</strong> Внизу нажмите <code style="background:#f0f3f7;padding:2px 6px;border-radius:3px">Generate token</code>. Появится строка вида <code>github_pat_xxxxxxxxxxxx</code> — <strong>скопируйте её сразу</strong>! Она показывается только один раз.</p>
+      
+      <p><strong>Шаг 6.</strong> Вставьте токен в поле «Токен доступа» в настройках выше.</p>
+      
+      <div style="background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:10px 12px;border-radius:6px;margin-top:14px;font-size:12px">
+        <strong>⚠ Безопасность:</strong> Токен — это пароль. Никому не передавайте. Если потеряли устройство — сразу отзовите токен на GitHub: Settings → Tokens → Revoke. Программа перестанет публиковать, нужно будет создать новый.
+      </div>
+      
+      <div style="background:#e8f4f8;border:1px solid #b3d8e6;color:#1F4E79;padding:10px 12px;border-radius:6px;margin-top:10px;font-size:12px">
+        <strong>ℹ Если репозитория ещё нет:</strong> создайте его на GitHub — кнопка <code>+</code> в правом верхнем углу → New repository → имя <code>ochakovo-report</code> → Public → Create. Затем загрузите в него файлы из пакета <code>ochakovo-report</code>.
+      </div>
+    </div>
+    <button type="button" class="primary" style="width:100%;margin-top:14px" onclick="closeTokenInstruction()">Понятно</button>
+  </div>
+</div>
+
+<!-- Модалка: Импорт из BiP -->
+<div class="form-overlay" id="bip-import-overlay">
+  <div class="form-modal" style="max-width:600px">
+    <h2>📋 Импорт отчётов из BiP <button class="close-btn" onclick="closeBipImport()">×</button></h2>
+    <div class="hint" style="margin-bottom:10px">Вставьте текст одного или нескольких отчётов из чата BiP (можно копировать всё сообщение целиком вместе с шапкой). Программа распознает работы и материалы и добавит в архив.</div>
+    <textarea id="bip-import-text" rows="14" placeholder="Вставьте сюда текст отчёта из BiP. Можно вставить несколько отчётов подряд — программа распознает каждый по шапке «Дата: ...»" style="width:100%;font-family:monospace;font-size:12px;padding:10px;border:1px solid #d0d7e0;border-radius:4px;resize:vertical"></textarea>
+    <div style="margin-top:10px">
+      <button type="button" class="primary" style="width:100%" onclick="parseBipText()">🔍 Распознать отчёты</button>
+    </div>
+    <div id="bip-import-preview" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- Модалка: Аналитика -->
+<div class="form-overlay" id="analytics-overlay">
+  <div class="form-modal" style="max-width:780px">
+    <h2>📊 Аналитика смены <button class="close-btn" onclick="closeAnalytics()">×</button></h2>
+    
+    <div class="hint" style="margin-bottom:10px">Сводка по объектам и участкам. Смена 22.05 = день 22.05 + ночь 22-23.05 — оба относятся к смене 22.05.</div>
+    
+    <!-- Фильтры -->
+    <div class="row" style="margin-bottom:8px">
+      <div>
+        <label>Период</label>
+        <select id="analytics-period" onchange="renderAnalytics()">
+          <option value="yesterday">Вчера</option>
+          <option value="today">Сегодня</option>
+          <option value="week">Эта неделя</option>
+          <option value="month">Этот месяц</option>
+          <option value="day">Конкретная смена</option>
+          <option value="range">Произвольный период</option>
+        </select>
+      </div>
+      <div>
+        <label>Объект</label>
+        <select id="analytics-obj" onchange="renderAnalytics()"><option value="">Все объекты</option></select>
+      </div>
+    </div>
+    
+    <div class="row" id="analytics-date-row" style="display:none;margin-bottom:8px">
+      <div>
+        <label>Дата смены</label>
+        <input type="date" id="analytics-date-single" onchange="renderAnalytics()">
+      </div>
+      <div></div>
+    </div>
+    
+    <div class="row" id="analytics-range-row" style="display:none;margin-bottom:8px">
+      <div>
+        <label>С</label>
+        <input type="date" id="analytics-from" onchange="renderAnalytics()">
+      </div>
+      <div>
+        <label>По</label>
+        <input type="date" id="analytics-to" onchange="renderAnalytics()">
+      </div>
+    </div>
+    
+    <div class="row" style="margin-bottom:10px">
+      <div>
+        <label>Участок</label>
+        <select id="analytics-uch" onchange="renderAnalytics()"><option value="">Все участки</option></select>
+      </div>
+      <div>
+        <label>Группировка</label>
+        <select id="analytics-group" onchange="renderAnalytics()">
+          <option value="obj-work">По объектам → работам</option>
+          <option value="obj-uch">По объектам → участкам</option>
+          <option value="uch-work">По участкам → работам</option>
+          <option value="work">Только по работам (общая)</option>
+        </select>
+      </div>
+    </div>
+    
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <button type="button" class="primary" style="flex:1;min-width:140px" onclick="copyAnalyticsToClipboard()">📋 Скопировать сводку</button>
+      <button type="button" style="flex:1;min-width:140px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0" onclick="renderAnalytics()">🔄 Обновить</button>
+    </div>
+    <div style="margin-bottom:10px">
+      <button type="button" style="width:100%;background:#16a34a;color:#fff;border:none;padding:10px;font-weight:600;border-radius:4px" onclick="publishToGithub()">📤 Опубликовать для руководителя</button>
+      <div id="publish-status" style="font-size:11px;color:#666;margin-top:4px;text-align:center"></div>
+    </div>
+    
+    <div id="analytics-output" style="background:#f9fafb;border:1px solid #e0e4ea;border-radius:6px;padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
 
 <div class="form-overlay" id="profile-overlay">
   <div class="form-modal">
@@ -453,6 +579,30 @@ button:disabled{opacity:.4;cursor:not-allowed}
       <div id="admin-status" style="font-size:13px;color:#666;margin-bottom:8px">Выключен — доступ только к своим отчётам</div>
       <button type="button" id="admin-toggle-btn" onclick="toggleAdminMode()" style="width:100%;font-size:13px;padding:9px;background:#fff;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px">Включить</button>
       <div class="hint" style="margin-top:6px;font-size:11px;color:#888">Для анализа и оптимизации данных. В этом режиме на вкладке «Архив» появится возможность принимать архивы от всех прорабов и фильтровать их по участку, прорабу, объекту и периоду.</div>
+    </div>
+    
+    <!-- Настройки публикации (только в режиме разработчика) -->
+    <div id="publish-settings-block" style="display:none;margin-top:14px;padding:12px;background:#f0f7fa;border:1px solid #b3d8e6;border-radius:6px">
+      <div style="font-weight:600;font-size:14px;color:#1F4E79;margin-bottom:8px">📤 Публикация сводки на GitHub</div>
+      <div class="hint" style="margin-bottom:10px;font-size:12px;color:#555">Настройте один раз — после этого можно публиковать аналитику для руководителя одной кнопкой из вкладки «📚 Архив».</div>
+      
+      <div class="field-group">
+        <label>Репозиторий GitHub</label>
+        <input type="text" id="pf-gh-repo" placeholder="ваш-ник/ochakovo-report" autocomplete="off">
+        <div class="hint" style="font-size:11px;color:#888;margin-top:3px">Формат: <code>имя-пользователя/имя-репозитория</code></div>
+      </div>
+      
+      <div class="field-group">
+        <label>Токен доступа (Personal access token)</label>
+        <input type="password" id="pf-gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+        <div class="hint" style="font-size:11px;color:#888;margin-top:3px">Токен сохраняется только на этом устройстве и нигде не передаётся, кроме GitHub.</div>
+      </div>
+      
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button type="button" onclick="testGithubConnection()" style="flex:1;font-size:13px;padding:8px;background:#fff;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px">Проверить соединение</button>
+        <button type="button" onclick="openTokenInstruction()" style="flex:1;font-size:13px;padding:8px;background:#fff;color:#666;border:1px solid #d0d7e0;border-radius:4px">📖 Как получить токен</button>
+      </div>
+      <div id="gh-test-result" style="margin-top:8px;font-size:12px"></div>
     </div>
     
     <button class="primary" style="width:100%;margin-top:10px" onclick="saveProfile()">Сохранить</button>
@@ -664,7 +814,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V80';
+const APP_VERSION = 'V82';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -4248,6 +4398,8 @@ function refreshAdminUI() {
   const admin = isAdminMode();
   const filtersEl = document.getElementById('archive-admin-filters');
   if (filtersEl) filtersEl.style.display = admin ? '' : 'none';
+  const adminBtnsEl = document.getElementById('archive-admin-buttons');
+  if (adminBtnsEl) adminBtnsEl.style.display = admin ? 'flex' : 'none';
   const statusEl = document.getElementById('admin-status');
   const btnEl = document.getElementById('admin-toggle-btn');
   if (statusEl) statusEl.textContent = admin ? '✓ Включен — для анализа и оптимизации данных от всех прорабов' : 'Выключен — доступ только к своим отчётам';
@@ -4717,6 +4869,1132 @@ setTimeout(() => refreshAdminUI(), 100);
     };
   }
 })();
+
+// ═══════════════════════════════════════════════════════════════════
+// ИМПОРТ ИЗ ТЕКСТА BiP (только в режиме разработчика)
+// ═══════════════════════════════════════════════════════════════════
+// Парсит текст отчёта который прорабы кидают в чат BiP — извлекает
+// шапку (дата, объект, участок, ФИО), работы, материалы. Результат
+// сохраняет в архив как обычный отчёт.
+
+function openBipImport() {
+  document.getElementById('bip-import-overlay').style.display = 'flex';
+  document.getElementById('bip-import-text').value = '';
+  document.getElementById('bip-import-preview').innerHTML = '';
+}
+function closeBipImport() {
+  document.getElementById('bip-import-overlay').style.display = 'none';
+}
+
+// Главная функция — парсит текст и показывает превью
+function parseBipText() {
+  const txt = document.getElementById('bip-import-text').value || '';
+  if (!txt.trim()) { alert('Вставьте текст отчёта в поле выше'); return; }
+  
+  // Разделим на отдельные отчёты по шапке "Дата: ..."
+  const chunks = splitBipReports(txt);
+  if (!chunks.length) {
+    document.getElementById('bip-import-preview').innerHTML = 
+      '<div style="background:#fff5f5;border:1px solid #dc3545;padding:10px;border-radius:6px;color:#dc3545">Не удалось распознать ни одного отчёта. Проверьте что в тексте есть строки «Дата: ДД.ММ.ГГГГ» и «Объект: ...».</div>';
+    return;
+  }
+  
+  const parsed = chunks.map(c => parseBipReport(c));
+  
+  // Превью
+  let html = `<div style="font-size:13px;margin-bottom:10px"><strong>Распознано отчётов: ${parsed.length}</strong></div>`;
+  parsed.forEach((p, i) => {
+    const objSafe = escapeHtml(p.obj || '—');
+    const fioSafe = escapeHtml(p.fio || '—');
+    html += `<div style="border:1px solid #e0e4ea;border-radius:6px;padding:10px;margin-bottom:8px;background:#fafbfc">
+      <div style="font-weight:600;font-size:13px;color:#1F4E79">📅 ${p.dateStr || '—'} · ${p.shift === 'night' ? '🌙 ночная' : '☀ дневная'}</div>
+      <div style="font-size:12px;color:#555;margin-top:3px">🏗 ${objSafe} · уч.${p.uch || '—'} · ${fioSafe}</div>
+      <div style="font-size:12px;color:#777;margin-top:3px">${p.works.length} работ, ${p.materials.length} материалов${p.objectComplete ? ' · 🏁 ЗАВЕРШЁН' : ''}</div>
+      ${p.unparsed.length ? `<div style="font-size:11px;color:#856404;margin-top:6px;padding:6px;background:#fff3cd;border-radius:4px">⚠ Не распознано (попадёт в «Прочее»): ${p.unparsed.length} стр.</div>` : ''}
+    </div>`;
+  });
+  
+  html += `<button type="button" class="primary" style="width:100%;margin-top:8px" onclick="confirmBipImport()">✓ Сохранить ${parsed.length} отчёт${parsed.length === 1 ? '' : (parsed.length < 5 ? 'а' : 'ов')} в архив</button>`;
+  document.getElementById('bip-import-preview').innerHTML = html;
+  window._bipParsedReports = parsed; // временно для подтверждения
+}
+
+// Подтверждение — сохраняем в архив
+async function confirmBipImport() {
+  const parsed = window._bipParsedReports || [];
+  if (!parsed.length) return;
+  let saved = 0;
+  for (const p of parsed) {
+    try {
+      const report = bipToArchiveReport(p);
+      await archiveSave(report);
+      saved++;
+    } catch(e) { console.error('skip:', e); }
+  }
+  alert(`Сохранено ${saved} отчёт(ов) в архив`);
+  closeBipImport();
+  renderArchiveTab();
+}
+
+// Разделение склееного текста на отдельные отчёты
+function splitBipReports(text) {
+  // Ищем все позиции "Дата:" — каждая = начало нового отчёта
+  const re = /(?=^Дата:\s*\d{1,2})/gm;
+  const positions = [];
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    positions.push(m.index);
+    if (re.lastIndex === m.index) re.lastIndex++; // защита от бесконечного цикла
+  }
+  if (!positions.length) return [];
+  const chunks = [];
+  for (let i = 0; i < positions.length; i++) {
+    const start = positions[i];
+    const end = i + 1 < positions.length ? positions[i + 1] : text.length;
+    chunks.push(text.slice(start, end));
+  }
+  return chunks;
+}
+
+// Парсит ОДИН отчёт — возвращает структуру похожую на state
+function parseBipReport(text) {
+  const result = {
+    date: '', shift: 'day', dateStr: '',
+    obj: '', uch: '', fio: '', phone: '',
+    timeStart: '', timeEnd: '',
+    works: [], materials: [], unparsed: [],
+    objectComplete: false,
+    rawText: text
+  };
+  
+  // === ШАПКА ===
+  // "Дата: 22.05.2026" или "Дата: 22-23.05.2026" (ночная)
+  const dateMatch = text.match(/Дата:\s*(\d{1,2})(?:-(\d{1,2}))?\.(\d{1,2})\.(\d{2,4})/);
+  if (dateMatch) {
+    const dd = dateMatch[1].padStart(2, '0');
+    const dd2 = dateMatch[2];
+    const mm = dateMatch[3].padStart(2, '0');
+    let yyyy = dateMatch[4];
+    if (yyyy.length === 2) yyyy = '20' + yyyy;
+    result.date = `${yyyy}-${mm}-${dd}`;
+    if (dd2) {
+      result.shift = 'night';
+      result.dateStr = `${dd}-${dd2.padStart(2,'0')}.${mm}.${yyyy}`;
+    } else {
+      result.dateStr = `${dd}.${mm}.${yyyy}`;
+    }
+  }
+  
+  // "Объект: ..."
+  const objMatch = text.match(/Объект:\s*([^\n]+)/);
+  if (objMatch) result.obj = objMatch[1].trim();
+  
+  // "Участок: N"
+  const uchMatch = text.match(/Участок:\s*(\d+)/);
+  if (uchMatch) result.uch = uchMatch[1];
+  
+  // "Ответственный: ФИО, телефон"
+  const respMatch = text.match(/Ответственный:\s*([^,\n]+?)(?:,\s*(\d+))?\s*$/m);
+  if (respMatch) {
+    result.fio = respMatch[1].trim();
+    if (respMatch[2]) result.phone = respMatch[2];
+  }
+  
+  // "Время работ: 08:00 - 18:00"
+  const timeMatch = text.match(/Время работ:\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
+  if (timeMatch) {
+    result.timeStart = timeMatch[1];
+    result.timeEnd = timeMatch[2];
+  }
+  
+  // === ЗАВЕРШЕНИЕ ОБЪЕКТА ===
+  if (/ОБЪЕКТ\s*ЗАВЕРШЁН|🏁/i.test(text)) {
+    result.objectComplete = true;
+  }
+  
+  // === РАБОТЫ ===
+  // Ищем нумерованные строки внутри блока "ВЫПОЛНЕННЫЕ РАБОТЫ:"
+  const worksMatch = text.match(/ВЫПОЛНЕННЫЕ РАБОТЫ:\s*([\s\S]*?)(?=\n━━|\n📦|\n📥|\n🪨|\n🧱|\n🚛|\n🟫|\n🟦|🏁|$)/);
+  if (worksMatch) {
+    const block = worksMatch[1];
+    // Каждая работа — строка "N. Текст"
+    const workLines = block.split('\n');
+    let currentCategory = '';
+    workLines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+      // Заголовок категории — uppercase с пробелами по краям
+      const catMatch = trimmed.match(/^([А-ЯЁ\s—\-–,]+)$/);
+      if (catMatch && trimmed.length > 3 && trimmed === trimmed.toUpperCase()) {
+        currentCategory = trimmed;
+        return;
+      }
+      // Нумерованная строка
+      const numMatch = trimmed.match(/^\d+\.\s*(.+)$/);
+      if (numMatch) {
+        const workText = numMatch[1].trim();
+        const work = parseWorkLine(workText, currentCategory);
+        if (work) result.works.push(work);
+        else result.unparsed.push(workText);
+      }
+    });
+  }
+  
+  // === МАТЕРИАЛЫ ===
+  // Приём щебня: "Известняковый щебень фр. 20-40 - V = 60 м³ (= 78 т)"
+  parseSchebenAccepted(text).forEach(m => result.materials.push(m));
+  parseAsphaltAccepted(text).forEach(m => result.materials.push(m));
+  parseBetonAccepted(text).forEach(m => result.materials.push(m));
+  parsePesokAccepted(text).forEach(m => result.materials.push(m));
+  parseSchebenUsed(text).forEach(m => result.materials.push(m));
+  
+  return result;
+}
+
+// Парсер одной строки работы
+function parseWorkLine(text, category) {
+  const work = { catId: 'other', workId: 'parsed', name: '', text: text, values: {} };
+  
+  // Извлекаем числа из текста: L=..., S=..., h=..., V=..., м.п., м², м³, т
+  const lMatch = text.match(/L\s*=\s*([\d,\.]+)\s*м\.п\.?/i) || text.match(/—\s*([\d,\.]+)\s*м\.п\.?/i);
+  if (lMatch) work.values.L = parseFloat(lMatch[1].replace(',', '.'));
+  
+  const sMatch = text.match(/S\s*=\s*([\d,\.]+)\s*м²/i);
+  if (sMatch) work.values.S = parseFloat(sMatch[1].replace(',', '.'));
+  
+  const vMatch = text.match(/V\s*=\s*([\d,\.]+)\s*м³/i);
+  if (vMatch) work.values.V = parseFloat(vMatch[1].replace(',', '.'));
+  
+  const hMatch = text.match(/h\s*=\s*([\d,\.]+)\s*(см|м)/i);
+  if (hMatch) {
+    const v = parseFloat(hMatch[1].replace(',', '.'));
+    work.values.h = hMatch[2] === 'м' ? v * 100 : v;
+  }
+  
+  const nMatch = text.match(/—\s*(\d+)\s*шт/);
+  if (nMatch) work.values.N = parseInt(nMatch[1]);
+  
+  // Категория из заголовка
+  const catMap = {
+    'ПОДГОТОВИТЕЛЬНЫЕ РАБОТЫ': 'podg_cat',
+    'ДЕМОНТАЖ': 'demont',
+    'ФРЕЗЕРОВАНИЕ': 'frez',
+    'РАЗРАБОТКА': 'razrab',
+    'БОРТОВОЙ КАМЕНЬ': 'bk',
+    'ОСНОВАНИЯ ПОД АСФАЛЬТ': 'osn',
+    'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ПРОЕЗЖАЯ ЧАСТЬ': 'asphalt_pch',
+    'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ТРОТУАР': 'asphalt_tr',
+    'УСТРОЙСТВО ЛОТКОВ И ДРЕНАЖА': 'lotki',
+    'ШТРОБЫ': 'shtroba',
+    'РЕМОНТ ОЛХ': 'olh',
+    'ГАЗОНЫ': 'gazon',
+    'ПРОЧИЕ РАБОТЫ': 'other',
+    'ВЫВОЗ МАТЕРИАЛОВ': 'vivoz',
+    'ЗАДЕЙСТВОВАНО РАБОЧИХ': 'workers',
+    'ДВИЖЕНИЕ МАТЕРИАЛОВ': 'transfer',
+    'ПЛАН НА ЗАВТРА': 'plan'
+  };
+  // Ищем подходящую категорию (с учётом частичного совпадения)
+  let catId = 'other';
+  for (const key in catMap) {
+    if (category && category.includes(key.substring(0, 15))) { catId = catMap[key]; break; }
+  }
+  work.catId = catId;
+  
+  // Определяем тип работы для агрегации
+  const lower = text.toLowerCase();
+  // ВАЖНО: проверяем "демонтаж" ПЕРЕД "монтаж" — иначе "демонтаж" сматчится как "монтаж"
+  if (lower.includes('демонтаж')) {
+    if (lower.includes('бортов') || / бк /.test(lower)) work.workId = 'demont_bk';
+    else if (lower.includes('а/б') || lower.includes('асфальт')) work.workId = 'demont_ab';
+    else if (lower.includes('плит')) work.workId = 'demont_plitka';
+    else if (lower.includes('лоток') || lower.includes('лотк')) work.workId = 'demont_lotok';
+  } else if (lower.includes('монтаж') && (lower.includes('бортов') || / бк /.test(lower))) {
+    work.workId = lower.includes('гранит') ? 'bk_gr' : 'bk_bet';
+    // Марка БК
+    const markMatch = text.match(/(?:БР-|БР\s|ГП-|БУ-)[\w\.\-]+/i);
+    if (markMatch) work.values.mark = markMatch[0];
+  } else if (lower.includes('всп') || lower.includes('нсп') || lower.includes('выравнивающ')) {
+    work.workId = lower.includes('тротуар') ? 'asphalt_tr_work' : 'asphalt_pch_work';
+    // Марка асфальта
+    const mark = text.match(/ЩМА-\d+|МЗБ-\d+|МЗВ-\d+|КЗБ-\d+|ПД-\d+/);
+    if (mark) work.values.mark = mark[0];
+  } else if (lower.includes('основан') && lower.includes('щебн')) {
+    work.workId = 'osn_sch';
+    const frMatch = text.match(/фр\.\s*([\d\-]+)/);
+    if (frMatch) work.values.fr = frMatch[1];
+  }
+  
+  return work;
+}
+
+// Парсеры блоков материалов
+function parseSchebenAccepted(text) {
+  const block = text.match(/🪨[^━]*ПРИНЯТО ЩЕБНЯ[^━]*━[^━]*([\s\S]*?)(?=━━|📤|📊|🟦|$)/);
+  if (!block) return [];
+  const mats = [];
+  // Строки типа "Известняковый щебень фр. 20-40 - V = 60 м³ (= 78 т)"
+  const re = /(\S+)\s+щебень\s+фр\.\s*([\d\-]+)\s*-?\s*V\s*=\s*([\d,\.]+)\s*м³/gi;
+  let m;
+  while ((m = re.exec(block[1])) !== null) {
+    mats.push({
+      workId: 'm_schebe',
+      values: { type: m[1].toLowerCase(), fr: m[2], V: parseFloat(m[3].replace(',', '.')), unit: 'м³', qty: parseFloat(m[3].replace(',', '.')) },
+      text: m[0]
+    });
+  }
+  return mats;
+}
+
+function parseAsphaltAccepted(text) {
+  const block = text.match(/🧱[^━]*ПРИНЯТО АСФАЛЬТА[^━]*━[^━]*([\s\S]*?)(?=━━|📤|📊|🟦|$)/);
+  if (!block) return [];
+  const mats = [];
+  // Строка "АБЗ: МАРКА - X т"
+  const re = /([^\n:]+?):\s*([А-ЯA-Z\-\d]+)\s*-\s*V?\s*=?\s*([\d,\.]+)\s*т/g;
+  let m;
+  while ((m = re.exec(block[1])) !== null) {
+    mats.push({
+      workId: 'm_asfalt',
+      values: { src: m[1].trim(), mark: m[2].trim(), mass: parseFloat(m[3].replace(',', '.')) },
+      text: m[0]
+    });
+  }
+  return mats;
+}
+
+function parseBetonAccepted(text) {
+  const block = text.match(/🧱[^━]*ПРИНЯТО БЕТОНА[^━]*━[^━]*([\s\S]*?)(?=━━|📤|📊|🟦|$)/);
+  if (!block) return [];
+  const mats = [];
+  const re = /([^\n:]+?):\s*(В[\d,]+(?:[ЖПF]\d)?)\s*-\s*V?\s*=?\s*([\d,\.]+)\s*м³/g;
+  let m;
+  while ((m = re.exec(block[1])) !== null) {
+    mats.push({
+      workId: 'm_beton',
+      values: { src: m[1].trim(), mark: m[2].trim(), V: parseFloat(m[3].replace(',', '.')) },
+      text: m[0]
+    });
+  }
+  return mats;
+}
+
+function parsePesokAccepted(text) {
+  const block = text.match(/ПРИНЯТО ПЕСКА[^━]*━[^━]*([\s\S]*?)(?=━━|📤|📊|🟦|$)/);
+  if (!block) return [];
+  const mats = [];
+  const re = /([\d,\.]+)\s*м³/g;
+  let m;
+  while ((m = re.exec(block[1])) !== null) {
+    mats.push({ workId: 'm_pesok', values: { V: parseFloat(m[1].replace(',', '.')) }, text: m[0] });
+  }
+  return mats;
+}
+
+function parseSchebenUsed(text) {
+  const block = text.match(/📤[^━]*ИСПОЛЬЗОВАНО ЩЕБНЯ[^━]*━[^━]*([\s\S]*?)(?=━━|📊|🟦|$)/);
+  if (!block) return [];
+  const mats = [];
+  const re = /(\S+)\s+щебень\s+фр\.\s*([\d\-]+)\s*—?\s*([\d,\.]+)\s*м³/gi;
+  let m;
+  while ((m = re.exec(block[1])) !== null) {
+    mats.push({
+      workId: 'm_scheb_used',
+      values: { type: m[1].toLowerCase(), fr: m[2], V: parseFloat(m[3].replace(',', '.')) },
+      text: m[0]
+    });
+  }
+  return mats;
+}
+
+// Преобразует распарсенный отчёт в формат записи архива
+function bipToArchiveReport(p) {
+  const id = `${p.date}_${p.shift}_${p.uch || '?'}_${p.obj || '?'}`;
+  return {
+    id,
+    date: p.date,
+    shift: p.shift,
+    timeStart: p.timeStart,
+    timeEnd: p.timeEnd,
+    profile: {
+      fio: p.fio,
+      phone: p.phone,
+      uch: p.uch,
+      obj: p.obj
+    },
+    works: p.works,
+    materials: p.materials,
+    objectComplete: p.objectComplete,
+    appVersion: APP_VERSION + '-bip-imported',
+    savedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    importedFromBip: true
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// АНАЛИТИКА (сводка для разработчика)
+// ═══════════════════════════════════════════════════════════════════
+
+function openAnalytics() {
+  document.getElementById('analytics-overlay').style.display = 'flex';
+  // Дефолт: вчера
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.toISOString().slice(0,10);
+  document.getElementById('analytics-date-single').value = yStr;
+  document.getElementById('analytics-period').value = 'yesterday';
+  renderAnalytics();
+}
+
+function closeAnalytics() {
+  document.getElementById('analytics-overlay').style.display = 'none';
+}
+
+async function renderAnalytics() {
+  const period = document.getElementById('analytics-period').value;
+  // Показ/скрытие полей даты
+  document.getElementById('analytics-date-row').style.display = period === 'day' ? '' : 'none';
+  document.getElementById('analytics-range-row').style.display = period === 'range' ? '' : 'none';
+  
+  const all = await archiveList();
+  if (!all.length) {
+    document.getElementById('analytics-output').textContent = 'Архив пуст. Импортируйте отчёты прорабов через «📋 Импорт из BiP» или «📥 Загрузить файлы».';
+    return;
+  }
+  
+  // Определяем период
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  let dateFrom = '', dateTo = '';
+  let periodLabel = '';
+  
+  if (period === 'today') { dateFrom = dateTo = todayStr; periodLabel = `сегодня ${formatDateRu(todayStr)}`; }
+  else if (period === 'yesterday') {
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    dateFrom = dateTo = y.toISOString().slice(0,10);
+    periodLabel = `вчера ${formatDateRu(dateFrom)}`;
+  }
+  else if (period === 'week') {
+    const w = new Date(); w.setDate(w.getDate() - 7);
+    dateFrom = w.toISOString().slice(0,10); dateTo = todayStr;
+    periodLabel = `за 7 дней (${formatDateRu(dateFrom)} — ${formatDateRu(dateTo)})`;
+  }
+  else if (period === 'month') {
+    const m = new Date(); m.setDate(m.getDate() - 30);
+    dateFrom = m.toISOString().slice(0,10); dateTo = todayStr;
+    periodLabel = `за 30 дней (${formatDateRu(dateFrom)} — ${formatDateRu(dateTo)})`;
+  }
+  else if (period === 'day') {
+    dateFrom = dateTo = document.getElementById('analytics-date-single').value;
+    periodLabel = `смена ${formatDateRu(dateFrom)}`;
+  }
+  else if (period === 'range') {
+    dateFrom = document.getElementById('analytics-from').value;
+    dateTo = document.getElementById('analytics-to').value;
+    periodLabel = `с ${formatDateRu(dateFrom)} по ${formatDateRu(dateTo)}`;
+  }
+  
+  const objFilter = document.getElementById('analytics-obj').value;
+  const uchFilter = document.getElementById('analytics-uch').value;
+  const group = document.getElementById('analytics-group').value;
+  
+  // Заполнить селекты объектов/участков
+  const objSet = new Set(), uchSet = new Set();
+  all.forEach(r => {
+    if (r.profile && r.profile.obj) objSet.add(r.profile.obj);
+    if (r.profile && r.profile.uch) uchSet.add(String(r.profile.uch));
+  });
+  fillSelect('analytics-obj', [...objSet].sort(), 'Все объекты', objFilter);
+  fillSelect('analytics-uch', [...uchSet].sort(), 'Все участки', uchFilter);
+  
+  // Фильтрация
+  const filtered = all.filter(r => {
+    if (dateFrom && (r.date || '') < dateFrom) return false;
+    if (dateTo && (r.date || '') > dateTo) return false;
+    if (objFilter && (r.profile && r.profile.obj) !== objFilter) return false;
+    if (uchFilter && String((r.profile && r.profile.uch) || '') !== uchFilter) return false;
+    return true;
+  });
+  
+  if (!filtered.length) {
+    document.getElementById('analytics-output').textContent = `Нет отчётов за период «${periodLabel}»${objFilter ? ' (объект: ' + objFilter + ')' : ''}${uchFilter ? ' (уч.' + uchFilter + ')' : ''}`;
+    return;
+  }
+  
+  // Агрегация
+  const text = buildAnalyticsText(filtered, periodLabel, group);
+  document.getElementById('analytics-output').textContent = text;
+  window._analyticsLastText = text;
+}
+
+function fillSelect(id, items, allLabel, currentVal) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const opts = ['<option value="">' + allLabel + '</option>']
+    .concat(items.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`));
+  sel.innerHTML = opts.join('');
+  if (items.includes(currentVal)) sel.value = currentVal;
+}
+
+function formatDateRu(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+// === Главная функция сборки сводки ===
+function buildAnalyticsText(reports, periodLabel, groupMode) {
+  const lines = [];
+  lines.push('═══════════════════════════════════════');
+  lines.push('  📊 СВОДКА ПО ОТЧЁТАМ ПРОРАБОВ');
+  lines.push('═══════════════════════════════════════');
+  lines.push(`Период: ${periodLabel}`);
+  lines.push(`Отчётов в выборке: ${reports.length}`);
+  lines.push('');
+  
+  // Уникальные значения для итогов
+  const uchs = new Set();
+  const objs = new Set();
+  reports.forEach(r => {
+    if (r.profile) {
+      if (r.profile.uch) uchs.add(String(r.profile.uch));
+      if (r.profile.obj) objs.add(r.profile.obj);
+    }
+  });
+  
+  // Группировка
+  if (groupMode === 'obj-work' || groupMode === 'obj-uch') {
+    // ПО ОБЪЕКТАМ
+    const byObj = groupByField(reports, r => (r.profile && r.profile.obj) || '— без объекта —');
+    for (const obj of Object.keys(byObj).sort()) {
+      lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      lines.push(`🏗 ОБЪЕКТ: ${obj}`);
+      lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      const objReports = byObj[obj];
+      const aggregated = aggregateWorks(objReports);
+      
+      // По работам с разбивкой по участкам
+      for (const workKey of Object.keys(aggregated).sort()) {
+        const w = aggregated[workKey];
+        lines.push('');
+        lines.push(`  ${w.label}`);
+        const byUch = w.byUch;
+        const uchKeys = Object.keys(byUch).sort();
+        for (const u of uchKeys) {
+          const uchData = byUch[u];
+          lines.push(`    Уч. ${u}: ${formatAmount(uchData.total, w.unit)}`);
+        }
+        if (uchKeys.length > 1) {
+          lines.push(`    ─────────────────────────────`);
+          lines.push(`    Всего по объекту: ${formatAmount(w.total, w.unit)}`);
+        }
+      }
+      
+      // Итог по объекту по группам
+      const sumsByGroup = sumByGroup(objReports);
+      lines.push('');
+      lines.push(`  ▶ ИТОГО ПО ОБЪЕКТУ ${obj}:`);
+      for (const g of Object.keys(sumsByGroup)) {
+        const v = sumsByGroup[g];
+        if (v.total > 0) lines.push(`    ${g}: ${formatAmount(v.total, v.unit)}`);
+      }
+      lines.push('');
+    }
+  } else if (groupMode === 'uch-work') {
+    // ПО УЧАСТКАМ
+    const byUch = groupByField(reports, r => String((r.profile && r.profile.uch) || '?'));
+    for (const u of Object.keys(byUch).sort()) {
+      const uchReports = byUch[u];
+      const fio = (uchReports[0] && uchReports[0].profile && uchReports[0].profile.fio) || '';
+      lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      lines.push(`👷 УЧАСТОК ${u}${fio ? ' · ' + fio : ''}`);
+      lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      const aggregated = aggregateWorks(uchReports);
+      for (const workKey of Object.keys(aggregated).sort()) {
+        const w = aggregated[workKey];
+        lines.push('');
+        lines.push(`  ${w.label}: ${formatAmount(w.total, w.unit)}`);
+        // По объектам
+        for (const o of Object.keys(w.byObj).sort()) {
+          lines.push(`    ${o}: ${formatAmount(w.byObj[o].total, w.unit)}`);
+        }
+      }
+      lines.push('');
+    }
+  } else if (groupMode === 'work') {
+    // ТОЛЬКО ПО РАБОТАМ — общая сводка
+    const aggregated = aggregateWorks(reports);
+    lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    lines.push('  ВСЕ РАБОТЫ (общая сводка)');
+    lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    for (const workKey of Object.keys(aggregated).sort()) {
+      const w = aggregated[workKey];
+      lines.push('');
+      lines.push(`  ${w.label}: ${formatAmount(w.total, w.unit)}`);
+      // По объектам
+      for (const o of Object.keys(w.byObj).sort()) {
+        const objData = w.byObj[o];
+        lines.push(`    ${o}: ${formatAmount(objData.total, w.unit)}`);
+        for (const u of Object.keys(objData.byUch).sort()) {
+          lines.push(`      └ уч. ${u}: ${formatAmount(objData.byUch[u], w.unit)}`);
+        }
+      }
+    }
+    lines.push('');
+  }
+  
+  // === ОБЩИЙ ИТОГ ===
+  lines.push('═══════════════════════════════════════');
+  lines.push('  🟦 ОБЩИЙ ИТОГ ЗА ПЕРИОД');
+  lines.push('═══════════════════════════════════════');
+  const totalSums = sumByGroup(reports);
+  for (const g of Object.keys(totalSums)) {
+    const v = totalSums[g];
+    if (v.total > 0) lines.push(`  ${g}: ${formatAmount(v.total, v.unit)}`);
+  }
+  lines.push('');
+  lines.push(`  Активных участков: ${uchs.size}${uchs.size ? ' (уч.' + [...uchs].sort().join(', ') + ')' : ''}`);
+  lines.push(`  Активных объектов: ${objs.size}`);
+  // Завершённые объекты
+  const completed = new Set();
+  reports.forEach(r => { if (r.objectComplete && r.profile && r.profile.obj) completed.add(r.profile.obj); });
+  if (completed.size > 0) {
+    lines.push(`  🏁 Завершено объектов: ${completed.size}`);
+    [...completed].forEach(o => lines.push(`    ✓ ${o}`));
+  }
+  lines.push('═══════════════════════════════════════');
+  
+  return lines.join('\n');
+}
+
+function groupByField(arr, fn) {
+  const m = {};
+  arr.forEach(item => {
+    const k = fn(item);
+    if (!m[k]) m[k] = [];
+    m[k].push(item);
+  });
+  return m;
+}
+
+// Агрегация работ — возвращает { workKey: { label, unit, total, byUch, byObj } }
+function aggregateWorks(reports) {
+  const agg = {};
+  reports.forEach(r => {
+    const uch = String((r.profile && r.profile.uch) || '?');
+    const obj = (r.profile && r.profile.obj) || '—';
+    (r.works || []).forEach(w => {
+      const info = classifyWork(w);
+      if (!info) return;
+      const key = info.key;
+      if (!agg[key]) agg[key] = { label: info.label, unit: info.unit, total: 0, byUch: {}, byObj: {} };
+      agg[key].total += info.amount;
+      if (!agg[key].byUch[uch]) agg[key].byUch[uch] = { total: 0 };
+      agg[key].byUch[uch].total += info.amount;
+      if (!agg[key].byObj[obj]) agg[key].byObj[obj] = { total: 0, byUch: {} };
+      agg[key].byObj[obj].total += info.amount;
+      agg[key].byObj[obj].byUch[uch] = (agg[key].byObj[obj].byUch[uch] || 0) + info.amount;
+    });
+  });
+  return agg;
+}
+
+// Классификация работы → ключ агрегации, ед.изм., количество
+function classifyWork(w) {
+  const text = (w.text || '').toLowerCase();
+  const v = w.values || {};
+  const L = num(v.L);
+  const S = num(v.S);
+  const V = num(v.V);
+  const N = num(v.N);
+  const mark = v.mark || extractMark(w.text) || '';
+  
+  // === ДЕМОНТАЖ === (проверяем ПЕРЕД монтажом — иначе "демонтаж" сматчится как "монтаж")
+  if (text.includes('демонтаж')) {
+    if (text.includes('бортов') || / бк /.test(text)) {
+      return { key: '2_demont_bk', label: 'Демонтаж БК', unit: 'м.п.', amount: L };
+    }
+    if (text.includes('а/б') || text.includes('асфальт')) {
+      const isTr = text.includes('тротуар');
+      return { key: `2_demont_ab_${isTr ? 'tr' : 'pch'}`,
+               label: `Демонтаж а/б${isTr ? ' тротуара' : ' проезжей части'}`,
+               unit: 'м²', amount: S };
+    }
+    if (text.includes('плит')) return { key: '2_demont_plitka', label: 'Демонтаж плитки', unit: 'м²', amount: S };
+    if (text.includes('лоток') || text.includes('лотк')) return { key: '2_demont_lotok', label: 'Демонтаж лотков', unit: 'м.п.', amount: L };
+    if (text.includes('основан')) return { key: '2_demont_osn', label: 'Демонтаж старого основания', unit: 'м²', amount: S };
+    return null;
+  }
+  
+  // === БК ===
+  if (text.includes('монтаж') && (text.includes('бортов') || / бк /.test(text) || text.includes('бк '))) {
+    const isGr = text.includes('гранит');
+    return { key: `1_bk_${isGr ? 'gr' : 'bet'}_${mark}`,
+             label: `Монтаж ${isGr ? 'гранитного' : 'бетонного'} БК${mark ? ' ' + mark : ''}`,
+             unit: 'м.п.', amount: L };
+  }
+  
+  // === АСФАЛЬТ ===
+  if (text.includes('всп') || text.includes('нсп') || text.includes('выравнивающ') || /устройство.*асфальт/.test(text)) {
+    const isTr = text.includes('тротуар');
+    const layer = text.includes('всп') ? 'ВСП' : text.includes('нсп') ? 'НСП' : 'выравн.';
+    return { key: `3_asphalt_${isTr ? 'tr' : 'pch'}_${layer}_${mark}`,
+             label: `${layer} ${mark || 'а/б'} ${isTr ? '(тротуар)' : '(ПЧ)'}`,
+             unit: 'м²', amount: S };
+  }
+  
+  // === ОСНОВАНИЯ ===
+  if (text.includes('основан') && (text.includes('щебн') || text.includes('щебня'))) {
+    return { key: '4_osn_scheb', label: 'Основание из щебня', unit: 'м²', amount: S };
+  }
+  if (text.includes('основан') && text.includes('песк')) {
+    return { key: '4_osn_pesok', label: 'Основание из песка', unit: 'м²', amount: S };
+  }
+  if (text.includes('основан') && text.includes('цпс')) {
+    return { key: '4_osn_cps', label: 'Основание из ЦПС', unit: 'м²', amount: S };
+  }
+  
+  // === ФРЕЗЕРОВАНИЕ ===
+  if (text.includes('фрезерован')) {
+    const isTr = text.includes('тротуар');
+    return { key: `5_frez_${isTr ? 'tr' : 'pch'}`,
+             label: `Фрезерование ${isTr ? 'тротуара' : 'проезжей части'}`,
+             unit: 'м²', amount: S };
+  }
+  
+  // === РАЗРАБОТКА ===
+  if (text.includes('разработ')) {
+    return { key: '6_razrab', label: 'Разработка/копка', unit: 'м²', amount: S };
+  }
+  
+  // === ЛОТКИ ===
+  if (text.includes('лоток') || text.includes('лотк')) {
+    return { key: '7_lotki', label: 'Устройство лотков', unit: 'м.п.', amount: L };
+  }
+  
+  // === ШТРОБЫ ===
+  if (text.includes('штроб')) {
+    return { key: '8_shtroba', label: 'Штробы', unit: 'м.п.', amount: L };
+  }
+  
+  // === ГАЗОНЫ ===
+  if (text.includes('газон') || text.includes('грунт')) {
+    return { key: '9_gazon', label: 'Газоны/грунт', unit: 'м²', amount: S };
+  }
+  
+  return null;
+}
+
+function extractMark(text) {
+  if (!text) return '';
+  const m = text.match(/БР-[\w\.\-]+|ГП-[\w\.\-]+|ЩМА-\d+|МЗБ-\d+|МЗВ-\d+|КЗБ-\d+|ПД-\d+/);
+  return m ? m[0] : '';
+}
+
+function num(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  const n = parseFloat(String(v).replace(',', '.'));
+  return isFinite(n) ? n : 0;
+}
+
+// Суммирует по группам (для общего итога)
+function sumByGroup(reports) {
+  const groups = {
+    'БК уложено': { total: 0, unit: 'м.п.',
+      filter: w => /монтаж/i.test(w.text || '') && !/демонтаж/i.test(w.text || '') && (/бортов|\sбк/i.test(w.text || '')),
+      val: w => num((w.values || {}).L) },
+    'БК демонтировано': { total: 0, unit: 'м.п.',
+      filter: w => /демонтаж/i.test(w.text || '') && /бортов|\sбк/i.test(w.text || ''),
+      val: w => num((w.values || {}).L) },
+    'А/б уложено': { total: 0, unit: 'м²',
+      filter: w => /(всп|нсп|выравнивающ)/i.test(w.text || '') && !/демонтаж/i.test(w.text || ''),
+      val: w => num((w.values || {}).S) },
+    'А/б демонтировано': { total: 0, unit: 'м²',
+      filter: w => /демонтаж/i.test(w.text || '') && /а\/б|асфальт/i.test(w.text || ''),
+      val: w => num((w.values || {}).S) },
+    'Плитка демонтирована': { total: 0, unit: 'м²',
+      filter: w => /демонтаж/i.test(w.text || '') && /плит/i.test(w.text || ''),
+      val: w => num((w.values || {}).S) },
+    'Основания (щебень)': { total: 0, unit: 'м²',
+      filter: w => /основан/i.test(w.text || '') && /щебн/i.test(w.text || '') && !/демонтаж/i.test(w.text || ''),
+      val: w => num((w.values || {}).S) },
+    'Фрезерование': { total: 0, unit: 'м²',
+      filter: w => /фрезерован/i.test(w.text || ''),
+      val: w => num((w.values || {}).S) },
+    'Лотки уложены': { total: 0, unit: 'м.п.',
+      filter: w => /устройство.*лотк|монтаж.*лотк/i.test(w.text || '') && !/демонтаж/i.test(w.text || ''),
+      val: w => num((w.values || {}).L) }
+  };
+  reports.forEach(r => {
+    (r.works || []).forEach(w => {
+      for (const g of Object.keys(groups)) {
+        if (groups[g].filter(w)) groups[g].total += groups[g].val(w);
+      }
+    });
+  });
+  return groups;
+}
+
+function formatAmount(val, unit) {
+  if (!val) return `0 ${unit}`;
+  // Округление: для тонн и м.п. до 1 знака, для м² и м³ — целое
+  const fixed = unit === 'т' ? val.toFixed(2).replace(/\.?0+$/, '') : 
+                unit === 'м.п.' || unit === 'м³' ? val.toFixed(1).replace(/\.?0+$/, '') :
+                Math.round(val).toString();
+  return `${fixed.replace('.', ',')} ${unit}`;
+}
+
+function copyAnalyticsToClipboard() {
+  const text = window._analyticsLastText || document.getElementById('analytics-output').textContent;
+  if (!text) { alert('Нет данных для копирования'); return; }
+  copyTextToClipboard(text, 'Сводка скопирована! Вставьте в чат руководству');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ПУБЛИКАЦИЯ НА GITHUB (для руководителя)
+// ═══════════════════════════════════════════════════════════════════
+
+const GH_TOKEN_KEY = 'ochakovo_gh_token';
+const GH_REPO_KEY = 'ochakovo_gh_repo';
+const GH_LAST_PUBLISH_KEY = 'ochakovo_gh_last_publish';
+
+// Загрузка/сохранение настроек публикации
+function loadPublishSettings() {
+  const tokenEl = document.getElementById('pf-gh-token');
+  const repoEl = document.getElementById('pf-gh-repo');
+  if (tokenEl) tokenEl.value = localStorage.getItem(GH_TOKEN_KEY) || '';
+  if (repoEl) repoEl.value = localStorage.getItem(GH_REPO_KEY) || '';
+}
+
+function savePublishSettings() {
+  const token = (document.getElementById('pf-gh-token') || {}).value || '';
+  const repo = (document.getElementById('pf-gh-repo') || {}).value || '';
+  if (token) localStorage.setItem(GH_TOKEN_KEY, token.trim());
+  else localStorage.removeItem(GH_TOKEN_KEY);
+  if (repo) localStorage.setItem(GH_REPO_KEY, repo.trim());
+  else localStorage.removeItem(GH_REPO_KEY);
+}
+
+// Перехватываем saveProfile чтобы заодно сохранить настройки публикации
+(function hookSaveProfile() {
+  const origSave = window.saveProfile;
+  if (typeof origSave === 'function') {
+    window.saveProfile = function() {
+      savePublishSettings();
+      return origSave.apply(this, arguments);
+    };
+  }
+})();
+
+// Также перехватываем openProfile чтобы показать настройки
+(function hookOpenProfile() {
+  const origOpen = window.openProfile;
+  if (typeof origOpen === 'function') {
+    window.openProfile = function() {
+      const r = origOpen.apply(this, arguments);
+      setTimeout(() => { 
+        loadPublishSettings(); 
+        refreshPublishSettingsVisibility();
+      }, 50);
+      return r;
+    };
+  }
+})();
+
+function refreshPublishSettingsVisibility() {
+  const block = document.getElementById('publish-settings-block');
+  if (block) block.style.display = isAdminMode() ? '' : 'none';
+}
+
+// Инструкция о токене
+function openTokenInstruction() {
+  document.getElementById('token-instruction-overlay').style.display = 'flex';
+}
+function closeTokenInstruction() {
+  document.getElementById('token-instruction-overlay').style.display = 'none';
+}
+
+// Проверка соединения с GitHub
+async function testGithubConnection() {
+  const token = (document.getElementById('pf-gh-token') || {}).value.trim();
+  const repo = (document.getElementById('pf-gh-repo') || {}).value.trim();
+  const resultEl = document.getElementById('gh-test-result');
+  
+  resultEl.innerHTML = '⏳ Проверяем...';
+  
+  if (!token) { resultEl.innerHTML = '<span style="color:#dc3545">⚠ Введите токен</span>'; return; }
+  if (!repo || !repo.includes('/')) { resultEl.innerHTML = '<span style="color:#dc3545">⚠ Укажите репозиторий в формате имя/репозиторий</span>'; return; }
+  
+  try {
+    const resp = await fetch(`https://api.github.com/repos/${repo}`, {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const perms = data.permissions || {};
+      if (perms.push || perms.admin) {
+        resultEl.innerHTML = `<span style="color:#16a34a">✓ Соединение работает. Репозиторий: <strong>${escapeHtml(data.full_name)}</strong> (доступ записи разрешён)</span>`;
+      } else {
+        resultEl.innerHTML = '<span style="color:#ffc107">⚠ Репозиторий найден, но токен не имеет права записи. Создайте токен с разрешением Contents: Read and write.</span>';
+      }
+    } else if (resp.status === 401) {
+      resultEl.innerHTML = '<span style="color:#dc3545">✗ Неверный токен. Проверьте правильность ввода.</span>';
+    } else if (resp.status === 404) {
+      resultEl.innerHTML = '<span style="color:#dc3545">✗ Репозиторий не найден. Проверьте имя или создайте репозиторий.</span>';
+    } else {
+      resultEl.innerHTML = `<span style="color:#dc3545">✗ Ошибка ${resp.status}: ${resp.statusText}</span>`;
+    }
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:#dc3545">✗ Ошибка сети: ${e.message}</span>`;
+  }
+}
+
+// Главная функция публикации
+async function publishToGithub() {
+  // Проверим что есть аналитика
+  if (!window._analyticsLastReports || !window._analyticsLastReports.length) {
+    alert('Нет данных для публикации.\nСначала откройте Аналитику и проверьте что в выборке есть отчёты.');
+    return;
+  }
+  
+  // Проверим настройки
+  const token = localStorage.getItem(GH_TOKEN_KEY);
+  const repo = localStorage.getItem(GH_REPO_KEY);
+  if (!token || !repo) {
+    alert('Сначала настройте публикацию:\nПрофиль → Публикация сводки на GitHub → введите репозиторий и токен.');
+    return;
+  }
+  
+  if (!confirm('Опубликовать текущую сводку на GitHub?\n\nРуководитель увидит обновление через 1-2 минуты при следующем открытии своей программы.')) return;
+  
+  const statusEl = document.getElementById('publish-status');
+  statusEl.innerHTML = '⏳ Публикуем...';
+  statusEl.style.color = '#666';
+  
+  try {
+    // Формируем данные для шефа
+    const data = buildShefPayload(window._analyticsLastReports, window._analyticsLastPeriodLabel);
+    
+    // Кодируем в base64 (UTF-8 безопасно)
+    const jsonStr = JSON.stringify(data, null, 2);
+    const content = btoa(unescape(encodeURIComponent(jsonStr)));
+    
+    // Получаем SHA текущего data.json (для обновления)
+    let sha = null;
+    try {
+      const getResp = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (getResp.ok) {
+        const cur = await getResp.json();
+        sha = cur.sha;
+      }
+    } catch (e) { /* файла ещё нет — создадим новый */ }
+    
+    // Отправляем (PUT — создаст или обновит)
+    const body = {
+      message: `Сводка ${new Date().toLocaleString('ru-RU')} — ${(state.profile && state.profile.fio) || 'разработчик'}`,
+      content: content
+    };
+    if (sha) body.sha = sha;
+    
+    const putResp = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    
+    if (putResp.ok) {
+      localStorage.setItem(GH_LAST_PUBLISH_KEY, new Date().toISOString());
+      statusEl.innerHTML = '✓ Опубликовано только что';
+      statusEl.style.color = '#16a34a';
+      alert(`✓ Сводка опубликована!\n\nГоворорь увидит обновление через 1-2 минуты при открытии своей программы (https://${repo.split('/')[0]}.github.io/${repo.split('/')[1]}/).`);
+    } else {
+      const err = await putResp.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${putResp.status}`);
+    }
+  } catch (e) {
+    statusEl.innerHTML = `✗ Ошибка: ${e.message}`;
+    statusEl.style.color = '#dc3545';
+    alert('Не удалось опубликовать: ' + e.message + '\n\nПроверьте настройки в профиле (репозиторий и токен).');
+  }
+}
+
+// Формирует JSON для страницы шефа
+function buildShefPayload(reports, periodLabel) {
+  // Группировка по объектам с агрегацией только БК
+  const byObj = {};
+  const totals = { bkLaid: 0, bkBet: 0, bkGr: 0, bkDemont: 0 };
+  const objSet = new Set();
+  const uchSet = new Set();
+  const completedObjs = new Set();
+  
+  reports.forEach(r => {
+    const obj = (r.profile && r.profile.obj) || '— без объекта —';
+    const uch = String((r.profile && r.profile.uch) || '?');
+    objSet.add(obj);
+    uchSet.add(uch);
+    
+    if (r.objectComplete && obj !== '— без объекта —') completedObjs.add(obj);
+    
+    if (!byObj[obj]) {
+      byObj[obj] = { name: obj, bkLaid: 0, bkBet: 0, bkGr: 0, bkDemont: 0, uchsMap: {}, completed: false };
+    }
+    if (r.objectComplete) byObj[obj].completed = true;
+    
+    (r.works || []).forEach(w => {
+      const txt = (w.text || '').toLowerCase();
+      const L = parseFloat(String((w.values || {}).L || '0').replace(',', '.')) || 0;
+      if (!L) return;
+      
+      // Демонтаж БК (проверяем ПЕРЕД монтажом)
+      if (txt.includes('демонтаж') && (txt.includes('бортов') || / бк /.test(txt))) {
+        byObj[obj].bkDemont += L;
+        totals.bkDemont += L;
+        if (!byObj[obj].uchsMap[uch]) byObj[obj].uchsMap[uch] = { uch, bkLaid: 0, bkDemont: 0 };
+        byObj[obj].uchsMap[uch].bkDemont += L;
+        return;
+      }
+      // Монтаж БК
+      if (txt.includes('монтаж') && (txt.includes('бортов') || / бк /.test(txt))) {
+        const isGr = txt.includes('гранит');
+        byObj[obj].bkLaid += L;
+        if (isGr) byObj[obj].bkGr += L; else byObj[obj].bkBet += L;
+        totals.bkLaid += L;
+        if (isGr) totals.bkGr += L; else totals.bkBet += L;
+        if (!byObj[obj].uchsMap[uch]) byObj[obj].uchsMap[uch] = { uch, bkLaid: 0, bkDemont: 0 };
+        byObj[obj].uchsMap[uch].bkLaid += L;
+      }
+    });
+  });
+  
+  // Преобразуем uchsMap в массив
+  const objects = Object.values(byObj).map(o => ({
+    name: o.name,
+    bkLaid: Math.round(o.bkLaid * 10) / 10,
+    bkBet: Math.round(o.bkBet * 10) / 10,
+    bkGr: Math.round(o.bkGr * 10) / 10,
+    bkDemont: Math.round(o.bkDemont * 10) / 10,
+    completed: o.completed,
+    uchs: Object.values(o.uchsMap)
+      .filter(u => u.bkLaid > 0 || u.bkDemont > 0)
+      .map(u => ({ uch: u.uch, bkLaid: Math.round(u.bkLaid * 10) / 10, bkDemont: Math.round(u.bkDemont * 10) / 10 }))
+      .sort((a, b) => a.uch.localeCompare(b.uch))
+  }))
+  // Только объекты где есть движение
+  .filter(o => o.bkLaid > 0 || o.bkDemont > 0)
+  .sort((a, b) => a.name.localeCompare(b.name));
+  
+  return {
+    updatedAt: new Date().toISOString(),
+    updatedBy: (state.profile && state.profile.fio) || 'разработчик',
+    periodLabel: periodLabel || '—',
+    objects,
+    totals: {
+      bkLaid: Math.round(totals.bkLaid * 10) / 10,
+      bkBet: Math.round(totals.bkBet * 10) / 10,
+      bkGr: Math.round(totals.bkGr * 10) / 10,
+      bkDemont: Math.round(totals.bkDemont * 10) / 10,
+      objects: objects.length,
+      uchs: uchSet.size,
+      completedObjects: [...completedObjs]
+    }
+  };
+}
+
+// Перехватим renderAnalytics чтобы сохранять отчёты для последующей публикации
+(function hookRenderAnalytics() {
+  const orig = window.renderAnalytics;
+  if (typeof orig === 'function') {
+    window.renderAnalytics = async function() {
+      const r = await orig.apply(this, arguments);
+      // Соберём отчёты из последней выборки
+      try {
+        const all = await archiveList();
+        const period = (document.getElementById('analytics-period') || {}).value || 'yesterday';
+        const today = new Date(); const todayStr = today.toISOString().slice(0,10);
+        let dateFrom = '', dateTo = '', periodLabel = '';
+        if (period === 'today') { dateFrom = dateTo = todayStr; periodLabel = `сегодня ${formatDateRu(todayStr)}`; }
+        else if (period === 'yesterday') {
+          const y = new Date(); y.setDate(y.getDate() - 1);
+          dateFrom = dateTo = y.toISOString().slice(0,10);
+          periodLabel = `смена ${formatDateRu(dateFrom)}`;
+        }
+        else if (period === 'week') {
+          const w = new Date(); w.setDate(w.getDate() - 7);
+          dateFrom = w.toISOString().slice(0,10); dateTo = todayStr;
+          periodLabel = `за 7 дней`;
+        }
+        else if (period === 'month') {
+          const m = new Date(); m.setDate(m.getDate() - 30);
+          dateFrom = m.toISOString().slice(0,10); dateTo = todayStr;
+          periodLabel = `за 30 дней`;
+        }
+        else if (period === 'day') {
+          dateFrom = dateTo = document.getElementById('analytics-date-single').value;
+          periodLabel = `смена ${formatDateRu(dateFrom)}`;
+        }
+        else if (period === 'range') {
+          dateFrom = document.getElementById('analytics-from').value;
+          dateTo = document.getElementById('analytics-to').value;
+          periodLabel = `с ${formatDateRu(dateFrom)} по ${formatDateRu(dateTo)}`;
+        }
+        const objFilter = (document.getElementById('analytics-obj') || {}).value || '';
+        const uchFilter = (document.getElementById('analytics-uch') || {}).value || '';
+        const filtered = all.filter(rr => {
+          if (dateFrom && (rr.date || '') < dateFrom) return false;
+          if (dateTo && (rr.date || '') > dateTo) return false;
+          if (objFilter && (rr.profile && rr.profile.obj) !== objFilter) return false;
+          if (uchFilter && String((rr.profile && rr.profile.uch) || '') !== uchFilter) return false;
+          return true;
+        });
+        window._analyticsLastReports = filtered;
+        window._analyticsLastPeriodLabel = periodLabel;
+        // Показать дату последней публикации
+        const lastPub = localStorage.getItem(GH_LAST_PUBLISH_KEY);
+        const statusEl = document.getElementById('publish-status');
+        if (statusEl) {
+          if (lastPub) {
+            const d = new Date(lastPub);
+            const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+            let when;
+            if (mins < 1) when = 'только что';
+            else if (mins < 60) when = mins + ' мин назад';
+            else if (mins < 1440) when = Math.floor(mins/60) + ' ч назад';
+            else when = Math.floor(mins/1440) + ' дн назад';
+            statusEl.innerHTML = `Последняя публикация: ${when}`;
+            statusEl.style.color = '#666';
+          } else {
+            statusEl.innerHTML = 'Ещё не публиковалось';
+            statusEl.style.color = '#888';
+          }
+        }
+      } catch(e) {}
+      return r;
+    };
+  }
+})();
+
+// Обновим refreshAdminUI чтобы скрывать/показывать настройки публикации
+(function hookRefreshAdminUI() {
+  const orig = window.refreshAdminUI;
+  if (typeof orig === 'function') {
+    window.refreshAdminUI = function() {
+      const r = orig.apply(this, arguments);
+      refreshPublishSettingsVisibility();
+      return r;
+    };
+  }
+})();
+
+
 </script>
 <!-- ═══ PWA: регистрация service worker + автоматическое обнаружение обновлений ═══ -->
 <script>
