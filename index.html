@@ -131,7 +131,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
       Это <strong>внутренний продукт ПК ОЧАКОВО</strong>. Передавать третьим лицам, копировать, или использовать после истечения срока — запрещено.
     </p>
     <div style="background:#E8EEF5;border-radius:8px;padding:14px;color:#1F4E79;font-size:14px;margin-bottom:14px">
-      Для получения обновлённой версии обратитесь к руководству ПК ОЧАКОВО.
+      Для получения обновлённой версии обратитесь к разработчику.
     </div>
   </div>
 </div>
@@ -341,15 +341,15 @@ button:disabled{opacity:.4;cursor:not-allowed}
   <div id="tab-archive" style="display:none">
     <div class="card">
       <div class="section-title">📚 Архив отчётов</div>
-      <div class="hint" style="margin-bottom:10px">Здесь хранятся все ваши сменные отчёты на этом телефоне. Можно открыть и поправить любой день, поделиться отчётом или передать руководителю весь архив.</div>
+      <div class="hint" style="margin-bottom:10px">Здесь хранятся все ваши сменные отчёты на этом телефоне. Можно открыть и поправить любой день, поделиться отчётом или передать разработчику весь архив.</div>
       
       <!-- Напоминание о бэкапе -->
       <div id="archive-reminder" style="display:none;background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:10px 12px;border-radius:6px;margin-bottom:10px;font-size:13px">
-        <strong>⏰ Напоминание:</strong> прошло <span id="archive-days-since">—</span> с последней отправки архива руководителю. Не забудьте сохранить копию.
+        <strong>⏰ Напоминание:</strong> прошло <span id="archive-days-since">—</span> с последней отправки архива разработчику. Не забудьте сохранить копию.
       </div>
       
       <!-- Фильтры -->
-      <div class="row" style="margin-bottom:10px">
+      <div class="row" style="margin-bottom:8px">
         <div>
           <label>Объект</label>
           <select id="archive-filter-obj"><option value="">Все объекты</option></select>
@@ -360,11 +360,36 @@ button:disabled{opacity:.4;cursor:not-allowed}
         </div>
       </div>
       
-      <!-- Кнопки экспорта -->
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-        <button type="button" class="primary" style="flex:1;min-width:140px" onclick="exportArchiveAll()">💾 Скачать весь архив</button>
-        <button type="button" style="flex:1;min-width:140px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0" onclick="importArchiveFromFile()">📥 Загрузить от другого прораба</button>
+      <!-- Фильтр по периоду -->
+      <div class="row" style="margin-bottom:10px">
+        <div>
+          <label>Дата с</label>
+          <input type="date" id="archive-filter-from" onchange="renderArchiveTab()">
+        </div>
+        <div>
+          <label>по</label>
+          <input type="date" id="archive-filter-to" onchange="renderArchiveTab()">
+        </div>
       </div>
+      
+      <!-- Доп. фильтры для режима разработчика (анализ данных от всех прорабов) -->
+      <div id="archive-admin-filters" class="row" style="margin-bottom:10px;display:none">
+        <div>
+          <label>Участок</label>
+          <select id="archive-filter-uch" onchange="renderArchiveTab()"><option value="">Все</option></select>
+        </div>
+        <div>
+          <label>Прораб</label>
+          <select id="archive-filter-fio" onchange="renderArchiveTab()"><option value="">Все</option></select>
+        </div>
+      </div>
+      
+      <!-- Кнопки экспорта -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <button type="button" class="primary" style="flex:1;min-width:130px" onclick="exportArchiveFiltered()">💾 Скачать <span id="archive-export-label">весь архив</span></button>
+        <button type="button" style="flex:1;min-width:130px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0" onclick="importArchiveFromFile()">📥 Загрузить архив</button>
+      </div>
+      <div id="archive-counter" style="font-size:12px;color:#666;margin-bottom:14px;text-align:center"></div>
       
       <!-- Список отчётов -->
       <div id="archive-list"></div>
@@ -374,7 +399,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 </div><!-- /container -->
 
 <!-- Скрытое поле для импорта файла -->
-<input type="file" id="archive-import-input" accept=".json" style="display:none" onchange="onArchiveFileSelected(event)">
+<input type="file" id="archive-import-input" accept=".json" multiple style="display:none" onchange="onArchiveFileSelected(event)">
 
 <div class="form-overlay" id="profile-overlay">
   <div class="form-modal">
@@ -414,6 +439,13 @@ button:disabled{opacity:.4;cursor:not-allowed}
         <input type="number" id="pf-scheb-density" placeholder="1,30" step="0.01" inputmode="decimal">
         <div class="hint" style="margin-top:4px;font-size:12px;color:#888">Усреднённый показатель. Применяется ко всем приёмам щебня, если не указано иное. Уточняйте в ПТО.</div>
       </div>
+    </div>
+    
+    <div style="margin-top:14px;padding:12px;background:#f9fafb;border:1px solid #e0e4ea;border-radius:6px">
+      <div style="font-weight:600;font-size:14px;color:#1F4E79;margin-bottom:8px">👨‍💻 Режим разработчика</div>
+      <div id="admin-status" style="font-size:13px;color:#666;margin-bottom:8px">Выключен — доступ только к своим отчётам</div>
+      <button type="button" id="admin-toggle-btn" onclick="toggleAdminMode()" style="width:100%;font-size:13px;padding:9px;background:#fff;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px">Включить</button>
+      <div class="hint" style="margin-top:6px;font-size:11px;color:#888">Для анализа и оптимизации данных. В этом режиме на вкладке «Архив» появится возможность принимать архивы от всех прорабов и фильтровать их по участку, прорабу, объекту и периоду.</div>
     </div>
     
     <button class="primary" style="width:100%;margin-top:10px" onclick="saveProfile()">Сохранить</button>
@@ -625,7 +657,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V75';
+const APP_VERSION = 'V78';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -4109,8 +4141,65 @@ const ARCHIVE_DB_NAME = 'ochakovo_archive';
 const ARCHIVE_STORE = 'reports';
 const ARCHIVE_DB_VERSION = 1;
 const ARCHIVE_LAST_EXPORT_KEY = 'ochakovo_archive_last_export';
-const ARCHIVE_REMIND_DAYS = 3; // напоминание раз в 3 дня
-const ARCHIVE_AUTOCLEAN_YEARS = 3; // автоудаление отчётов старше 3 лет
+const ARCHIVE_REMIND_DAYS = 3;
+const ARCHIVE_AUTOCLEAN_YEARS = 3;
+const ADMIN_MODE_KEY = 'ochakovo_admin_mode';
+
+function isAdminMode() {
+  return localStorage.getItem(ADMIN_MODE_KEY) === '1';
+}
+
+function toggleAdminMode() {
+  if (isAdminMode()) {
+    if (!confirm('Выключить режим разработчика?')) return;
+    localStorage.removeItem(ADMIN_MODE_KEY);
+    refreshAdminUI();
+    alert('Режим разработчика выключен');
+  } else {
+    const pwd = prompt('Введите пароль для активации режима разработчика:');
+    if (pwd === null) return;
+    if (pwd !== '369') {
+      alert('Неверный пароль');
+      return;
+    }
+    localStorage.setItem(ADMIN_MODE_KEY, '1');
+    refreshAdminUI();
+    alert('Режим разработчика включён.\nНа вкладке «Архив» появились дополнительные фильтры и возможность импорта архивов от всех прорабов для анализа.');
+  }
+}
+
+function refreshAdminUI() {
+  const admin = isAdminMode();
+  const filtersEl = document.getElementById('archive-admin-filters');
+  if (filtersEl) filtersEl.style.display = admin ? '' : 'none';
+  const statusEl = document.getElementById('admin-status');
+  const btnEl = document.getElementById('admin-toggle-btn');
+  if (statusEl) statusEl.textContent = admin ? '✓ Включен — для анализа и оптимизации данных от всех прорабов' : 'Выключен — доступ только к своим отчётам';
+  if (btnEl) {
+    btnEl.textContent = admin ? 'Выключить' : 'Включить';
+    btnEl.style.background = admin ? '#fff5f5' : '#fff';
+    btnEl.style.color = admin ? '#dc3545' : '#1F4E79';
+    btnEl.style.borderColor = admin ? '#dc3545' : '#d0d7e0';
+  }
+  // Иконка в шапке
+  const h1 = document.querySelector('header h1');
+  if (h1) {
+    let badge = document.getElementById('admin-badge');
+    if (admin) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.id = 'admin-badge';
+        badge.title = 'Режим разработчика активен';
+        badge.style.cssText = 'font-size:13px;margin-left:6px;cursor:pointer';
+        badge.textContent = '👨‍💻';
+        badge.onclick = () => openProfile();
+        h1.appendChild(badge);
+      }
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+}
 
 function openArchiveDB() {
   return new Promise((resolve, reject) => {
@@ -4180,7 +4269,12 @@ async function saveCurrentReportToArchive() {
   const shiftEl = document.getElementById('shift');
   if (!dateEl || !dateEl.value) return null;
   
-  const id = `${dateEl.value}_${shiftEl ? shiftEl.value : 'day'}_${(state.profile && state.profile.obj) || 'no-obj'}`;
+  // Если работ и материалов нет — не сохраняем (пустой отчёт)
+  if ((!state.works || !state.works.length) && (!state.materials || !state.materials.length)) return null;
+  
+  const objKey = (state.profile && state.profile.obj) || 'no-obj';
+  const uchKey = (state.profile && state.profile.uch) || 'no-uch';
+  const id = `${dateEl.value}_${shiftEl ? shiftEl.value : 'day'}_${uchKey}_${objKey}`;
   const now = new Date().toISOString();
   
   const report = {
@@ -4196,7 +4290,6 @@ async function saveCurrentReportToArchive() {
     savedAt: now
   };
   
-  // createdAt — если запись уже была, не перезаписываем дату создания
   const existing = await archiveGet(id);
   report.createdAt = existing && existing.createdAt ? existing.createdAt : now;
   
@@ -4204,7 +4297,6 @@ async function saveCurrentReportToArchive() {
   return report;
 }
 
-// Применить отчёт из архива в редактор
 function applyReportToEditor(report) {
   state.works = JSON.parse(JSON.stringify(report.works || []));
   state.materials = JSON.parse(JSON.stringify(report.materials || []));
@@ -4219,23 +4311,19 @@ function applyReportToEditor(report) {
   switchTab('main');
 }
 
-// Открыть отчёт в редакторе
 async function openArchivedReport(id) {
   if (!confirm('Открыть этот отчёт?\nТекущий черновик будет заменён содержимым архива (он останется в архиве).')) return;
-  // Сначала сохраним текущий в архив
   await saveCurrentReportToArchive();
   const report = await archiveGet(id);
   if (!report) { alert('Отчёт не найден'); return; }
   applyReportToEditor(report);
 }
 
-// Дублировать отчёт — копия на сегодня
 async function duplicateArchivedReport(id) {
   const report = await archiveGet(id);
   if (!report) return;
   if (!confirm('Создать копию этого отчёта на сегодня?\nТекущий черновик будет заменён.')) return;
   await saveCurrentReportToArchive();
-  // Меняем дату на сегодня
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   report.date = todayStr;
@@ -4243,7 +4331,6 @@ async function duplicateArchivedReport(id) {
   alert('Копия отчёта на сегодня готова. Сохраните в архив после копирования в BiP.');
 }
 
-// Скачать один отчёт
 async function downloadArchivedReport(id) {
   const report = await archiveGet(id);
   if (!report) return;
@@ -4254,14 +4341,11 @@ async function downloadArchivedReport(id) {
   downloadJSON(data, filename);
 }
 
-// Удалить отчёт (с паролем для старых)
 async function deleteArchivedReport(id) {
   const report = await archiveGet(id);
   if (!report) return;
-  // Проверка возраста
   const created = report.createdAt ? new Date(report.createdAt) : new Date(report.date);
-  const ageMs = Date.now() - created.getTime();
-  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  const ageDays = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
   if (ageDays > 30) {
     const pwd = prompt(`Этот отчёт старше месяца (${Math.round(ageDays)} дн.).\nВведите пароль 369 для удаления:`);
     if (pwd !== '369') {
@@ -4275,29 +4359,63 @@ async function deleteArchivedReport(id) {
   renderArchiveTab();
 }
 
-// Экспорт всего архива
-async function exportArchiveAll() {
-  const reports = await archiveList();
-  if (!reports.length) { alert('Архив пуст'); return; }
+// Универсальный экспорт — учитывает все фильтры
+async function exportArchiveFiltered() {
+  const all = await archiveList();
+  if (!all.length) { alert('Архив пуст'); return; }
+  
+  const objFilter = (document.getElementById('archive-filter-obj') || {}).value || '';
+  const fromFilter = (document.getElementById('archive-filter-from') || {}).value || '';
+  const toFilter = (document.getElementById('archive-filter-to') || {}).value || '';
+  const uchFilter = isAdminMode() ? ((document.getElementById('archive-filter-uch') || {}).value || '') : '';
+  const fioFilter = isAdminMode() ? ((document.getElementById('archive-filter-fio') || {}).value || '') : '';
+  
+  const filtered = all.filter(r => {
+    if (objFilter && (r.profile && r.profile.obj) !== objFilter) return false;
+    if (fromFilter && (r.date || '') < fromFilter) return false;
+    if (toFilter && (r.date || '') > toFilter) return false;
+    if (uchFilter && String((r.profile && r.profile.uch) || '') !== uchFilter) return false;
+    if (fioFilter && (r.profile && r.profile.fio) !== fioFilter) return false;
+    return true;
+  });
+  
+  if (!filtered.length) { alert('По фильтру ничего не найдено'); return; }
+  
+  // Имя файла зависит от фильтров
   const fio = (state.profile && state.profile.fio) || 'прораб';
   const uch = (state.profile && state.profile.uch) || '?';
   const fioSafe = fio.replace(/[\\/:*?"<>|]/g, ' ').trim();
   const today = new Date().toISOString().slice(0,10);
-  const filename = `ОЧАКОВО_архив_${fioSafe}_уч${uch}_${today}.json`;
+  let suffix = '';
+  if (objFilter) suffix += '_' + objFilter.replace(/[\\/:*?"<>|]/g, '').slice(0, 30);
+  if (fromFilter || toFilter) suffix += `_${fromFilter || '∞'}_${toFilter || '∞'}`;
+  if (uchFilter) suffix += `_уч${uchFilter}`;
+  
+  let filename;
+  if (isAdminMode()) {
+    filename = `ОЧАКОВО_данные_для_анализа${suffix}_${today}.json`;
+  } else {
+    filename = `ОЧАКОВО_архив_${fioSafe}_уч${uch}${suffix}_${today}.json`;
+  }
+  
   const data = {
     type: 'ochakovo-archive',
     version: 1,
     exportedAt: new Date().toISOString(),
     profile: state.profile || {},
-    reports
+    filters: { obj: objFilter, from: fromFilter, to: toFilter, uch: uchFilter, fio: fioFilter },
+    reports: filtered
   };
   downloadJSON(data, filename);
-  // Записываем дату последней передачи
-  localStorage.setItem(ARCHIVE_LAST_EXPORT_KEY, new Date().toISOString());
-  alert(`Архив сохранён: ${reports.length} отчёт(ов). Отправьте файл руководителю через BiP, WhatsApp или email.`);
+  
+  // Если экспорт был "весь архив" (без фильтров) и не админ — сбрасываем счётчик напоминания
+  if (!isAdminMode() && !objFilter && !fromFilter && !toFilter) {
+    localStorage.setItem(ARCHIVE_LAST_EXPORT_KEY, new Date().toISOString());
+  }
+  
+  alert(`Сохранено: ${filtered.length} отчёт(ов).\nФайл: ${filename}`);
 }
 
-// Хелпер: скачивание JSON
 function downloadJSON(obj, filename) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -4309,35 +4427,40 @@ function downloadJSON(obj, filename) {
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
 }
 
-// Импорт из файла
 function importArchiveFromFile() {
   document.getElementById('archive-import-input').click();
 }
 
 async function onArchiveFileSelected(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    if (data.type !== 'ochakovo-archive' || !Array.isArray(data.reports)) {
-      alert('Это не похоже на архив ОЧАКОВО');
-      return;
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+  
+  let totalImported = 0;
+  let errors = [];
+  
+  for (const file of files) {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (data.type !== 'ochakovo-archive' || !Array.isArray(data.reports)) {
+        errors.push(`${file.name}: не похоже на архив ОЧАКОВО`);
+        continue;
+      }
+      for (const r of data.reports) {
+        try { await archiveSave(r); totalImported++; } catch (e) { console.error('skip:', e); }
+      }
+    } catch (e) {
+      errors.push(`${file.name}: ${e.message || e}`);
     }
-    if (!confirm(`Импортировать ${data.reports.length} отчёт(ов) в свой архив?\nЕсли отчёт с таким ID уже есть — он будет заменён.`)) return;
-    for (const r of data.reports) {
-      try { await archiveSave(r); } catch (e) { console.error('skip:', e); }
-    }
-    alert(`Импортировано ${data.reports.length} отчётов`);
-    renderArchiveTab();
-  } catch (e) {
-    alert('Ошибка импорта: ' + (e.message || e));
-  } finally {
-    event.target.value = ''; // сбрасываем выбор
   }
+  
+  let msg = `Импортировано отчётов: ${totalImported} (из ${files.length} файл${files.length > 1 ? 'ов' : 'а'})`;
+  if (errors.length) msg += `\n\nОшибки:\n${errors.join('\n')}`;
+  alert(msg);
+  renderArchiveTab();
+  event.target.value = '';
 }
 
-// Автоочистка отчётов старше 3 лет
 async function archiveAutoclean() {
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - ARCHIVE_AUTOCLEAN_YEARS);
@@ -4350,13 +4473,12 @@ async function archiveAutoclean() {
   }
 }
 
-// Проверка напоминания
 function checkArchiveReminder() {
   const reminderEl = document.getElementById('archive-reminder');
   if (!reminderEl) return;
+  if (isAdminMode()) { reminderEl.style.display = 'none'; return; }
   const last = localStorage.getItem(ARCHIVE_LAST_EXPORT_KEY);
   if (!last) {
-    // никогда не экспортировали — проверим есть ли вообще отчёты
     archiveList().then(reports => {
       if (reports.length > 0) {
         reminderEl.style.display = 'block';
@@ -4374,50 +4496,79 @@ function checkArchiveReminder() {
   }
 }
 
-// Рендер вкладки архива
 async function renderArchiveTab() {
   const listEl = document.getElementById('archive-list');
   if (!listEl) return;
+  refreshAdminUI();
   checkArchiveReminder();
   
   const reports = await archiveList();
   if (!reports.length) {
     listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888">Архив пуст. Отчёты будут сохраняться автоматически при копировании в BiP.</div>';
+    updateExportLabel(0, 0);
     return;
   }
   
-  // Обновим список объектов в фильтре
+  // Обновим селекты фильтров
   const objSel = document.getElementById('archive-filter-obj');
   if (objSel) {
-    const currentVal = objSel.value;
+    const cur = objSel.value;
     const objs = [...new Set(reports.map(r => (r.profile && r.profile.obj) || '').filter(Boolean))].sort();
     objSel.innerHTML = '<option value="">Все объекты</option>' + objs.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
-    if (objs.includes(currentVal)) objSel.value = currentVal;
+    if (objs.includes(cur)) objSel.value = cur;
     objSel.onchange = renderArchiveTab;
   }
   
+  if (isAdminMode()) {
+    const uchSel = document.getElementById('archive-filter-uch');
+    if (uchSel) {
+      const cur = uchSel.value;
+      const uchs = [...new Set(reports.map(r => String((r.profile && r.profile.uch) || '')).filter(Boolean))].sort();
+      uchSel.innerHTML = '<option value="">Все</option>' + uchs.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+      if (uchs.includes(cur)) uchSel.value = cur;
+    }
+    const fioSel = document.getElementById('archive-filter-fio');
+    if (fioSel) {
+      const cur = fioSel.value;
+      const fios = [...new Set(reports.map(r => (r.profile && r.profile.fio) || '').filter(Boolean))].sort();
+      fioSel.innerHTML = '<option value="">Все</option>' + fios.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+      if (fios.includes(cur)) fioSel.value = cur;
+    }
+  }
+  
   // Фильтрация
-  const objFilter = objSel ? objSel.value : '';
-  const textFilter = (document.getElementById('archive-filter-text') || {}).value || '';
-  const tf = textFilter.toLowerCase().trim();
+  const objFilter = (objSel || {}).value || '';
+  const textFilter = ((document.getElementById('archive-filter-text') || {}).value || '').toLowerCase().trim();
+  const fromFilter = (document.getElementById('archive-filter-from') || {}).value || '';
+  const toFilter = (document.getElementById('archive-filter-to') || {}).value || '';
+  const uchFilter = isAdminMode() ? ((document.getElementById('archive-filter-uch') || {}).value || '') : '';
+  const fioFilter = isAdminMode() ? ((document.getElementById('archive-filter-fio') || {}).value || '') : '';
   
   const filtered = reports.filter(r => {
     if (objFilter && (r.profile && r.profile.obj) !== objFilter) return false;
-    if (tf) {
-      const text = [
-        ...(r.works || []).map(w => w.text || ''),
-        ...(r.materials || []).map(m => m.text || '')
-      ].join(' ').toLowerCase();
-      if (!text.includes(tf)) return false;
+    if (fromFilter && (r.date || '') < fromFilter) return false;
+    if (toFilter && (r.date || '') > toFilter) return false;
+    if (uchFilter && String((r.profile && r.profile.uch) || '') !== uchFilter) return false;
+    if (fioFilter && (r.profile && r.profile.fio) !== fioFilter) return false;
+    if (textFilter) {
+      const text = [...(r.works || []).map(w => w.text || ''), ...(r.materials || []).map(m => m.text || '')].join(' ').toLowerCase();
+      if (!text.includes(textFilter)) return false;
     }
     return true;
   });
   
-  // Сортировка: по дате убыв.
-  filtered.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // Сортировка
+  filtered.sort((a, b) => {
+    const d = (b.date || '').localeCompare(a.date || '');
+    if (d !== 0) return d;
+    // в один день — по участку
+    return String((a.profile && a.profile.uch) || '').localeCompare(String((b.profile && b.profile.uch) || ''));
+  });
+  
+  updateExportLabel(filtered.length, reports.length);
   
   if (!filtered.length) {
-    listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888">Ничего не найдено по фильтру</div>';
+    listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888">По фильтру ничего не найдено</div>';
     return;
   }
   
@@ -4427,11 +4578,20 @@ async function renderArchiveTab() {
     const dateStr = (d && y && m && dd) ? `${dd}.${m}.${y}` : d;
     const shiftLabel = r.shift === 'night' ? '🌙 ночная' : '☀ дневная';
     const obj = (r.profile && r.profile.obj) || '—';
+    const fio = (r.profile && r.profile.fio) || '';
+    const uch = (r.profile && r.profile.uch) || '';
     const worksCount = (r.works || []).length;
     const matsCount = (r.materials || []).length;
+    
+    // Подпись прораба — показываем в админ-режиме всегда; в обычном — только если не свой
+    const myFio = (state.profile && state.profile.fio) || '';
+    const showAuthor = isAdminMode() || (fio && fio !== myFio);
+    const authorLine = showAuthor ? `<div style="font-size:12px;color:#555;margin-top:2px">👷 уч.${uch} · ${escapeHtml(fio)}</div>` : '';
+    
     return `<div style="border:1px solid #e0e4ea;border-radius:8px;padding:10px;margin-bottom:8px;background:#fafbfc">
       <div style="font-weight:600;font-size:14px;color:#1F4E79">📅 ${dateStr} · ${shiftLabel}</div>
       <div style="font-size:13px;color:#555;margin-top:3px">🏗 ${escapeHtml(obj)}</div>
+      ${authorLine}
       <div style="font-size:12px;color:#777;margin-top:3px">${worksCount} работ, ${matsCount} материалов</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
         <button type="button" style="flex:1;min-width:90px;font-size:12px;padding:6px 10px;background:#1F4E79;color:#fff;border:none;border-radius:4px" onclick="openArchivedReport('${r.id}')">Открыть</button>
@@ -4443,12 +4603,33 @@ async function renderArchiveTab() {
   }).join('');
 }
 
+function updateExportLabel(filteredCount, totalCount) {
+  const lbl = document.getElementById('archive-export-label');
+  const counter = document.getElementById('archive-counter');
+  if (!lbl || !counter) return;
+  
+  const hasFilter = ((document.getElementById('archive-filter-obj') || {}).value) ||
+                    ((document.getElementById('archive-filter-from') || {}).value) ||
+                    ((document.getElementById('archive-filter-to') || {}).value) ||
+                    (isAdminMode() && (((document.getElementById('archive-filter-uch') || {}).value) || ((document.getElementById('archive-filter-fio') || {}).value)));
+  
+  if (hasFilter) {
+    lbl.textContent = `по фильтру (${filteredCount})`;
+    counter.textContent = `показано ${filteredCount} из ${totalCount}`;
+  } else {
+    lbl.textContent = `весь архив (${totalCount})`;
+    counter.textContent = `всего отчётов: ${totalCount}`;
+  }
+}
+
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// Запускаем автоочистку при загрузке (не блокирует UI)
 setTimeout(() => archiveAutoclean().catch(()=>{}), 3000);
+
+// Применить админ-UI при загрузке
+setTimeout(() => refreshAdminUI(), 100);
 
 // Перехватим копирование отчёта чтобы сохранить в архив
 (function hookCopyReport() {
