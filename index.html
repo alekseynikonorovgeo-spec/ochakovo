@@ -158,6 +158,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <button type="button" class="tab active" id="tab-btn-main" onclick="switchTab('main')">📋 Отчёт</button>
     <button type="button" class="tab" id="tab-btn-area" onclick="switchTab('area')">📐 Площадь</button>
     <button type="button" class="tab" id="tab-btn-calc" onclick="switchTab('calc')">🧮 Асфальт</button>
+    <button type="button" class="tab" id="tab-btn-archive" onclick="switchTab('archive')">📚 Архив</button>
   </div>
 
   <div id="tab-main">
@@ -334,7 +335,46 @@ button:disabled{opacity:.4;cursor:not-allowed}
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ВКЛАДКА: Архив отчётов                                  -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="tab-archive" style="display:none">
+    <div class="card">
+      <div class="section-title">📚 Архив отчётов</div>
+      <div class="hint" style="margin-bottom:10px">Здесь хранятся все ваши сменные отчёты на этом телефоне. Можно открыть и поправить любой день, поделиться отчётом или передать руководителю весь архив.</div>
+      
+      <!-- Напоминание о бэкапе -->
+      <div id="archive-reminder" style="display:none;background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:10px 12px;border-radius:6px;margin-bottom:10px;font-size:13px">
+        <strong>⏰ Напоминание:</strong> прошло <span id="archive-days-since">—</span> с последней отправки архива руководителю. Не забудьте сохранить копию.
+      </div>
+      
+      <!-- Фильтры -->
+      <div class="row" style="margin-bottom:10px">
+        <div>
+          <label>Объект</label>
+          <select id="archive-filter-obj"><option value="">Все объекты</option></select>
+        </div>
+        <div>
+          <label>Поиск</label>
+          <input type="text" id="archive-filter-text" placeholder="по работам, материалам..." oninput="renderArchiveTab()">
+        </div>
+      </div>
+      
+      <!-- Кнопки экспорта -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+        <button type="button" class="primary" style="flex:1;min-width:140px" onclick="exportArchiveAll()">💾 Скачать весь архив</button>
+        <button type="button" style="flex:1;min-width:140px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0" onclick="importArchiveFromFile()">📥 Загрузить от другого прораба</button>
+      </div>
+      
+      <!-- Список отчётов -->
+      <div id="archive-list"></div>
+    </div>
+  </div>
+
 </div><!-- /container -->
+
+<!-- Скрытое поле для импорта файла -->
+<input type="file" id="archive-import-input" accept=".json" style="display:none" onchange="onArchiveFileSelected(event)">
 
 <div class="form-overlay" id="profile-overlay">
   <div class="form-modal">
@@ -585,7 +625,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V74';
+const APP_VERSION = 'V75';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -2152,16 +2192,20 @@ function switchTab(name) {
   const main = document.getElementById('tab-main');
   const calc = document.getElementById('tab-calc');
   const area = document.getElementById('tab-area');
+  const archive = document.getElementById('tab-archive');
   const btnMain = document.getElementById('tab-btn-main');
   const btnCalc = document.getElementById('tab-btn-calc');
   const btnArea = document.getElementById('tab-btn-area');
+  const btnArchive = document.getElementById('tab-btn-archive');
   // По умолчанию скрываем все
   main.style.display = 'none';
   calc.style.display = 'none';
   area.style.display = 'none';
+  if (archive) archive.style.display = 'none';
   btnMain.classList.remove('active');
   btnCalc.classList.remove('active');
   btnArea.classList.remove('active');
+  if (btnArchive) btnArchive.classList.remove('active');
   if (name === 'calc') {
     calc.style.display = '';
     btnCalc.classList.add('active');
@@ -2172,6 +2216,10 @@ function switchTab(name) {
     btnArea.classList.add('active');
     if (!state.areaItems.length) areaAddItem('rect');
     else areaRender();
+  } else if (name === 'archive') {
+    if (archive) archive.style.display = '';
+    if (btnArchive) btnArchive.classList.add('active');
+    renderArchiveTab();
   } else {
     main.style.display = '';
     btnMain.classList.add('active');
@@ -4049,6 +4097,369 @@ renderMaterials(); renderWorks(); renderPreview();
   el.addEventListener('input', () => { saveDraft(true); renderPreview(); });
 });
 if (!state.profile) setTimeout(() => openProfile(), 300);
+
+// ═══════════════════════════════════════════════════════════════════
+// АРХИВ ОТЧЁТОВ (IndexedDB)
+// ═══════════════════════════════════════════════════════════════════
+// Хранилище в IndexedDB — позволяет держать сотни/тысячи отчётов.
+// База: ochakovo_archive, store: reports, ключ: id (timestamp)
+// Структура записи: { id, date, shift, profile, works, materials, headerData, createdAt, savedAt }
+
+const ARCHIVE_DB_NAME = 'ochakovo_archive';
+const ARCHIVE_STORE = 'reports';
+const ARCHIVE_DB_VERSION = 1;
+const ARCHIVE_LAST_EXPORT_KEY = 'ochakovo_archive_last_export';
+const ARCHIVE_REMIND_DAYS = 3; // напоминание раз в 3 дня
+const ARCHIVE_AUTOCLEAN_YEARS = 3; // автоудаление отчётов старше 3 лет
+
+function openArchiveDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(ARCHIVE_DB_NAME, ARCHIVE_DB_VERSION);
+    req.onerror = () => reject(req.error);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(ARCHIVE_STORE)) {
+        const store = db.createObjectStore(ARCHIVE_STORE, { keyPath: 'id' });
+        store.createIndex('date', 'date', { unique: false });
+        store.createIndex('obj', 'profile.obj', { unique: false });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+async function archiveSave(report) {
+  try {
+    const db = await openArchiveDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(ARCHIVE_STORE, 'readwrite');
+      const store = tx.objectStore(ARCHIVE_STORE);
+      const req = store.put(report);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { console.error('archiveSave:', e); throw e; }
+}
+
+async function archiveList() {
+  try {
+    const db = await openArchiveDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(ARCHIVE_STORE, 'readonly');
+      const store = tx.objectStore(ARCHIVE_STORE);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { console.error('archiveList:', e); return []; }
+}
+
+async function archiveGet(id) {
+  const db = await openArchiveDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(ARCHIVE_STORE, 'readonly');
+    const req = tx.objectStore(ARCHIVE_STORE).get(id);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function archiveDelete(id) {
+  const db = await openArchiveDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(ARCHIVE_STORE, 'readwrite');
+    const req = tx.objectStore(ARCHIVE_STORE).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// Сохранение текущего отчёта в архив
+async function saveCurrentReportToArchive() {
+  const dateEl = document.getElementById('report-date');
+  const shiftEl = document.getElementById('shift');
+  if (!dateEl || !dateEl.value) return null;
+  
+  const id = `${dateEl.value}_${shiftEl ? shiftEl.value : 'day'}_${(state.profile && state.profile.obj) || 'no-obj'}`;
+  const now = new Date().toISOString();
+  
+  const report = {
+    id,
+    date: dateEl.value,
+    shift: shiftEl ? shiftEl.value : 'day',
+    timeStart: (document.getElementById('time-start') || {}).value || '',
+    timeEnd: (document.getElementById('time-end') || {}).value || '',
+    profile: state.profile ? JSON.parse(JSON.stringify(state.profile)) : {},
+    works: JSON.parse(JSON.stringify(state.works || [])),
+    materials: JSON.parse(JSON.stringify(state.materials || [])),
+    appVersion: APP_VERSION,
+    savedAt: now
+  };
+  
+  // createdAt — если запись уже была, не перезаписываем дату создания
+  const existing = await archiveGet(id);
+  report.createdAt = existing && existing.createdAt ? existing.createdAt : now;
+  
+  await archiveSave(report);
+  return report;
+}
+
+// Применить отчёт из архива в редактор
+function applyReportToEditor(report) {
+  state.works = JSON.parse(JSON.stringify(report.works || []));
+  state.materials = JSON.parse(JSON.stringify(report.materials || []));
+  document.getElementById('report-date').value = report.date || '';
+  document.getElementById('shift').value = report.shift || 'day';
+  document.getElementById('time-start').value = report.timeStart || '';
+  document.getElementById('time-end').value = report.timeEnd || '';
+  if (report.profile) state.profile = report.profile;
+  saveDraft(true);
+  renderAll();
+  renderPreview();
+  switchTab('main');
+}
+
+// Открыть отчёт в редакторе
+async function openArchivedReport(id) {
+  if (!confirm('Открыть этот отчёт?\nТекущий черновик будет заменён содержимым архива (он останется в архиве).')) return;
+  // Сначала сохраним текущий в архив
+  await saveCurrentReportToArchive();
+  const report = await archiveGet(id);
+  if (!report) { alert('Отчёт не найден'); return; }
+  applyReportToEditor(report);
+}
+
+// Дублировать отчёт — копия на сегодня
+async function duplicateArchivedReport(id) {
+  const report = await archiveGet(id);
+  if (!report) return;
+  if (!confirm('Создать копию этого отчёта на сегодня?\nТекущий черновик будет заменён.')) return;
+  await saveCurrentReportToArchive();
+  // Меняем дату на сегодня
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  report.date = todayStr;
+  applyReportToEditor(report);
+  alert('Копия отчёта на сегодня готова. Сохраните в архив после копирования в BiP.');
+}
+
+// Скачать один отчёт
+async function downloadArchivedReport(id) {
+  const report = await archiveGet(id);
+  if (!report) return;
+  const fio = (report.profile && report.profile.fio) || 'прораб';
+  const fioSafe = fio.replace(/[\\/:*?"<>|]/g, ' ').trim();
+  const filename = `Отчёт ${report.date} ${fioSafe}.json`;
+  const data = { type: 'ochakovo-archive', version: 1, exportedAt: new Date().toISOString(), reports: [report] };
+  downloadJSON(data, filename);
+}
+
+// Удалить отчёт (с паролем для старых)
+async function deleteArchivedReport(id) {
+  const report = await archiveGet(id);
+  if (!report) return;
+  // Проверка возраста
+  const created = report.createdAt ? new Date(report.createdAt) : new Date(report.date);
+  const ageMs = Date.now() - created.getTime();
+  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  if (ageDays > 30) {
+    const pwd = prompt(`Этот отчёт старше месяца (${Math.round(ageDays)} дн.).\nВведите пароль 369 для удаления:`);
+    if (pwd !== '369') {
+      if (pwd !== null) alert('Неверный пароль');
+      return;
+    }
+  } else {
+    if (!confirm('Удалить этот отчёт из архива?')) return;
+  }
+  await archiveDelete(id);
+  renderArchiveTab();
+}
+
+// Экспорт всего архива
+async function exportArchiveAll() {
+  const reports = await archiveList();
+  if (!reports.length) { alert('Архив пуст'); return; }
+  const fio = (state.profile && state.profile.fio) || 'прораб';
+  const uch = (state.profile && state.profile.uch) || '?';
+  const fioSafe = fio.replace(/[\\/:*?"<>|]/g, ' ').trim();
+  const today = new Date().toISOString().slice(0,10);
+  const filename = `ОЧАКОВО_архив_${fioSafe}_уч${uch}_${today}.json`;
+  const data = {
+    type: 'ochakovo-archive',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    profile: state.profile || {},
+    reports
+  };
+  downloadJSON(data, filename);
+  // Записываем дату последней передачи
+  localStorage.setItem(ARCHIVE_LAST_EXPORT_KEY, new Date().toISOString());
+  alert(`Архив сохранён: ${reports.length} отчёт(ов). Отправьте файл руководителю через BiP, WhatsApp или email.`);
+}
+
+// Хелпер: скачивание JSON
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+}
+
+// Импорт из файла
+function importArchiveFromFile() {
+  document.getElementById('archive-import-input').click();
+}
+
+async function onArchiveFileSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (data.type !== 'ochakovo-archive' || !Array.isArray(data.reports)) {
+      alert('Это не похоже на архив ОЧАКОВО');
+      return;
+    }
+    if (!confirm(`Импортировать ${data.reports.length} отчёт(ов) в свой архив?\nЕсли отчёт с таким ID уже есть — он будет заменён.`)) return;
+    for (const r of data.reports) {
+      try { await archiveSave(r); } catch (e) { console.error('skip:', e); }
+    }
+    alert(`Импортировано ${data.reports.length} отчётов`);
+    renderArchiveTab();
+  } catch (e) {
+    alert('Ошибка импорта: ' + (e.message || e));
+  } finally {
+    event.target.value = ''; // сбрасываем выбор
+  }
+}
+
+// Автоочистка отчётов старше 3 лет
+async function archiveAutoclean() {
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - ARCHIVE_AUTOCLEAN_YEARS);
+  const reports = await archiveList();
+  for (const r of reports) {
+    const dateStr = r.date || (r.savedAt && r.savedAt.slice(0,10));
+    if (dateStr && new Date(dateStr) < cutoff) {
+      try { await archiveDelete(r.id); } catch (e) {}
+    }
+  }
+}
+
+// Проверка напоминания
+function checkArchiveReminder() {
+  const reminderEl = document.getElementById('archive-reminder');
+  if (!reminderEl) return;
+  const last = localStorage.getItem(ARCHIVE_LAST_EXPORT_KEY);
+  if (!last) {
+    // никогда не экспортировали — проверим есть ли вообще отчёты
+    archiveList().then(reports => {
+      if (reports.length > 0) {
+        reminderEl.style.display = 'block';
+        document.getElementById('archive-days-since').textContent = 'много времени';
+      }
+    });
+    return;
+  }
+  const daysSince = (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24);
+  if (daysSince >= ARCHIVE_REMIND_DAYS) {
+    reminderEl.style.display = 'block';
+    document.getElementById('archive-days-since').textContent = `${Math.floor(daysSince)} дн.`;
+  } else {
+    reminderEl.style.display = 'none';
+  }
+}
+
+// Рендер вкладки архива
+async function renderArchiveTab() {
+  const listEl = document.getElementById('archive-list');
+  if (!listEl) return;
+  checkArchiveReminder();
+  
+  const reports = await archiveList();
+  if (!reports.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888">Архив пуст. Отчёты будут сохраняться автоматически при копировании в BiP.</div>';
+    return;
+  }
+  
+  // Обновим список объектов в фильтре
+  const objSel = document.getElementById('archive-filter-obj');
+  if (objSel) {
+    const currentVal = objSel.value;
+    const objs = [...new Set(reports.map(r => (r.profile && r.profile.obj) || '').filter(Boolean))].sort();
+    objSel.innerHTML = '<option value="">Все объекты</option>' + objs.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+    if (objs.includes(currentVal)) objSel.value = currentVal;
+    objSel.onchange = renderArchiveTab;
+  }
+  
+  // Фильтрация
+  const objFilter = objSel ? objSel.value : '';
+  const textFilter = (document.getElementById('archive-filter-text') || {}).value || '';
+  const tf = textFilter.toLowerCase().trim();
+  
+  const filtered = reports.filter(r => {
+    if (objFilter && (r.profile && r.profile.obj) !== objFilter) return false;
+    if (tf) {
+      const text = [
+        ...(r.works || []).map(w => w.text || ''),
+        ...(r.materials || []).map(m => m.text || '')
+      ].join(' ').toLowerCase();
+      if (!text.includes(tf)) return false;
+    }
+    return true;
+  });
+  
+  // Сортировка: по дате убыв.
+  filtered.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  
+  if (!filtered.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888">Ничего не найдено по фильтру</div>';
+    return;
+  }
+  
+  listEl.innerHTML = filtered.map(r => {
+    const d = r.date || '';
+    const [y, m, dd] = d.split('-');
+    const dateStr = (d && y && m && dd) ? `${dd}.${m}.${y}` : d;
+    const shiftLabel = r.shift === 'night' ? '🌙 ночная' : '☀ дневная';
+    const obj = (r.profile && r.profile.obj) || '—';
+    const worksCount = (r.works || []).length;
+    const matsCount = (r.materials || []).length;
+    return `<div style="border:1px solid #e0e4ea;border-radius:8px;padding:10px;margin-bottom:8px;background:#fafbfc">
+      <div style="font-weight:600;font-size:14px;color:#1F4E79">📅 ${dateStr} · ${shiftLabel}</div>
+      <div style="font-size:13px;color:#555;margin-top:3px">🏗 ${escapeHtml(obj)}</div>
+      <div style="font-size:12px;color:#777;margin-top:3px">${worksCount} работ, ${matsCount} материалов</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <button type="button" style="flex:1;min-width:90px;font-size:12px;padding:6px 10px;background:#1F4E79;color:#fff;border:none;border-radius:4px" onclick="openArchivedReport('${r.id}')">Открыть</button>
+        <button type="button" style="flex:1;min-width:90px;font-size:12px;padding:6px 10px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px" onclick="duplicateArchivedReport('${r.id}')">Дублировать</button>
+        <button type="button" style="flex:1;min-width:90px;font-size:12px;padding:6px 10px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px" onclick="downloadArchivedReport('${r.id}')">📤 Поделиться</button>
+        <button type="button" style="font-size:12px;padding:6px 10px;background:#fff;color:#dc3545;border:1px solid #dc3545;border-radius:4px" onclick="deleteArchivedReport('${r.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Запускаем автоочистку при загрузке (не блокирует UI)
+setTimeout(() => archiveAutoclean().catch(()=>{}), 3000);
+
+// Перехватим копирование отчёта чтобы сохранить в архив
+(function hookCopyReport() {
+  const origCopy = window.copyReport;
+  if (typeof origCopy === 'function') {
+    window.copyReport = function() {
+      saveCurrentReportToArchive().catch(()=>{});
+      return origCopy.apply(this, arguments);
+    };
+  }
+})();
 </script>
 <!-- ═══ PWA: регистрация service worker + автоматическое обнаружение обновлений ═══ -->
 <script>
