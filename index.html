@@ -418,20 +418,59 @@ button:disabled{opacity:.4;cursor:not-allowed}
       </div>
       
       <!-- Поиск -->
-      <div class="field-group" style="margin-bottom:10px">
+      <div class="field-group" style="margin-bottom:8px">
         <input type="text" id="bd-search" placeholder="🔍 Поиск по ФИО, отделу, должности..." oninput="renderBirthdaysTab()" style="width:100%;padding:8px 12px;font-size:14px">
       </div>
       
-      <!-- Фильтр отдела -->
-      <div class="field-group" style="margin-bottom:10px">
-        <label>Отдел</label>
-        <select id="bd-dept" onchange="renderBirthdaysTab()"><option value="">Все отделы</option></select>
+      <!-- Multi-select фильтры -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <button type="button" id="bd-flt-dept-btn" onclick="bdToggleDropdown('dept')" style="flex:1;min-width:130px;padding:8px 10px;font-size:12px;background:#fff;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px;text-align:left;display:flex;align-items:center;gap:6px;font-weight:600">
+          <span id="bd-flt-dept-text" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🏢 Отделы: все</span>
+          <span id="bd-flt-dept-count" style="background:#1F4E79;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;display:none"></span>
+          <span style="font-size:9px">▼</span>
+        </button>
+        <button type="button" id="bd-flt-pos-btn" onclick="bdToggleDropdown('pos')" style="flex:1;min-width:130px;padding:8px 10px;font-size:12px;background:#fff;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px;text-align:left;display:flex;align-items:center;gap:6px;font-weight:600">
+          <span id="bd-flt-pos-text" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👔 Должности: все</span>
+          <span id="bd-flt-pos-count" style="background:#1F4E79;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;display:none"></span>
+          <span style="font-size:9px">▼</span>
+        </button>
+        <button type="button" id="bd-flt-fio-btn" onclick="bdToggleDropdown('fio')" style="flex:1;min-width:130px;padding:8px 10px;font-size:12px;background:#fff;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px;text-align:left;display:flex;align-items:center;gap:6px;font-weight:600">
+          <span id="bd-flt-fio-text" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">⭐ Избранные люди</span>
+          <span id="bd-flt-fio-count" style="background:#1F4E79;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;display:none"></span>
+          <span style="font-size:9px">▼</span>
+        </button>
+        <button type="button" onclick="bdClearAllFilters()" style="padding:8px 10px;font-size:12px;background:#fff5f5;color:#dc3545;border:1px solid #fbcaca;border-radius:4px;white-space:nowrap;font-weight:600" title="Сбросить все фильтры">✖ Сброс</button>
+      </div>
+      
+      <div id="bd-filter-hint" style="font-size:11px;color:#666;margin-bottom:8px;padding:6px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:4px;display:none;line-height:1.4">
+        💡 <strong>Как работают фильтры:</strong> отдел + должность отбирают всех подходящих, а избранные люди <strong>добавляются</strong> к результату (даже если они не из этого отдела/должности).
       </div>
       
       <div id="bd-counter" style="font-size:12px;color:#666;margin-bottom:10px;text-align:center"></div>
       
       <!-- Список -->
-      <div id="bd-list" style="max-height:70vh;overflow-y:auto"></div>
+      <div id="bd-list" style="max-height:60vh;overflow-y:auto"></div>
+    </div>
+  </div>
+  
+  <!-- Модалка multi-select фильтра -->
+  <div id="bd-dropdown-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;padding:20px" onclick="bdCloseDropdown(event)">
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:12px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.2)">
+      <div style="padding:14px 16px;border-bottom:1px solid #e0e4ea;display:flex;align-items:center;gap:10px">
+        <strong id="bd-dropdown-title" style="flex:1;color:#1F4E79;font-size:15px">Фильтр</strong>
+        <button type="button" onclick="bdCloseDropdown()" style="background:none;border:none;font-size:24px;color:#888;cursor:pointer;line-height:1;padding:0 4px">×</button>
+      </div>
+      <div style="padding:10px 16px;border-bottom:1px solid #e0e4ea">
+        <input type="text" id="bd-dropdown-search" placeholder="Поиск..." oninput="bdRenderDropdownList()" style="width:100%;padding:8px 12px;font-size:13px;border:1px solid #d0d7e0;border-radius:6px">
+      </div>
+      <div style="padding:8px 16px;border-bottom:1px solid #e0e4ea;display:flex;gap:6px">
+        <button type="button" onclick="bdSelectAllInDropdown()" style="flex:1;padding:6px;font-size:12px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px;font-weight:600">✓ Выбрать все</button>
+        <button type="button" onclick="bdClearAllInDropdown()" style="flex:1;padding:6px;font-size:12px;background:#fff5f5;color:#dc3545;border:1px solid #fbcaca;border-radius:4px;font-weight:600">✖ Снять все</button>
+      </div>
+      <div id="bd-dropdown-list" style="flex:1;overflow-y:auto;padding:8px"></div>
+      <div style="padding:10px 16px;border-top:1px solid #e0e4ea">
+        <button type="button" onclick="bdApplyDropdown()" style="width:100%;padding:10px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-weight:600;font-size:14px">Применить</button>
+      </div>
     </div>
   </div>
 
@@ -696,7 +735,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V91';
+const APP_VERSION = 'V93';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -5923,10 +5962,31 @@ const BIRTHDAYS_DATA = [
 ];
 
 let _bdFilter = 'all';
+let _bdSelectedDepts = new Set();   // выбранные отделы (пустой = все)
+let _bdSelectedPos = new Set();     // выбранные должности (пустой = все)
+let _bdSelectedFio = new Set();     // избранные люди (ДОБАВЛЯЮТСЯ к результату)
+let _bdDropdownKey = null;          // что сейчас открыто: 'dept' или 'pos'
+let _bdDropdownTempSet = null;      // временный набор для редактирования
+
+// === Загрузка/сохранение фильтров в localStorage ===
+function bdLoadFilters() {
+  try {
+    const d = JSON.parse(localStorage.getItem('ochakovo_bd_depts') || '[]');
+    const p = JSON.parse(localStorage.getItem('ochakovo_bd_positions') || '[]');
+    const f = JSON.parse(localStorage.getItem('ochakovo_bd_fio') || '[]');
+    _bdSelectedDepts = new Set(d);
+    _bdSelectedPos = new Set(p);
+    _bdSelectedFio = new Set(f);
+  } catch(e) {}
+}
+function bdSaveFilters() {
+  localStorage.setItem('ochakovo_bd_depts', JSON.stringify([..._bdSelectedDepts]));
+  localStorage.setItem('ochakovo_bd_positions', JSON.stringify([..._bdSelectedPos]));
+  localStorage.setItem('ochakovo_bd_fio', JSON.stringify([..._bdSelectedFio]));
+}
 
 function bdSetFilter(name) {
   _bdFilter = name;
-  // Обновляем кнопки
   ['today','week','month','all'].forEach(k => {
     const btn = document.getElementById('bd-tab-' + k);
     if (!btn) return;
@@ -5972,12 +6032,198 @@ function bdFormatDate(month, day) {
   return day + ' ' + months[month-1];
 }
 
-function bdGenderFromMiddleName(fio) {
-  // Простая эвристика: отчество заканчивается на -на/-вна/-чна/-щна → жен., иначе муж.
-  const parts = (fio || '').split(/\s+/);
-  const patronymic = parts[2] || '';
-  if (/(на|чна|щна|вна)$/i.test(patronymic)) return 'f';
-  return 'm';
+// === Multi-select dropdown ===
+function bdToggleDropdown(key) {
+  _bdDropdownKey = key;
+  // Скопируем текущий выбор для временного редактирования
+  let src;
+  if (key === 'dept') src = _bdSelectedDepts;
+  else if (key === 'pos') src = _bdSelectedPos;
+  else src = _bdSelectedFio;
+  _bdDropdownTempSet = new Set(src);
+  
+  const titles = { dept: 'Выберите отделы', pos: 'Выберите должности', fio: 'Избранные люди (добавятся к результату)' };
+  document.getElementById('bd-dropdown-title').textContent = titles[key];
+  document.getElementById('bd-dropdown-search').value = '';
+  document.getElementById('bd-dropdown-overlay').style.display = 'flex';
+  bdRenderDropdownList();
+}
+
+function bdCloseDropdown(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('bd-dropdown-overlay').style.display = 'none';
+  _bdDropdownKey = null;
+  _bdDropdownTempSet = null;
+}
+
+function bdRenderDropdownList() {
+  if (!_bdDropdownKey) return;
+  const all = bdParse();
+  const key = _bdDropdownKey;
+  const search = (document.getElementById('bd-dropdown-search').value || '').toLowerCase().trim();
+  
+  // Собираем все уникальные значения + счёт
+  let items;
+  if (key === 'fio') {
+    // Для людей — просто список ФИО (без счёта)
+    let people = all.map(p => [p.fio, p.dept + ' / ' + p.pos]);
+    people.sort((a, b) => a[0].localeCompare(b[0], 'ru'));
+    if (search) people = people.filter(([fio, info]) => fio.toLowerCase().includes(search) || info.toLowerCase().includes(search));
+    items = people;
+  } else {
+    const counts = new Map();
+    all.forEach(p => {
+      const v = key === 'dept' ? p.dept : p.pos;
+      counts.set(v, (counts.get(v) || 0) + 1);
+    });
+    items = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ru'));
+    if (search) items = items.filter(([v]) => v.toLowerCase().includes(search));
+  }
+  
+  const listEl = document.getElementById('bd-dropdown-list');
+  if (!items.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#888">Ничего не найдено</div>';
+    return;
+  }
+  
+  listEl.innerHTML = items.map(item => {
+    const v = item[0];
+    const extra = item[1]; // count для dept/pos, инфо для fio
+    const checked = _bdDropdownTempSet.has(v);
+    const vEsc = v.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const escSingle = v.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    let rightCol;
+    let labelContent;
+    if (key === 'fio') {
+      const extraEsc = String(extra || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      labelContent = '<div style="flex:1;min-width:0">' +
+        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + vEsc + '</div>' +
+        '<div style="color:#888;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + extraEsc + '</div>' +
+        '</div>';
+      rightCol = '';
+    } else {
+      labelContent = '<span style="flex:1">' + vEsc + '</span>';
+      rightCol = '<span style="color:#888;font-size:11px;flex-shrink:0">' + extra + '</span>';
+    }
+    return '<label style="display:flex;align-items:center;gap:8px;padding:7px 8px;cursor:pointer;border-radius:4px;font-size:13px;' + (checked ? 'background:#f0f4ff;' : '') + '">' +
+      '<input type="checkbox"' + (checked ? ' checked' : '') + ' onchange="bdToggleItem(\'' + escSingle + '\')" style="flex-shrink:0">' +
+      labelContent +
+      rightCol +
+      '</label>';
+  }).join('');
+}
+
+function bdToggleItem(val) {
+  if (_bdDropdownTempSet.has(val)) _bdDropdownTempSet.delete(val);
+  else _bdDropdownTempSet.add(val);
+  bdRenderDropdownList();
+}
+
+function bdSelectAllInDropdown() {
+  if (!_bdDropdownKey) return;
+  const all = bdParse();
+  const key = _bdDropdownKey;
+  const search = (document.getElementById('bd-dropdown-search').value || '').toLowerCase().trim();
+  all.forEach(p => {
+    const v = key === 'dept' ? p.dept : (key === 'pos' ? p.pos : p.fio);
+    const info = key === 'fio' ? (p.dept + ' / ' + p.pos) : '';
+    if (!search || v.toLowerCase().includes(search) || info.toLowerCase().includes(search)) _bdDropdownTempSet.add(v);
+  });
+  bdRenderDropdownList();
+}
+
+function bdClearAllInDropdown() {
+  if (!_bdDropdownKey) return;
+  const search = (document.getElementById('bd-dropdown-search').value || '').toLowerCase().trim();
+  if (!search) {
+    _bdDropdownTempSet.clear();
+  } else {
+    // Снимаем только видимые
+    [..._bdDropdownTempSet].forEach(v => {
+      if (v.toLowerCase().includes(search)) _bdDropdownTempSet.delete(v);
+    });
+  }
+  bdRenderDropdownList();
+}
+
+function bdApplyDropdown() {
+  if (!_bdDropdownKey) return;
+  if (_bdDropdownKey === 'dept') _bdSelectedDepts = new Set(_bdDropdownTempSet);
+  else if (_bdDropdownKey === 'pos') _bdSelectedPos = new Set(_bdDropdownTempSet);
+  else _bdSelectedFio = new Set(_bdDropdownTempSet);
+  bdSaveFilters();
+  bdCloseDropdown();
+  renderBirthdaysTab();
+}
+
+function bdClearAllFilters() {
+  if (!_bdSelectedDepts.size && !_bdSelectedPos.size && !_bdSelectedFio.size) return;
+  if (!confirm('Сбросить все фильтры (отделы, должности, избранные люди)?')) return;
+  _bdSelectedDepts.clear();
+  _bdSelectedPos.clear();
+  _bdSelectedFio.clear();
+  bdSaveFilters();
+  renderBirthdaysTab();
+}
+
+function bdUpdateFilterButtons() {
+  // Кнопка избранных людей
+  const fioBtn = document.getElementById('bd-flt-fio-text');
+  const fioCnt = document.getElementById('bd-flt-fio-count');
+  if (_bdSelectedFio.size === 0) {
+    fioBtn.textContent = '⭐ Избранные люди';
+    fioCnt.style.display = 'none';
+    document.getElementById('bd-flt-fio-btn').style.background = '#fff';
+    document.getElementById('bd-flt-fio-btn').style.borderColor = '#d0d7e0';
+  } else {
+    fioBtn.textContent = '⭐ Избранные: ' + _bdSelectedFio.size;
+    fioCnt.style.display = 'none';
+    document.getElementById('bd-flt-fio-btn').style.background = '#fff7e6';
+    document.getElementById('bd-flt-fio-btn').style.borderColor = '#f0b86e';
+  }
+  // Подсказка если есть и категории и люди
+  const hint = document.getElementById('bd-filter-hint');
+  if (hint) hint.style.display = (_bdSelectedFio.size > 0 && (_bdSelectedDepts.size > 0 || _bdSelectedPos.size > 0)) ? '' : 'none';
+  // Кнопка отделов
+  const deptBtn = document.getElementById('bd-flt-dept-text');
+  const deptCnt = document.getElementById('bd-flt-dept-count');
+  if (_bdSelectedDepts.size === 0) {
+    deptBtn.textContent = '🏢 Отделы: все';
+    deptCnt.style.display = 'none';
+    document.getElementById('bd-flt-dept-btn').style.background = '#fff';
+    document.getElementById('bd-flt-dept-btn').style.borderColor = '#d0d7e0';
+  } else if (_bdSelectedDepts.size === 1) {
+    deptBtn.textContent = '🏢 ' + [..._bdSelectedDepts][0];
+    deptCnt.style.display = 'none';
+    document.getElementById('bd-flt-dept-btn').style.background = '#e8f2dd';
+    document.getElementById('bd-flt-dept-btn').style.borderColor = '#8eab59';
+  } else {
+    deptBtn.textContent = '🏢 Отделы: выбрано';
+    deptCnt.textContent = _bdSelectedDepts.size;
+    deptCnt.style.display = '';
+    document.getElementById('bd-flt-dept-btn').style.background = '#e8f2dd';
+    document.getElementById('bd-flt-dept-btn').style.borderColor = '#8eab59';
+  }
+  // Кнопка должностей
+  const posBtn = document.getElementById('bd-flt-pos-text');
+  const posCnt = document.getElementById('bd-flt-pos-count');
+  if (_bdSelectedPos.size === 0) {
+    posBtn.textContent = '👔 Должности: все';
+    posCnt.style.display = 'none';
+    document.getElementById('bd-flt-pos-btn').style.background = '#fff';
+    document.getElementById('bd-flt-pos-btn').style.borderColor = '#d0d7e0';
+  } else if (_bdSelectedPos.size === 1) {
+    posBtn.textContent = '👔 ' + [..._bdSelectedPos][0];
+    posCnt.style.display = 'none';
+    document.getElementById('bd-flt-pos-btn').style.background = '#e8f2dd';
+    document.getElementById('bd-flt-pos-btn').style.borderColor = '#8eab59';
+  } else {
+    posBtn.textContent = '👔 Должности: выбрано';
+    posCnt.textContent = _bdSelectedPos.size;
+    posCnt.style.display = '';
+    document.getElementById('bd-flt-pos-btn').style.background = '#e8f2dd';
+    document.getElementById('bd-flt-pos-btn').style.borderColor = '#8eab59';
+  }
 }
 
 function renderBirthdaysTab() {
@@ -5985,17 +6231,13 @@ function renderBirthdaysTab() {
   const counterEl = document.getElementById('bd-counter');
   if (!listEl) return;
   
+  // Загрузим фильтры из localStorage если ещё не делали
+  if (!_bdFiltersLoaded) { bdLoadFilters(); _bdFiltersLoaded = true; }
+  
+  bdUpdateFilterButtons();
+  
   const all = bdParse();
   const search = (document.getElementById('bd-search').value || '').toLowerCase().trim();
-  const deptFilter = (document.getElementById('bd-dept').value || '');
-  
-  // Заполнить список отделов
-  const deptSel = document.getElementById('bd-dept');
-  if (deptSel && deptSel.options.length <= 1) {
-    const depts = [...new Set(all.map(p => p.dept))].sort((a,b) => a.localeCompare(b, 'ru'));
-    deptSel.innerHTML = '<option value="">Все отделы (' + all.length + ')</option>' +
-      depts.map(d => '<option value="' + d.replace(/"/g, '&quot;') + '">' + d + '</option>').join('');
-  }
   
   // Считаем дни до ДР для каждого
   const withDays = all.map(p => Object.assign({}, p, {
@@ -6003,25 +6245,30 @@ function renderBirthdaysTab() {
     nextAge: bdAgeOnNextBd(p.year, p.month, p.day)
   }));
   
-  // Счётчики для табов
-  const cntToday = withDays.filter(p => p.daysUntil === 0).length;
-  const cntWeek = withDays.filter(p => p.daysUntil >= 0 && p.daysUntil <= 7).length;
-  const cntMonth = withDays.filter(p => p.daysUntil >= 0 && p.daysUntil <= 30).length;
-  document.getElementById('bd-cnt-today').textContent = '(' + cntToday + ')';
-  document.getElementById('bd-cnt-week').textContent = '(' + cntWeek + ')';
-  document.getElementById('bd-cnt-month').textContent = '(' + cntMonth + ')';
-  document.getElementById('bd-cnt-all').textContent = '(' + all.length + ')';
+  // === ПРИМЕНЯЕМ ФИЛЬТРЫ ===
+  // Логика: (отдел AND должность) OR избранные_люди, затем поиск сужает результат
+  const hasCategoryFilter = _bdSelectedDepts.size > 0 || _bdSelectedPos.size > 0;
+  const hasFioFilter = _bdSelectedFio.size > 0;
   
-  // Фильтрация
-  let filtered = withDays;
-  if (_bdFilter === 'today') filtered = filtered.filter(p => p.daysUntil === 0);
-  else if (_bdFilter === 'week') filtered = filtered.filter(p => p.daysUntil >= 0 && p.daysUntil <= 7);
-  else if (_bdFilter === 'month') filtered = filtered.filter(p => p.daysUntil >= 0 && p.daysUntil <= 30);
+  let filteredBase;
+  if (!hasCategoryFilter && !hasFioFilter) {
+    filteredBase = withDays;
+  } else {
+    filteredBase = withDays.filter(p => {
+      // По категориям
+      const passCategory = hasCategoryFilter ?
+        ((_bdSelectedDepts.size === 0 || _bdSelectedDepts.has(p.dept)) &&
+         (_bdSelectedPos.size === 0 || _bdSelectedPos.has(p.pos)))
+        : false;
+      // По избранным
+      const passFio = hasFioFilter && _bdSelectedFio.has(p.fio);
+      return passCategory || passFio;
+    });
+  }
   
-  if (deptFilter) filtered = filtered.filter(p => p.dept === deptFilter);
-  
+  // Текстовый поиск — сужает результат
   if (search) {
-    filtered = filtered.filter(p => 
+    filteredBase = filteredBase.filter(p => 
       p.fio.toLowerCase().includes(search) ||
       p.dept.toLowerCase().includes(search) ||
       p.pos.toLowerCase().includes(search) ||
@@ -6029,13 +6276,34 @@ function renderBirthdaysTab() {
     );
   }
   
-  // Сортировка по дням до ДР, затем по ФИО
+  // === СЧЁТЧИКИ — только по отфильтрованным! ===
+  const cntToday = filteredBase.filter(p => p.daysUntil === 0).length;
+  const cntWeek = filteredBase.filter(p => p.daysUntil >= 0 && p.daysUntil <= 7).length;
+  const cntMonth = filteredBase.filter(p => p.daysUntil >= 0 && p.daysUntil <= 30).length;
+  document.getElementById('bd-cnt-today').textContent = '(' + cntToday + ')';
+  document.getElementById('bd-cnt-week').textContent = '(' + cntWeek + ')';
+  document.getElementById('bd-cnt-month').textContent = '(' + cntMonth + ')';
+  document.getElementById('bd-cnt-all').textContent = '(' + filteredBase.length + ')';
+  
+  // Применим период
+  let filtered = filteredBase;
+  if (_bdFilter === 'today') filtered = filtered.filter(p => p.daysUntil === 0);
+  else if (_bdFilter === 'week') filtered = filtered.filter(p => p.daysUntil >= 0 && p.daysUntil <= 7);
+  else if (_bdFilter === 'month') filtered = filtered.filter(p => p.daysUntil >= 0 && p.daysUntil <= 30);
+  
+  // Сортировка
   filtered.sort((a, b) => a.daysUntil - b.daysUntil || a.fio.localeCompare(b.fio, 'ru'));
   
-  counterEl.textContent = 'Найдено: ' + filtered.length + (filtered.length !== all.length ? ' из ' + all.length : '');
+  // Counter
+  const hasFilter = _bdSelectedDepts.size || _bdSelectedPos.size || _bdSelectedFio.size || search;
+  let counterText = 'Найдено: ' + filtered.length;
+  if (hasFilter) counterText += ' (из ' + all.length + ' по фильтрам)';
+  counterEl.textContent = counterText;
   
   if (!filtered.length) {
-    listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888">Никого не найдено</div>';
+    listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888">' + 
+      (hasFilter ? 'По фильтрам никто не найден' : 'Список пуст') + 
+      '</div>';
     return;
   }
   
@@ -6044,7 +6312,6 @@ function renderBirthdaysTab() {
     let daysLabel;
     if (p.daysUntil === 0) daysLabel = '🎉 СЕГОДНЯ';
     else if (p.daysUntil === 1) daysLabel = 'завтра';
-    else if (p.daysUntil <= 7) daysLabel = 'через ' + p.daysUntil + ' дн.';
     else daysLabel = 'через ' + p.daysUntil + ' дн.';
     
     const isToday = p.daysUntil === 0;
@@ -6054,15 +6321,28 @@ function renderBirthdaysTab() {
     const border = isToday ? '#dc2626' : (isSoon ? '#d97706' : '#e0e4ea');
     const labelColor = isToday ? '#dc2626' : (isSoon ? '#d97706' : '#666');
     
-    // Телефон — clickable tel:
-    const phoneClean = (p.phone || '').replace(/[^\d+]/g, '');
-    const phoneLink = phoneClean ? '<a href="tel:' + phoneClean + '" style="color:#1F4E79;text-decoration:none">📞 ' + p.phone + '</a>' : '';
+    const phoneRaw = p.phone || '';
+    // Если в строке несколько номеров (общее число цифр > 11) — делим по пробелам/переносам/точке с запятой
+    const digitCount = (phoneRaw.match(/\d/g) || []).length;
+    let phones;
+    if (digitCount > 11) {
+      phones = phoneRaw.split(/[\s,;]+/).map(s => s.trim()).filter(s => (s.match(/\d/g) || []).length >= 10);
+      if (!phones.length) phones = [phoneRaw.trim()];
+    } else {
+      phones = [phoneRaw.trim()];
+    }
+    const phoneLinksHtml = phones.map(ph => {
+      const clean = ph.replace(/[^\d+]/g, '');
+      if (!clean) return '';
+      return '<a href="tel:' + clean + '" style="color:#1F4E79;text-decoration:none;white-space:nowrap">📞 ' + ph + '</a>';
+    }).filter(Boolean).join(' &nbsp;·&nbsp; ');
+    const phoneLink = phoneLinksHtml ? '<div style="font-size:13px;margin-top:5px">' + phoneLinksHtml + '</div>' : '';
     
     return '<div style="border:1px solid ' + border + ';border-left:4px solid ' + border + ';border-radius:6px;padding:10px 12px;margin-bottom:8px;background:' + bg + '">' +
       '<div style="font-weight:600;font-size:14px;color:#1a2733">' + p.fio + '</div>' +
       '<div style="font-size:12px;color:#555;margin-top:3px">' + p.pos + '</div>' +
       '<div style="font-size:12px;color:#777;margin-top:2px">' + p.dept + '</div>' +
-      (phoneLink ? '<div style="font-size:13px;margin-top:5px">' + phoneLink + '</div>' : '') +
+      phoneLink +
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding-top:6px;border-top:1px dashed #e0e4ea">' +
       '<span style="font-size:13px;font-weight:600;color:#1F4E79">🎂 ' + dateStr + ' · ' + p.nextAge + ' лет</span>' +
       '<span style="font-size:12px;font-weight:600;color:' + labelColor + '">' + daysLabel + '</span>' +
@@ -6070,6 +6350,7 @@ function renderBirthdaysTab() {
       '</div>';
   }).join('');
 }
+let _bdFiltersLoaded = false;
 
 </script>
 <!-- ═══ PWA: регистрация service worker + автоматическое обнаружение обновлений ═══ -->
