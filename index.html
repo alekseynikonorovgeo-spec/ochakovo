@@ -735,7 +735,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V105';
+const APP_VERSION = 'V118';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -966,36 +966,30 @@ const CATEGORIES = [
 const WORKS = {
   mat: [
     {id:'sec_beton', name:'━━ БЕТОН / ЦПС ━━', section:true},
+    {id:'hint_beton', hint:true, text:'ℹ️ Указывайте только <b>приём</b>. Расход не учитываем — условно считаем, что весь принятый бетон ушёл на работы (с учётом утиля). Передачи — через «Движение материала» (вычтутся из приёма).'},
     {id:'m_beton', name:'📥 Бетон — ПРИЁМ за смену', fields:[{k:'mark',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'V',type:'num',label:'V, м³'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'для замка / ТТН №12345'}], tpl:'Бетон {mark}{?note| ({note})} — {V} м³ — {plant}{?reisy|, {reisy} рейс}'},
     {id:'m_cps', name:'📥 ЦПС — ПРИЁМ за смену', fields:[{k:'mark',type:'select',opts:['М-150','М-100','М-200'],label:'Марка',v:'М-150'},{k:'m',type:'num',label:'Масса, кг'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'}], tpl:'ЦПС {mark} — {m} кг — {plant}'},
 
     {id:'sec_ab', name:'━━ АСФАЛЬТ / А/Б ━━', section:true},
-    {id:'m_ab', name:'Асфальтобетон (а/б)', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'m',type:'num',label:'Масса, т'},{k:'abz',type:'select_other',opts:ABZ_LIST,label:'АБЗ'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'на ПБВ / ТТН №12345'}], tpl:'{mark}{?note| {note}} — {m} т — АБЗ {abz}{?reisy|, {reisy} рейс}'},
+    {id:'hint_ab', hint:true, text:'ℹ️ Указывайте только <b>приём</b>. Расход программа считает сама из работ по норме — экономия/перерасход видны автоматически. Передачи делайте через «Движение материала» — они вычтутся из вашего приёма.'},
+    {id:'m_ab', name:'📥 Асфальтобетон (а/б) — ПРИЁМ за смену', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'m',type:'num',label:'Масса, т'},{k:'abz',type:'select_other',opts:ABZ_LIST,label:'АБЗ'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'на ПБВ / ТТН №12345'}], tpl:'{mark}{?note| {note}} — {m} т — АБЗ {abz}{?reisy|, {reisy} рейс}'},
 
     {id:'sec_sch', name:'━━ ЩЕБЕНЬ / ПЕСОК ━━', section:true},
+    {id:'hint_sch', hint:true, text:'ℹ️ Указывайте <b>и приём, и расход</b> — даже если израсходовали всё, что приняли. По разнице программа покажет остаток на объекте. Передачи — через «Движение материала».'},
     {id:'m_schebe', name:'📥 Щебень — ПРИЁМ за смену', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'unit',type:'select',opts:['м³','т'],label:'Ед. измерения',v:'м³'},{k:'qty',type:'num',label:'Количество'},{k:'density',type:'num',label:'Плотность, т/м³ (опц.) — уточните в ПТО',opt:true,placeholder:'по умолч. 1,30',step:'0.01'},{k:'src',type:'select_other',opts:SCHEB_SRC,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'например ТТН №12345'}], tpl:'Щебень{?type| {type}} фр. {fr} — {qty} {unit}{?_alt| ({_alt})} — {src}{?reisy|, {reisy} рейс}{?note| ({note})}'},
     {id:'m_scheb_used', name:'📤 Щебень — РАСХОД на работы', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'V',type:'num',label:'V, м³'},{k:'note',type:'text',label:'Комментарий (опц.)',opt:true,placeholder:'напр. под асфальт ПЧ'}], tpl:'Использовано {?type|{type:gen} }щебня фр. {fr} на работы — {V} м³{?note| ({note})}'},
     {id:'m_pesok', name:'📥 Песок — ПРИЁМ за смену', fields:[{k:'V',type:'num',label:'V, м³'},{k:'src',type:'select_other',opts:['база Голохвастово','карьер Лыткарино','карьер Курьяново'],label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'например ТТН №12345'}], tpl:'Песок — {V} м³{?reisy|, {reisy} рейс} — {src}{?note| ({note})}'},
     {id:'m_pesok_used', name:'📤 Песок — РАСХОД на работы', fields:[{k:'V',type:'num',label:'V, м³'}], tpl:'Использовано песка на работы — {V} м³'},
 
-    {id:'sec_bk', name:'━━ БК (бортовой камень) ━━', section:true},
-    {id:'m_bk_bet', name:'БК бетонный прямой', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_BET,label:'Марка'},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true},{k:'src',type:'text',label:'Источник',opt:true,placeholder:'ЖБИ-3'}], tpl:'БК бетонный {mark} — {L} м.п.{?N| ({N} шт.)}{?src| — {src}}'},
-    {id:'m_bk_gr', name:'БК гранитный прямой', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_GR,label:'Марка'},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true},{k:'src',type:'text',label:'Источник',opt:true,placeholder:'карьер Питкяранта'}], tpl:'БК гранитный {mark} — {L} м.п.{?N| ({N} шт.)}{?src| — {src}}'},
-    {id:'m_bk_radius_bet', name:'БК бетонный радиусный', fields:[{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true},{k:'src',type:'text',label:'Источник',opt:true}], tpl:'БК бетонный радиусный {R}{?type| {type}} — {L} м.п.{?N| ({N} шт.)}{?src| — {src}}'},
-    {id:'m_bk_radius_gr', name:'БК гранитный радиусный', fields:[{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true},{k:'src',type:'text',label:'Источник',opt:true}], tpl:'БК гранитный радиусный {R}{?type| {type}} — {L} м.п.{?N| ({N} шт.)}{?src| — {src}}'},
-    {id:'m_bk_ugl_bet', name:'БК бетонный угловой', fields:[{k:'angle',type:'select',opts:['правый внутренний','левый внутренний','правый внешний','левый внешний'],label:'Тип угла'},{k:'N',type:'num',label:'Количество, шт',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'src',type:'text',label:'Источник',opt:true}], tpl:'БК бетонный угловой {angle}{?N| — {N} шт} — {L} м.п.{?src| — {src}}'},
-    {id:'m_bk_ugl_gr', name:'БК гранитный угловой', fields:[{k:'angle',type:'select',opts:['правый внутренний','левый внутренний','правый внешний','левый внешний'],label:'Тип угла'},{k:'N',type:'num',label:'Количество, шт',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'src',type:'text',label:'Источник',opt:true}], tpl:'БК гранитный угловой {angle}{?N| — {N} шт} — {L} м.п.{?src| — {src}}'},
+    {id:'sec_zbi_bal', name:'━━ Материал для ремонта ОЛХ — ОТ БАЛАНСОДЕРЖАТЕЛЕЙ ━━', section:true, hidden:true},
+    {id:'m_zbi_bal', name:'Материал для ремонта ОЛХ — от балансодержателей', hidden:true, fields:[{k:'name',type:'select',opts:ZBI_NAMES,label:'Что получили'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
+    {id:'m_zbi_bal_other', name:'Другое для ремонта ОЛХ — от балансодержателей', hidden:true, fields:[{k:'name',type:'text',label:'Название'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
 
-    {id:'sec_zbi_bal', name:'━━ Материал для ремонта ОЛХ — ОТ БАЛАНСОДЕРЖАТЕЛЕЙ ━━', section:true},
-    {id:'m_zbi_bal', name:'Материал для ремонта ОЛХ — от балансодержателей', fields:[{k:'name',type:'select',opts:ZBI_NAMES,label:'Что получили'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
-    {id:'m_zbi_bal_other', name:'Другое для ремонта ОЛХ — от балансодержателей', fields:[{k:'name',type:'text',label:'Название'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
-
-    {id:'sec_zbi_gbu', name:'━━ Материал для ремонта ОЛХ — ОТ ГБУ ━━', section:true},
-    {id:'m_zbi_gbu', name:'Материал для ремонта ОЛХ — от ГБУ', fields:[{k:'name',type:'select',opts:ZBI_NAMES,label:'Что получили'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
-    {id:'m_zbi_gbu_other', name:'Другое для ремонта ОЛХ — от ГБУ', fields:[{k:'name',type:'text',label:'Название'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
+    {id:'sec_zbi_gbu', name:'━━ Материал для ремонта ОЛХ — ОТ ГБУ ━━', section:true, hidden:true},
+    {id:'m_zbi_gbu', name:'Материал для ремонта ОЛХ — от ГБУ', hidden:true, fields:[{k:'name',type:'select',opts:ZBI_NAMES,label:'Что получили'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
+    {id:'m_zbi_gbu_other', name:'Другое для ремонта ОЛХ — от ГБУ', hidden:true, fields:[{k:'name',type:'text',label:'Название'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
 
     {id:'sec_other_mat', name:'━━ ПРОЧЕЕ ━━', section:true},
-    {id:'m_geo', name:'Геотекстиль', fields:[{k:'mark',type:'text',label:'Марка',v:'Д-250'},{k:'S',type:'num',label:'S, м²'},{k:'src',type:'text',label:'Поставщик',opt:true}], tpl:'Геотекстиль {mark} — {S} м²{?src| — {src}}'},
     {id:'m_custom', name:'Свой материал (свободный ввод)', fields:[{k:'text',type:'text',label:'Описание полностью',placeholder:'Битумная эмульсия — 500 л — поставщик'}], tpl:'{text}'}
   ],
 
@@ -1369,6 +1363,14 @@ function openZbiMulti() {
           <input type="number" id="zbi-n-${prefix}-${i}" placeholder="шт" min="0" style="flex:1;font-size:14px;padding:8px;width:70px">
         </div>`;
     }
+    // 7-я позиция — свободный ввод названия
+    html += `
+      <div style="display:flex;gap:6px;margin-bottom:4px;align-items:center;border-top:1px dashed #d0c099;padding-top:8px;margin-top:8px">
+        <span style="width:18px;color:#888;font-size:13px">7.</span>
+        <input type="text" id="zbi-name-${prefix}-7" placeholder="Свой вариант (если нет в списке)" style="flex:3;font-size:14px;padding:8px">
+        <input type="number" id="zbi-n-${prefix}-7" placeholder="шт" min="0" style="flex:1;font-size:14px;padding:8px;width:70px">
+      </div>
+      <div style="font-size:11px;color:#854F0B;margin-left:24px;font-style:italic">⚠ Если использовали свой вариант — обязательно сообщите Никонорову А.Г.</div>`;
     return html;
   }
   document.getElementById('zbi-rows-bal').innerHTML = rowsHtml('bal');
@@ -1380,30 +1382,35 @@ function closeZbiModal() {
 }
 function confirmZbiMulti() {
   let added = 0;
+  let customAdded = false;
   const sources = [
-    { prefix: 'bal', sectionId: 'bal', matId: 'm_zbi_bal' },
-    { prefix: 'gbu', sectionId: 'gbu', matId: 'm_zbi_gbu' }
+    { prefix: 'bal', sectionId: 'bal', matId: 'm_zbi_bal', otherMatId: 'm_zbi_bal_other' },
+    { prefix: 'gbu', sectionId: 'gbu', matId: 'm_zbi_gbu', otherMatId: 'm_zbi_gbu_other' }
   ];
   sources.forEach(src => {
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 7; i++) {
       const nameEl = document.getElementById(`zbi-name-${src.prefix}-${i}`);
       const nEl = document.getElementById(`zbi-n-${src.prefix}-${i}`);
       if (!nameEl || !nEl) continue;
       const name = nameEl.value.trim();
       const N = nEl.value.trim();
       if (!name || !N) continue;
-      const work = WORKS.mat.find(w => w.id === src.matId);
+      // 7-я позиция использует other-вариант (свободный ввод)
+      const isCustom = (i === 7);
+      const matId = isCustom ? src.otherMatId : src.matId;
+      const work = WORKS.mat.find(w => w.id === matId);
       if (!work) continue;
       const values = { name, N };
       const text = renderTemplate(work.tpl, values);
       state.materials.push({
-        workId: src.matId,
+        workId: matId,
         name: work.name,
         values,
         text,
         section_id: src.sectionId,
       });
       added++;
+      if (isCustom) customAdded = true;
     }
   });
   if (added === 0) {
@@ -1414,7 +1421,11 @@ function confirmZbiMulti() {
   renderMaterials();
   renderPreview();
   closeZbiModal();
-  toast(`Добавлено позиций: ${added}`);
+  if (customAdded) {
+    alert('✓ Добавлено позиций: ' + added + '\n\n⚠ Вы использовали "Свой вариант" — обязательно сообщите Никонорову А.Г. чтобы он добавил позицию в общий список.');
+  } else {
+    toast(`Добавлено позиций: ${added}`);
+  }
 }
 
 // Пользовательские шаблоны — хранятся в localStorage
@@ -1458,7 +1469,7 @@ function renderUserTplList() {
         <div style="font-size:12px;color:#888;margin-bottom:8px">${wCount} работ + ${mCount} материалов${date ? ' • сохранено ' + date : ''}</div>
         <div style="display:flex;gap:6px">
           <button type="button" class="primary" style="flex:2;padding:7px 10px;font-size:13px;margin:0" onclick="pickUserTpl('${escapeAttr(name)}')">Применить</button>
-          <button type="button" style="background:#E8F4F8;color:#1F4E79;border:1px solid #b0c4d6;padding:7px 10px;border-radius:8px;font-size:13px;cursor:pointer" onclick="shareTpl('${escapeAttr(name)}')">💾 Скачать</button>
+          <button type="button" style="background:#E8F4F8;color:#1F4E79;border:1px solid #b0c4d6;padding:7px 10px;border-radius:8px;font-size:13px;cursor:pointer" onclick="shareTpl('${escapeAttr(name)}')" title="Сохранить файл — можно отправить другому прорабу в BiP/Telegram">📤 Поделиться</button>
           <button type="button" style="background:transparent;color:#888;border:1px solid #ddd;padding:7px 10px;border-radius:8px;font-size:13px;cursor:pointer" onclick="askDeleteUserTpl('${escapeAttr(name)}', this)">×</button>
         </div>
       </div>
@@ -1594,7 +1605,7 @@ function shareTpl(name) {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 500);
-  toast(`Файл «${filename}» сохранён в Загрузки`);
+  toast(`Файл сохранён. Отправьте его другому прорабу в BiP/Telegram — у себя он импортирует через «📥 Импорт».`);
 }
 
 function openImportTpl() {
@@ -2031,6 +2042,7 @@ function showStep2(catId) {
   document.getElementById('work-step3').style.display = 'none';
   document.getElementById('work-options').innerHTML = WORKS[catId].filter(w => !w.hidden).map(w => {
     if (w.section) return `<div class="work-option section-h">${w.name}</div>`;
+    if (w.hint) return `<div style="background:#FFF8E0;border:1px solid #F0D580;color:#5C4500;border-radius:6px;padding:8px 10px;margin:4px 0;font-size:12px;line-height:1.4">${w.text}</div>`;
     return `<div class="work-option" onclick="selectWork('${w.id}')">${w.name}</div>`;
   }).join('');
 }
@@ -2100,7 +2112,12 @@ function showStep3(initialValues) {
     }
     return `<div class="field-group"><label>${f.label}${lblOpt}</label><input type="text" data-k="${f.k}" value="${val}" placeholder="${f.placeholder||''}"></div>`;
   }).join('');
-  document.getElementById('work-fields').innerHTML = `<div style="font-size:13px;font-weight:600;margin-bottom:10px;padding:8px 10px;background:#e8eef5;color:#1F4E79;border-radius:6px">${w.name}</div>${fieldsHtml}`;
+  // Подсказка про необходимость уведомить Никонорова А.Г. при свободном вводе
+  let warnHtml = '';
+  if (w && w.id === 'm_custom') {
+    warnHtml = '<div style="background:#FFF5E0;border:1px solid #E0BD8B;color:#854F0B;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:12px;line-height:1.4">⚠ <b>Ручного ввода желательно избежать.</b> Если добавляете свой вариант — <b>обязательно сообщите Никонорову А.Г.</b> чтобы он добавил эту позицию в список.</div>';
+  }
+  document.getElementById('work-fields').innerHTML = `<div style="font-size:13px;font-weight:600;margin-bottom:10px;padding:8px 10px;background:#e8eef5;color:#1F4E79;border-radius:6px">${w.name}</div>${warnHtml}${fieldsHtml}`;
 }
 function toggleOtherInput(selectEl) {
   const k = selectEl.dataset.k;
@@ -2149,6 +2166,7 @@ function confirmAddWork() {
     else if (w.id === 'm_zbi_gbu' || w.id === 'm_zbi_gbu_other') section_id = 'gbu';
   }
   const obj = {catId: state.currentCat, workId: w.id, name: w.name, values, text, section_id};
+  const isNewCustom = state.editIsMaterial && w.id === 'm_custom' && state.editIndex < 0;
   if (state.editIsMaterial) {
     if (state.editIndex >= 0) state.materials[state.editIndex] = obj;
     else state.materials.push(obj);
@@ -2161,6 +2179,9 @@ function confirmAddWork() {
   renderWorks();
   renderMaterials();
   renderPreview();
+  if (isNewCustom) {
+    alert('⚠ Вы добавили "Свой материал" (ручной ввод).\n\nОбязательно сообщите Никонорову А.Г. — он добавит эту позицию в общий список, чтобы в следующий раз вводить её одним кликом.');
+  }
 }
 function fmtVal(v) {
   // Преобразуем "0.04" → "0,04", но не трогаем тексты типа "В7,5П2", "Бирюлёво"
@@ -4454,9 +4475,30 @@ async function downloadArchivedReport(id) {
   if (!report) return;
   const fio = (report.profile && report.profile.fio) || 'прораб';
   const fioSafe = fio.replace(/[\\/:*?"<>|]/g, ' ').trim();
-  const filename = `Отчёт ${report.date} ${fioSafe}.json`;
-  const data = { type: 'ochakovo-archive', version: 1, exportedAt: new Date().toISOString(), reports: [report] };
+  const obj = (report.profile && report.profile.obj) || '';
+  const objShort = obj ? obj.split(/[—«]/)[0].trim() : '';
+  // Имя шаблона — для удобства получателя: "Отчёт 27.05 — А-101 — Иванов уч.5"
+  const uchPart = (report.profile && report.profile.uch) ? `уч.${report.profile.uch}` : '';
+  const dateShort = report.date ? report.date.split('-').reverse().slice(0,2).join('.') : '';
+  let tplName = 'Отчёт';
+  if (dateShort) tplName += ' ' + dateShort;
+  if (objShort) tplName += ' — ' + objShort;
+  if (fioSafe && fioSafe !== 'прораб') tplName += ' — ' + fioSafe.split(' ')[0];
+  if (uchPart) tplName += ' ' + uchPart;
+  
+  // Сохраняем работы и материалы — без личных данных автора и без даты/времени
+  // Так получатель импортирует к себе как шаблон и применит когда нужно
+  const cleanWorks = (report.works || []).map(w => ({ catId: w.catId, workId: w.workId, values: { ...w.values } }));
+  const cleanMats = (report.materials || []).map(m => {
+    const o = { workId: m.workId, values: { ...m.values } };
+    if (m.section_id) o.section_id = m.section_id;
+    return o;
+  });
+  
+  const data = { _type: 'ochakovo-template', name: tplName, works: cleanWorks, mats: cleanMats };
+  const filename = `Шаблон ${dateShort || ''}${fioSafe && fioSafe !== 'прораб' ? ' ' + fioSafe : ''}.json`.replace(/\s+/g, ' ').trim();
   downloadJSON(data, filename);
+  alert('Файл готов!\n\nОтправьте другому прорабу в BiP/Telegram. Он откроет «📋 Мои шаблоны» → «📥 Импорт», выберет этот файл — и сможет применить ваши работы к своему отчёту.');
 }
 
 async function deleteArchivedReport(id) {
@@ -4714,7 +4756,7 @@ async function renderArchiveTab() {
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
         <button type="button" style="flex:1;min-width:90px;font-size:12px;padding:6px 10px;background:#1F4E79;color:#fff;border:none;border-radius:4px" onclick="openArchivedReport('${r.id}')">Открыть</button>
         <button type="button" style="flex:1;min-width:90px;font-size:12px;padding:6px 10px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px" onclick="duplicateArchivedReport('${r.id}')">Дублировать</button>
-        <button type="button" style="flex:1;min-width:90px;font-size:12px;padding:6px 10px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px" onclick="downloadArchivedReport('${r.id}')">📤 Поделиться</button>
+        <button type="button" style="flex:1;min-width:90px;font-size:12px;padding:6px 10px;background:#f5f5f7;color:#1F4E79;border:1px solid #d0d7e0;border-radius:4px" onclick="downloadArchivedReport('${r.id}')" title="Сохранить работы как шаблон — другой прораб сможет загрузить себе">📤 Поделиться</button>
         <button type="button" style="font-size:12px;padding:6px 10px;background:#fff;color:#dc3545;border:1px solid #dc3545;border-radius:4px" onclick="deleteArchivedReport('${r.id}')">🗑</button>
       </div>
     </div>`;
