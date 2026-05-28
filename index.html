@@ -735,7 +735,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V120';
+const APP_VERSION = 'V122';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -852,7 +852,7 @@ const OBJECTS = [
 const ABZ_LIST = ['Бирюлёво','Внуково','АБЗ-4','Курьяново','Голохвастово'];
 const BETON_PLANTS = ['ПК Бетонный завод (Дорожная 64)','БЗ-1 Москва','Лыткарино'];
 const BETON_MARKS = ['В7,5П2','В15Ж4','В15П2','В15П3','В20','В22,5','В25','В30'];
-const AB_MARKS = ['ЩМА-20','ЩМА-15','ПД-2','КЗБ-1','МЗБ-1','МЗВ-2'];
+const AB_MARKS = ['ЩМА-20','ЩМА-15','ПД-2','КЗБ-1','КЗБ-2','МЗБ-1','МЗВ-2'];
 // Бортовые камни — по ГОСТ 6665-91 (бетон) и ГОСТ 32018-2012 / 6666-81 (гранит)
 // Формат: Тип-Длина-Ширина-Высота (мм). БР = бортовой прямой, БУ = с уширением, БВ = въездной
 const BK_MARKS_BET = [
@@ -919,7 +919,7 @@ function schebConvert(fr, unit, qty, customDensity) {
 }
 const TRANSFER_MATERIALS = [
   // Асфальт
-  'ЩМА-20','ЩМА-15','ПД-2','КЗБ-1','МЗБ-1','МЗВ-2',
+  'ЩМА-20','ЩМА-15','ПД-2','КЗБ-1','КЗБ-2','МЗБ-1','МЗВ-2',
   // Щебень (по фракциям)
   'Щебень фр. 20-40','Щебень фр. 5-20','Щебень фр. 40-70','Щебень фр. 5-10','Щебень фр. 3-10',
   // Бетон (по маркам)
@@ -952,6 +952,8 @@ const CATEGORIES = [
   {id:'osn', name:'Основания', icon:'⬛'},
   {id:'asphalt_pch', name:'Асфальт ПЧ', icon:'■'},
   {id:'asphalt_tr', name:'Асфальт тротуар', icon:'▣'},
+  {id:'asphalt_teh_tr', name:'Асфальт тех. тротуар', icon:'▦'},
+  {id:'asphalt_otmostka', name:'Асфальт отмостка', icon:'▥'},
   {id:'shtroba', name:'Штробы', icon:'═'},
   {id:'lotki', name:'Лотки и дренаж', icon:'⊓'},
   {id:'olh', name:'Ремонт ОЛХ', icon:'◉'},
@@ -1060,24 +1062,34 @@ const WORKS = {
   ],
 
   asphalt_pch: [
-    {id:'vsp_shma_pch', name:'ВСП ЩМА-20 (на проезжей части)', fields:[{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП ЩМА-20 на проезжей части — h={h:m} м, S={S} м²'},
-    {id:'vsp_mzb_pch', name:'ВСП МЗБ-1 (на проезжей части)', fields:[{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП МЗБ-1 на проезжей части — h={h:m} м, S={S} м²'},
-    {id:'nsp_mzb_pch', name:'НСП МЗБ-1 (на проезжей части)', fields:[{k:'h',type:'num',label:'h, см',v:7},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП МЗБ-1 на проезжей части — h={h:m} м, S={S} м²'},
-    {id:'nsp_mzv_pch', name:'НСП МЗВ-2 (на проезжей части)', fields:[{k:'h',type:'num',label:'h, см',v:7},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП МЗВ-2 на проезжей части — h={h:m} м, S={S} м²'},
-    {id:'nsp_kzb_pch', name:'НСП КЗБ-1 (на проезжей части)', fields:[{k:'h',type:'num',label:'h, см',v:7},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП КЗБ-1 на проезжей части — h={h:m} м, S={S} м²'},
-    {id:'virav_mzb_pch', name:'Выравнивающий слой МЗБ-1 (на проезжей части)', fields:[{k:'hsr',type:'num',label:'hср, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя МЗБ-1 на проезжей части — hср={hsr:m} м, S={S} м²'},
-    {id:'virav_kzb_pch', name:'Выравнивающий слой КЗБ-1 (на проезжей части)', fields:[{k:'hsr',type:'num',label:'hср, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя КЗБ-1 на проезжей части — hср={hsr:m} м, S={S} м²'},
+    {id:'vsp_pch', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на проезжей части — h={h:m} м, S={S} м²'},
+    {id:'nsp_pch', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:7},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на проезжей части — h={h:m} м, S={S} м²'},
+    {id:'vso_pch', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:8},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на проезжей части — h={h:m} м, S={S} м²'},
+    {id:'virav_pch', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'hsr',type:'num',label:'hср, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на проезжей части — hср={hsr:m} м, S={S} м²'},
     {id:'yamoch', name:'Ямочный ремонт', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Ямочный ремонт {mark}{?h| — h={h:m} м}, S={S} м²'},
     {id:'rozliv', name:'Розлив битумной эмульсии', fields:[{k:'S',type:'num',label:'S, м²'}], tpl:'Розлив битумной эмульсии — S={S} м²'},
     {id:'bitum_lent', name:'Устройство битумной ленты', fields:[{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство битумной ленты — L={L} м.п.'}
   ],
 
   asphalt_tr: [
-    {id:'vsp_pd2_tr', name:'ВСП ПД-2 (на тротуаре)', fields:[{k:'h',type:'num',label:'h, см',v:4},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП ПД-2 на тротуаре — h={h:m} м, S={S} м²'},
-    {id:'nsp_mzb_tr', name:'НСП МЗБ-1 (на тротуаре)', fields:[{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП МЗБ-1 на тротуаре — h={h:m} м, S={S} м²'},
-    {id:'nsp_mzv_tr', name:'НСП МЗВ-2 (на тротуаре)', fields:[{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП МЗВ-2 на тротуаре — h={h:m} м, S={S} м²'},
-    {id:'virav_pd2_tr', name:'Выравнивающий слой ПД-2 (на тротуаре)', fields:[{k:'hsr',type:'num',label:'hср, см',v:3},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя ПД-2 на тротуаре — hср={hsr:m} м, S={S} м²'},
-    {id:'virav_mzv_tr', name:'Выравнивающий слой МЗВ-2 (на тротуаре)', fields:[{k:'hsr',type:'num',label:'hср, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя МЗВ-2 на тротуаре — hср={hsr:m} м, S={S} м²'}
+    {id:'vsp_tr', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:4},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на тротуаре — h={h:m} м, S={S} м²'},
+    {id:'nsp_tr', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на тротуаре — h={h:m} м, S={S} м²'},
+    {id:'vso_tr', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на тротуаре — h={h:m} м, S={S} м²'},
+    {id:'virav_tr', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'hsr',type:'num',label:'hср, см',v:3},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на тротуаре — hср={hsr:m} м, S={S} м²'}
+  ],
+
+  asphalt_teh_tr: [
+    {id:'vsp_teh_tr', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:4},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на тех. тротуаре — h={h:m} м, S={S} м²'},
+    {id:'nsp_teh_tr', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на тех. тротуаре — h={h:m} м, S={S} м²'},
+    {id:'vso_teh_tr', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на тех. тротуаре — h={h:m} м, S={S} м²'},
+    {id:'virav_teh_tr', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'hsr',type:'num',label:'hср, см',v:3},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на тех. тротуаре — hср={hsr:m} м, S={S} м²'}
+  ],
+
+  asphalt_otmostka: [
+    {id:'vsp_otm', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:4},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на отмостке — h={h:m} м, S={S} м²'},
+    {id:'nsp_otm', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на отмостке — h={h:m} м, S={S} м²'},
+    {id:'vso_otm', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на отмостке — h={h:m} м, S={S} м²'},
+    {id:'virav_otm', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'hsr',type:'num',label:'hср, см',v:3},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на отмостке — hср={hsr:m} м, S={S} м²'}
   ],
 
   shtroba: [
@@ -1167,11 +1179,13 @@ const CAT_GROUP_TITLES = {
   bk:'БОРТОВОЙ КАМЕНЬ', osn:'ОСНОВАНИЯ ПОД АСФАЛЬТ',
   asphalt_pch:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ПРОЕЗЖАЯ ЧАСТЬ',
   asphalt_tr:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ТРОТУАР',
+  asphalt_teh_tr:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ТЕХ. ТРОТУАР',
+  asphalt_otmostka:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ОТМОСТКА',
   shtroba:'ШТРОБЫ', lotki:'ЛОТКИ И ДРЕНАЖ',
   olh:'Ремонт ОЛХ', gazon:'ГАЗОНЫ И ГРУНТ', other:'ПРОЧИЕ РАБОТЫ',
   vivoz:'ВЫВОЗ', workers:'ЗАДЕЙСТВОВАНО РАБОЧИХ', transfer:'ДВИЖЕНИЕ МАТЕРИАЛОВ', plan:'ПЛАНИРУЕМЫЙ ОБЪЁМ НА ЗАВТРА'
 };
-const CAT_ORDER = ['podg_cat','demont','frez','razrab','bk','osn','asphalt_pch','asphalt_tr','shtroba','lotki','olh','gazon','other','vivoz','workers','transfer','plan'];
+const CAT_ORDER = ['podg_cat','demont','frez','razrab','bk','osn','asphalt_pch','asphalt_tr','asphalt_teh_tr','asphalt_otmostka','shtroba','lotki','olh','gazon','other','vivoz','workers','transfer','plan'];
 
 // ═══════════════════════════════════════════════════════════════════
 // ШАБЛОНЫ ПО УЧАСТКАМ — на основе анализа реальных отчётов BiP
@@ -1183,7 +1197,7 @@ const UCHASTOK_TEMPLATES = {
     works: [
       { catId: 'other',   workId: 'podg',         values: { desc: '' } },
       { catId: 'asphalt_pch', workId: 'rozliv',       values: { S: '' } },
-      { catId: 'asphalt_pch', workId: 'vsp_shma_pch', values: { S: '' } },
+      { catId: 'asphalt_pch', workId: 'vsp_pch',      values: { mark: 'ЩМА-20', S: '' } },
       { catId: 'asphalt_pch', workId: 'bitum_lent',   values: { L: '' } },
     ],
     mats: [
@@ -1195,8 +1209,8 @@ const UCHASTOK_TEMPLATES = {
     works: [
       { catId: 'other',   workId: 'podg',          values: { desc: '' } },
       { catId: 'asphalt_pch', workId: 'rozliv',        values: { S: '' } },
-      { catId: 'asphalt_pch', workId: 'virav_mzb_pch', values: { S: '' } },
-      { catId: 'asphalt_pch', workId: 'nsp_mzb_pch',   values: { S: '' } },
+      { catId: 'asphalt_pch', workId: 'virav_pch',     values: { mark: 'МЗБ-1', S: '' } },
+      { catId: 'asphalt_pch', workId: 'nsp_pch',       values: { mark: 'МЗБ-1', S: '' } },
     ],
     mats: [
       { workId: 'm_ab', values: { mark: 'МЗБ-1', m: '', abz: 'Бирюлёво', note: '' } },
@@ -1208,8 +1222,8 @@ const UCHASTOK_TEMPLATES = {
       { catId: 'other',   workId: 'podg',         values: { desc: '' } },
       { catId: 'razrab',  workId: 'razrab_tr',    values: { S: '', h: '' } },
       { catId: 'asphalt_pch', workId: 'rozliv',       values: { S: '' } },
-      { catId: 'asphalt_tr', workId: 'virav_pd2_tr', values: { S: '' } },
-      { catId: 'asphalt_tr', workId: 'vsp_pd2_tr',   values: { S: '' } },
+      { catId: 'asphalt_tr', workId: 'virav_tr',      values: { mark: 'ПД-2', S: '' } },
+      { catId: 'asphalt_tr', workId: 'vsp_tr',        values: { mark: 'ПД-2', S: '' } },
     ],
     mats: [
       { workId: 'm_ab', values: { mark: 'ПД-2', m: '', abz: 'Бирюлёво', note: '' } },
@@ -1318,14 +1332,14 @@ function asphaltFamily(s) {
 // Расчёт нормы расхода (т) для асфальтобетонной работы
 // w — работа из state.works (требуются: values.S, values.h в см, текст/имя со смесью и местом)
 function calcAsphaltNorm(w) {
-  if (!w || (w.catId !== 'asphalt' && w.catId !== 'asphalt_pch' && w.catId !== 'asphalt_tr')) return null;
+  if (!w || !['asphalt','asphalt_pch','asphalt_tr','asphalt_teh_tr','asphalt_otmostka'].includes(w.catId)) return null;
   // битумная лента, розлив — норму не считаем
   if (w.workId === 'bitum_lent' || w.workId === 'rozliv') return null;
   const text = (w.text || '') + ' ' + (w.name || '');
   const family = asphaltFamily(text);
   if (!family) return null;
-  // Место: тротуар если упоминается, иначе ПЧ
-  const place = /тротуар/i.test(text) ? 'тротуар' : 'ПЧ';
+  // Место: ПЧ если упоминается, иначе тротуар (тех. тротуар и отмостка используют нормы тротуара — конструктив тоньше)
+  const place = /проезж/i.test(text) ? 'ПЧ' : 'тротуар';
   const S = parseFloat(String(w.values?.S || '').replace(',', '.'));
   let h = parseFloat(String(w.values?.h || '').replace(',', '.'));
   if (!S || !h) return null;
