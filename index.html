@@ -735,7 +735,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V118';
+const APP_VERSION = 'V120';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -1001,12 +1001,12 @@ const WORKS = {
   ],
 
   demont: [
-    {id:'demont_ab_pch', name:'Демонтаж а/б покрытия (на проезжей части)', fields:[{k:'h',type:'num',label:'h, см'},{k:'S',type:'num',label:'S, м²'},{k:'V',type:'num',label:'V, м³',opt:true},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда вывоз',opt:true}], tpl:'Демонтаж а/б покрытия на проезжей части, h={h} см — S={S} м²{?V|, V={V} м³}{?place|, вывоз на {place}}'},
-    {id:'demont_ab_tr', name:'Демонтаж а/б покрытия (на тротуаре)', fields:[{k:'h',type:'num',label:'h, см'},{k:'S',type:'num',label:'S, м²'},{k:'V',type:'num',label:'V, м³',opt:true},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда',opt:true}], tpl:'Демонтаж а/б покрытия на тротуаре, h={h} см — S={S} м²{?V|, V={V} м³}{?place|, вывоз на {place}}'},
-    {id:'demont_kromki', name:'Демонтаж а/б кромки', fields:[{k:'L',type:'num',label:'L, м.п.'},{k:'V',type:'num',label:'V, м³',opt:true},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда',opt:true}], tpl:'Демонтаж а/б кромки — L={L} м.п.{?V|, V={V} м³}{?place|, вывоз на {place}}'},
+    {id:'demont_ab_pch', name:'Демонтаж а/б покрытия (на проезжей части)', fields:[{k:'h',type:'num',label:'h, см'},{k:'S',type:'num',label:'S, м²'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Демонтаж а/б покрытия на проезжей части, h={h} см — S={S} м²{?V|, V={V} м³}'},
+    {id:'demont_ab_tr', name:'Демонтаж а/б покрытия (на тротуаре)', fields:[{k:'h',type:'num',label:'h, см'},{k:'S',type:'num',label:'S, м²'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Демонтаж а/б покрытия на тротуаре, h={h} см — S={S} м²{?V|, V={V} м³}'},
+    {id:'demont_kromki', name:'Демонтаж а/б кромки', fields:[{k:'L',type:'num',label:'L, м.п.'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Демонтаж а/б кромки — L={L} м.п.{?V|, V={V} м³}'},
     {id:'demont_bk_bet', name:'Демонтаж бетонного БК', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_BET,label:'Марка',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Демонтаж бетонного бортового камня{?mark| {mark}} — L={L} м.п.'},
     {id:'demont_bk_gr', name:'Демонтаж гранитного БК', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_GR,label:'Марка',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Демонтаж гранитного бортового камня{?mark| {mark}} — L={L} м.п.'},
-    {id:'demont_plitki', name:'Демонтаж бетонной тротуарной плитки', fields:[{k:'size',type:'select_other',opts:PLITKA_SIZES_BET,label:'Размер плитки, мм (опц.)',opt:true,placeholder:'напр. 500×500×60'},{k:'S',type:'num',label:'S, м²'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда',opt:true}], tpl:'Демонтаж бетонной тротуарной плитки{?size| {size} мм} — S={S} м²{?N|, {N} шт}{?place|, вывоз на {place}}'},
+    {id:'demont_plitki', name:'Демонтаж бетонной тротуарной плитки', fields:[{k:'size',type:'select_other',opts:PLITKA_SIZES_BET,label:'Размер плитки, мм (опц.)',opt:true,placeholder:'напр. 500×500×60'},{k:'S',type:'num',label:'S, м²'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true}], tpl:'Демонтаж бетонной тротуарной плитки{?size| {size} мм} — S={S} м²{?N|, {N} шт}'},
     {id:'demont_gr_plitki', name:'Демонтаж гранитной плитки', fields:[{k:'size',type:'select_other',opts:PLITKA_SIZES_GR,label:'Размер плитки, мм (опц.)',opt:true,placeholder:'напр. 600×300×80'},{k:'S',type:'num',label:'S, м²'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true}], tpl:'Демонтаж гранитной плитки{?size| {size} мм} на тротуаре — S={S} м²{?N|, {N} шт}'},
     {id:'demont_lotka', name:'Демонтаж водосточного/водоприёмного лотка', fields:[{k:'L',type:'num',label:'L, м.п.'}], tpl:'Демонтаж водоприёмного лотка — L={L} м.п.'}
   ],
@@ -1018,10 +1018,10 @@ const WORKS = {
 
   razrab: [
     {id:'razrab_tr', name:'Разработка тротуара', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',opt:true}], tpl:'Разработка существующего тротуара{?h| h={h} см} — S={S} м²'},
-    {id:'razrab_osn_tr', name:'Разработка основания тротуара (под новый конструктив)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда вывоз',opt:true}], tpl:'Разработка основания тротуара под устройство нового конструктива — S={S} м², h={h:m} м{?V|, V={V} м³}{?place|, вывоз на {place}}'},
-    {id:'razrab_osn_pch', name:'Разработка основания проезжей части (под новый конструктив)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда вывоз',opt:true}], tpl:'Разработка основания проезжей части под устройство нового конструктива — S={S} м², h={h:m} м{?V|, V={V} м³}{?place|, вывоз на {place}}'},
-    {id:'razrab_nest_pch', name:'Разработка нестабильного основания (на проезжей части)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:23},{k:'V',type:'num',label:'V, м³',opt:true},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда вывоз',opt:true}], tpl:'Разработка нестабильного основания на проезжей части, h={h:m} м — S={S} м²{?V|, V={V} м³}{?place|, вывоз на {place}}'},
-    {id:'razrab_nest_tr', name:'Разработка нестабильного основания (на тротуаре)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:23},{k:'V',type:'num',label:'V, м³',opt:true},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда вывоз',opt:true}], tpl:'Разработка нестабильного основания на тротуаре, h={h:m} м — S={S} м²{?V|, V={V} м³}{?place|, вывоз на {place}}'}
+    {id:'razrab_osn_tr', name:'Разработка основания тротуара (под новый конструктив)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка основания тротуара под устройство нового конструктива — S={S} м², h={h:m} м{?V|, V={V} м³}'},
+    {id:'razrab_osn_pch', name:'Разработка основания проезжей части (под новый конструктив)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка основания проезжей части под устройство нового конструктива — S={S} м², h={h:m} м{?V|, V={V} м³}'},
+    {id:'razrab_nest_pch', name:'Разработка нестабильного основания (на проезжей части)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:23},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка нестабильного основания на проезжей части, h={h:m} м — S={S} м²{?V|, V={V} м³}'},
+    {id:'razrab_nest_tr', name:'Разработка нестабильного основания (на тротуаре)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:23},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка нестабильного основания на тротуаре, h={h:m} м — S={S} м²{?V|, V={V} м³}'}
   ],
 
   bk: [
@@ -1030,8 +1030,8 @@ const WORKS = {
     {id:'osn_bet_bk', name:'Устройство бетонного основания под БК', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'L',type:'num',label:'L, м.п.'},{k:'h',type:'num',label:'h, см',v:10},{k:'b',type:'num',label:'b, см',v:60}], tpl:'Устройство бетонного основания под БК из {beton} — L={L} м.п., b={b:m} м, h={h:m} м'},
     {id:'mont_bet', name:'Монтаж бетонного БК (прямой)', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_BET,label:'Марка БК'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж бетонного бортового камня {mark}{?where| на {where}} — L={L} м.п.'},
     {id:'mont_granit', name:'Монтаж гранитного БК (прямой)', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_GR,label:'Марка'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж гранитного бортового камня {mark}{?where| на {where}} — L={L} м.п.'},
-    {id:'mont_radius_bet', name:'Монтаж радиусного бетонного БК', fields:[{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Кол-во, шт',opt:true}], tpl:'Монтаж радиусного бетонного бортового камня {R}{?type| {type}}{?where| на {where}}{?N| — {N} шт} — L={L} м.п.'},
-    {id:'mont_radius_gran', name:'Монтаж радиусного гранитного БК', fields:[{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Кол-во, шт',opt:true}], tpl:'Монтаж радиусного гранитного бортового камня {R}{?type| {type}}{?where| на {where}}{?N| — {N} шт} — L={L} м.п.'},
+    {id:'mont_radius_bet', name:'Монтаж радиусного бетонного БК', fields:[{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Кол-во, шт',opt:true}], tpl:'Монтаж радиусного бетонного бортового камня R-{R}{?type| {type}}{?where| на {where}}{?N| — {N} шт} — L={L} м.п.'},
+    {id:'mont_radius_gran', name:'Монтаж радиусного гранитного БК', fields:[{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Кол-во, шт',opt:true}], tpl:'Монтаж радиусного гранитного бортового камня R-{R}{?type| {type}}{?where| на {where}}{?N| — {N} шт} — L={L} м.п.'},
     {id:'mont_ugl_bet', name:'Монтаж углового бетонного БК', fields:[{k:'angle',type:'select',opts:ANGLES,label:'Тип угла'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж углового бетонного бортового камня — {angle}{?where| на {where}} — L={L} м.п.'},
     {id:'mont_ugl_gran', name:'Монтаж углового гранитного БК', fields:[{k:'angle',type:'select',opts:ANGLES,label:'Тип угла'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж углового гранитного бортового камня — {angle}{?where| на {where}} — L={L} м.п.'},
     {id:'opalubka', name:'Монтаж опалубки под БК', fields:[{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж опалубки под БК — L={L} м.п.'},
@@ -1102,7 +1102,7 @@ const WORKS = {
   ],
 
   gazon: [
-    {id:'vyem_rast', name:'Выемка растительного слоя', fields:[{k:'S',type:'num',label:'S, м²'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда вывоз',opt:true}], tpl:'Выемка растительного слоя — S={S} м²{?place|, вывоз {place}}'},
+    {id:'vyem_rast', name:'Выемка растительного слоя', fields:[{k:'S',type:'num',label:'S, м²'}], tpl:'Выемка растительного слоя — S={S} м²'},
     {id:'vyem_plodor', name:'Выемка под плодородный слой', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',opt:true},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Выемка под плодородный слой — S={S} м²{?h|, h={h:m} м}{?V|, V={V} м³}'},
     {id:'plodor', name:'Устройство плодородного слоя', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',opt:true},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство плодородного слоя — S={S} м²{?h|, h={h:m} м}{?V|, V={V} м³}'},
     {id:'gazon', name:'Посев газона', fields:[{k:'S',type:'num',label:'S, м²'}], tpl:'Посев газона травосмесь «Газонная» — S={S} м²'},
@@ -1121,7 +1121,7 @@ const WORKS = {
     {id:'kgh', name:'Установка ограждения КГХ', fields:[{k:'type',type:'select',opts:['секции','забор металлический'],label:'Тип'},{k:'N',type:'num',label:'шт',opt:true},{k:'L',type:'num',label:'L, м.п.',opt:true}], tpl:'Установка ограждения КГХ ({type}){?N| — {N} шт}{?L| — L={L} м.п.}'},
     {id:'znak', name:'Установка дорожного знака', fields:[{k:'N',type:'num',label:'шт'}], tpl:'Установка дорожного знака на стойке — {N} шт'},
     {id:'shtit', name:'Установка щита/стенда', fields:[{k:'type',type:'select',opts:['информационный щит','оградительный щит','туалетная кабина'],label:'Тип'},{k:'N',type:'num',label:'шт'}], tpl:'Установка {type} — {N} шт'},
-    {id:'uborka', name:'Уборка строительного мусора', fields:[{k:'V',type:'num',label:'V, м³'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда',opt:true}], tpl:'Уборка строительного мусора — V={V} м³{?place|, вывоз {place}}'},
+    {id:'uborka', name:'Уборка строительного мусора', fields:[{k:'V',type:'num',label:'V, м³'}], tpl:'Уборка строительного мусора — V={V} м³'},
     {id:'podg', name:'Подготовительные работы', fields:[{k:'S',type:'num',label:'Площадь, м² (опц.)',opt:true},{k:'desc',type:'text',label:'Описание',opt:true,placeholder:'опционально'}], tpl:'Подготовительные работы{?S| — S={S} м²}{?desc|: {desc}}'},
     {id:'custom', name:'Свободный ввод', fields:[{k:'text',type:'textarea',label:'Текст работы'}], tpl:'{text}'}
   ],
