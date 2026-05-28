@@ -419,7 +419,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
       
       <!-- Поиск -->
       <div class="field-group" style="margin-bottom:8px">
-        <input type="text" id="bd-search" placeholder="🔍 Поиск по ФИО, отделу, должности..." oninput="renderBirthdaysTab()" style="width:100%;padding:8px 12px;font-size:14px">
+        <input type="text" id="bd-search" placeholder="🔍 Поиск по ФИО, отделу, должности, телефону..." oninput="renderBirthdaysTab()" style="width:100%;padding:8px 12px;font-size:14px">
       </div>
       
       <!-- Multi-select фильтры -->
@@ -735,7 +735,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V94';
+const APP_VERSION = 'V97';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -1156,8 +1156,8 @@ const WORKS = {
 
   workers: [
     {id:'w_total', name:'Всего рабочих на объекте', fields:[{k:'N',type:'num',label:'Количество, чел'}], tpl:'Всего рабочих на объекте — {N} чел.'},
-    {id:'w_bk', name:'На монтаж борта', fields:[{k:'N',type:'num',label:'Количество, чел'}], tpl:'На монтаж борта — {N} чел.'},
-    {id:'w_demont', name:'На демонтаж', fields:[{k:'N',type:'num',label:'Количество, чел'}], tpl:'На демонтаж — {N} чел.'}
+    {id:'w_bk', name:'На монтаж бортового камня', fields:[{k:'N',type:'num',label:'Количество, чел'}], tpl:'На монтаж бортового камня — {N} чел.'},
+    {id:'w_demont', name:'На демонтаж бортового камня', fields:[{k:'N',type:'num',label:'Количество, чел'}], tpl:'На демонтаж бортового камня — {N} чел.'}
   ],
 
   plan: [
@@ -6027,6 +6027,15 @@ function bdAgeOnNextBd(year, month, day) {
   return yearOfBd - year;
 }
 
+function bdCurrentAge(year, month, day) {
+  // Текущий возраст на сегодня (учитывая был ли уже ДР в этом году)
+  const now = new Date();
+  let age = now.getFullYear() - year;
+  // Если ДР в этом году ещё не было — отнимаем 1
+  if (now.getMonth() + 1 < month || (now.getMonth() + 1 === month && now.getDate() < day)) age--;
+  return age;
+}
+
 function bdFormatDate(month, day) {
   const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
   return day + ' ' + months[month-1];
@@ -6248,7 +6257,8 @@ function renderBirthdaysTab() {
   // Считаем дни до ДР для каждого
   const withDays = all.map(p => Object.assign({}, p, {
     daysUntil: bdDaysUntil(p.month, p.day),
-    nextAge: bdAgeOnNextBd(p.year, p.month, p.day)
+    nextAge: bdAgeOnNextBd(p.year, p.month, p.day),
+    currentAge: bdCurrentAge(p.year, p.month, p.day)
   }));
   
   // === ПРИМЕНЯЕМ ФИЛЬТРЫ ===
@@ -6274,12 +6284,57 @@ function renderBirthdaysTab() {
   
   // Текстовый поиск — сужает результат
   if (search) {
-    filteredBase = filteredBase.filter(p => 
-      p.fio.toLowerCase().includes(search) ||
-      p.dept.toLowerCase().includes(search) ||
-      p.pos.toLowerCase().includes(search) ||
-      (p.phone || '').toLowerCase().includes(search)
-    );
+    // Извлечём цифры из запроса для поиска по телефону
+    const searchDigits = search.replace(/\D/g, '');
+    
+    // Нормализуем 11-значный номер к единому формату 7XXXXXXXXXX
+    // (российские номера могут начинаться с 7 или 8 — это эквивалентно)
+    function normalize11(digits) {
+      if (digits.length === 11 && (digits[0] === '8' || digits[0] === '7')) {
+        return '7' + digits.substring(1);
+      }
+      return digits;
+    }
+    const searchNorm = normalize11(searchDigits);
+    
+    filteredBase = filteredBase.filter(p => {
+      // Поиск по тексту (ФИО, отдел, должность)
+      if (p.fio.toLowerCase().includes(search) ||
+          p.dept.toLowerCase().includes(search) ||
+          p.pos.toLowerCase().includes(search)) return true;
+      
+      // Поиск по телефону — по цифрам (если в запросе ≥3 цифры)
+      if (searchDigits.length >= 3) {
+        // Разбиваем телефон если их несколько (по аналогии с рендером карточки)
+        const phoneRaw = p.phone || '';
+        const totalDigits = (phoneRaw.match(/\d/g) || []).length;
+        let phonesList;
+        if (totalDigits > 11) {
+          phonesList = phoneRaw.split(/[\s,;]+/).map(s => s.replace(/\D/g, '')).filter(s => s.length >= 10);
+          if (!phonesList.length) phonesList = [phoneRaw.replace(/\D/g, '')];
+        } else {
+          phonesList = [phoneRaw.replace(/\D/g, '')];
+        }
+        
+        for (const phoneDigits of phonesList) {
+          const phoneNorm = normalize11(phoneDigits);
+          // Прямое совпадение
+          if (phoneDigits.includes(searchDigits)) return true;
+          // В нормализованном виде (7XXX vs 8XXX)
+          if (searchNorm.length >= 3 && phoneNorm.includes(searchNorm)) return true;
+          // Без ведущей 7/8 (если пользователь вбил без кода страны)
+          if (phoneDigits.length >= 11) {
+            const tail = phoneDigits.substring(phoneDigits.length - 10);
+            if (tail.includes(searchDigits)) return true;
+          }
+        }
+      }
+      
+      // Дополнительно — обычный поиск по тексту телефона
+      if ((p.phone || '').toLowerCase().includes(search)) return true;
+      
+      return false;
+    });
   }
   
   // === СЧЁТЧИКИ — только по отфильтрованным! ===
@@ -6344,13 +6399,21 @@ function renderBirthdaysTab() {
     }).filter(Boolean).join(' &nbsp;·&nbsp; ');
     const phoneLink = phoneLinksHtml ? '<div style="font-size:13px;margin-top:5px">' + phoneLinksHtml + '</div>' : '';
     
+    // Возраст: если сегодня ДР — показываем сколько исполнилось; иначе — текущий + сколько будет
+    let ageStr;
+    if (p.daysUntil === 0) {
+      ageStr = 'исполняется ' + p.nextAge + ' 🎉';
+    } else {
+      ageStr = 'сейчас ' + p.currentAge + ' (будет ' + p.nextAge + ')';
+    }
+    
     return '<div style="border:1px solid ' + border + ';border-left:4px solid ' + border + ';border-radius:6px;padding:10px 12px;margin-bottom:8px;background:' + bg + '">' +
       '<div style="font-weight:600;font-size:14px;color:#1a2733">' + p.fio + '</div>' +
       '<div style="font-size:12px;color:#555;margin-top:3px">' + p.pos + '</div>' +
       '<div style="font-size:12px;color:#777;margin-top:2px">' + p.dept + '</div>' +
       phoneLink +
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding-top:6px;border-top:1px dashed #e0e4ea">' +
-      '<span style="font-size:13px;font-weight:600;color:#1F4E79">🎂 ' + dateStr + ' · ' + p.nextAge + ' лет</span>' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding-top:6px;border-top:1px dashed #e0e4ea;gap:8px;flex-wrap:wrap">' +
+      '<span style="font-size:13px;font-weight:600;color:#1F4E79">🎂 ' + dateStr + ' · ' + ageStr + '</span>' +
       '<span style="font-size:12px;font-weight:600;color:' + labelColor + '">' + daysLabel + '</span>' +
       '</div>' +
       '</div>';
