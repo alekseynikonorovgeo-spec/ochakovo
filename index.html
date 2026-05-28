@@ -6,7 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1F4E79">
 <title>ОЧАКОВО — Отчёт нач. участка</title>
-<!-- ═══ PWA: установка на главный экран и офлайн-работа ═══ -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F4E79">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -735,7 +734,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V122';
+const APP_VERSION = 'V129';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -853,6 +852,7 @@ const ABZ_LIST = ['Бирюлёво','Внуково','АБЗ-4','Курьяно
 const BETON_PLANTS = ['ПК Бетонный завод (Дорожная 64)','БЗ-1 Москва','Лыткарино'];
 const BETON_MARKS = ['В7,5П2','В15Ж4','В15П2','В15П3','В20','В22,5','В25','В30'];
 const AB_MARKS = ['ЩМА-20','ЩМА-15','ПД-2','КЗБ-1','КЗБ-2','МЗБ-1','МЗВ-2'];
+const OSN_PLACES = ['проезжей части','тротуаре','тех. тротуаре','отмостке'];
 // Бортовые камни — по ГОСТ 6665-91 (бетон) и ГОСТ 32018-2012 / 6666-81 (гранит)
 // Формат: Тип-Длина-Ширина-Высота (мм). БР = бортовой прямой, БУ = с уширением, БВ = въездной
 const BK_MARKS_BET = [
@@ -927,14 +927,14 @@ const TRANSFER_MATERIALS = [
   // ЦПС
   'ЦПС М-150','ЦПС М-100','ЦПС М-200',
   // Прочее
-  'Песок','Битумная эмульсия','а/б крошка','Реновация','а/б скол'
+  'Песок','ЩГПС','Битумная эмульсия','а/б крошка','Реновация','а/б скол'
 ];
 // Для штабеля на объекте — только щебень, песок и сколы/крошка (только то что реально хранится в штабеле)
 const SHTABEL_MATERIALS = [
   // Щебень
   'Щебень фр. 20-40','Щебень фр. 5-20','Щебень фр. 40-70','Щебень фр. 3-10',
   // Прочее
-  'Песок','а/б крошка','Реновация','а/б скол'
+  'Песок','ЩГПС','а/б крошка','Реновация','а/б скол'
 ];
 const ANGLES = ['правый внутренний','левый внутренний','правый внешний','левый внешний'];
 const ZBI_NAMES = ['УОП-6','ДБ-2','ПВК-8','ОРГ-1М','ОУЭ К','ОУЭ В','ЛЧ Д','ОР','Кольцо К7-0.5','Кольцо К7-1.0','Кольцо К7-1.5','Кольцо К7-2.0'];
@@ -950,10 +950,7 @@ const CATEGORIES = [
   {id:'razrab', name:'Разработка', icon:'⛏'},
   {id:'bk', name:'Бортовой камень', icon:'▌'},
   {id:'osn', name:'Основания', icon:'⬛'},
-  {id:'asphalt_pch', name:'Асфальт ПЧ', icon:'■'},
-  {id:'asphalt_tr', name:'Асфальт тротуар', icon:'▣'},
-  {id:'asphalt_teh_tr', name:'Асфальт тех. тротуар', icon:'▦'},
-  {id:'asphalt_otmostka', name:'Асфальт отмостка', icon:'▥'},
+  {id:'asphalt', name:'Асфальт', icon:'■'},
   {id:'shtroba', name:'Штробы', icon:'═'},
   {id:'lotki', name:'Лотки и дренаж', icon:'⊓'},
   {id:'olh', name:'Ремонт ОЛХ', icon:'◉'},
@@ -971,6 +968,7 @@ const WORKS = {
     {id:'hint_beton', hint:true, text:'ℹ️ Указывайте только <b>приём</b>. Расход не учитываем — условно считаем, что весь принятый бетон ушёл на работы (с учётом утиля). Передачи — через «Движение материала» (вычтутся из приёма).'},
     {id:'m_beton', name:'📥 Бетон — ПРИЁМ за смену', fields:[{k:'mark',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'V',type:'num',label:'V, м³'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'для замка / ТТН №12345'}], tpl:'Бетон {mark}{?note| ({note})} — {V} м³ — {plant}{?reisy|, {reisy} рейс}'},
     {id:'m_cps', name:'📥 ЦПС — ПРИЁМ за смену', fields:[{k:'mark',type:'select',opts:['М-150','М-100','М-200'],label:'Марка',v:'М-150'},{k:'m',type:'num',label:'Масса, кг'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'}], tpl:'ЦПС {mark} — {m} кг — {plant}'},
+    {id:'m_shpgs', name:'📥 ЩГПС — ПРИЁМ за смену', fields:[{k:'V',type:'num',label:'V, м³'},{k:'src',type:'select_other',opts:SCHEB_SRC,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'например ТТН №12345'}], tpl:'ЩГПС — {V} м³{?reisy|, {reisy} рейс} — {src}{?note| ({note})}'},
 
     {id:'sec_ab', name:'━━ АСФАЛЬТ / А/Б ━━', section:true},
     {id:'hint_ab', hint:true, text:'ℹ️ Указывайте только <b>приём</b>. Расход программа считает сама из работ по норме — экономия/перерасход видны автоматически. Передачи делайте через «Движение материала» — они вычтутся из вашего приёма.'},
@@ -1043,53 +1041,26 @@ const WORKS = {
   ],
 
   osn: [
-    {id:'osn_bet_pch', name:'Бетонное основание на проезжей части (площадь)', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:16},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 50'}], tpl:'Устройство бетонного основания на проезжей части из {beton} — S={S} м², h={h:m} м{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
-    {id:'osn_bet_pch_tr', name:'Бетонное основание на проезжей части (в траншее)', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'L',type:'num',label:'L, м.п.'},{k:'b',type:'num',label:'b, см',v:60},{k:'h',type:'num',label:'h, см',v:16}], tpl:'Устройство бетонного основания в траншее на проезжей части из {beton} — L={L} м.п., b={b:m} м, h={h:m} м'},
-    {id:'osn_bet_tr', name:'Бетонное основание тротуар', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:12},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 30'}], tpl:'Устройство бетонного основания тротуара из {beton} — S={S} м², h={h:m} м{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
-    {id:'osn_bet_tehtr', name:'Бетонное основание тех. тротуар', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:12},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 30'}], tpl:'Устройство бетонного основания на тех. тротуаре из {beton} — S={S} м², h={h:m} м{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
-    {id:'osn_sch_pch', name:'Щебеночное основание на проезжей части', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['5-10','5-20','20-40','40-70'],label:'Фракция',v:'20-40'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:15},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 50'}], tpl:'Устройство основания из {?type|{type:gen} }щебня фр. {fr} на проезжей части — S={S} м², h={h:m} м{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
-    {id:'osn_sch_tr', name:'Щебеночное основание тротуар', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['5-10','5-20','20-40','40-70'],label:'Фракция',v:'20-40'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:12},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 30'}], tpl:'Устройство основания из {?type|{type:gen} }щебня фр. {fr} на тротуаре — S={S} м², h={h:m} м{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
-    {id:'osn_pesok_tr', name:'Песчаное основание (на тротуаре)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:25},{k:'V',type:'num',label:'V, м³',opt:true},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 50'}], tpl:'Устройство основания из песка на тротуаре — S={S} м², h={h:m} м{?V|, V={V} м³}{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
-    {id:'osn_pesok_pch', name:'Песчаное основание (на проезжей части)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:25},{k:'V',type:'num',label:'V, м³',opt:true},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 50'}], tpl:'Устройство основания из песка на проезжей части — S={S} м², h={h:m} м{?V|, V={V} м³}{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
-    {id:'osn_renov_pch', name:'Устройство основания из реновации (на проезжей части)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство основания из реновации на проезжей части — S={S} м², h={h:m} м{?V|, V={V} м³}'},
-    {id:'osn_renov_tr', name:'Устройство основания из реновации (на тротуаре)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство основания из реновации на тротуаре — S={S} м², h={h:m} м{?V|, V={V} м³}'},
-    {id:'osn_krosh_pch', name:'Устройство основания из а/б крошки (на проезжей части)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство основания из а/б крошки на проезжей части — S={S} м², h={h:m} м{?V|, V={V} м³}'},
-    {id:'osn_krosh_tr', name:'Устройство основания из а/б крошки (на тротуаре)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство основания из а/б крошки на тротуаре — S={S} м², h={h:m} м{?V|, V={V} м³}'},
-    {id:'osn_skol_pch', name:'Устройство основания из а/б скола (на проезжей части)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство основания из а/б скола на проезжей части — S={S} м², h={h:m} м{?V|, V={V} м³}'},
-    {id:'osn_skol_tr', name:'Устройство основания из а/б скола (на тротуаре)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство основания из а/б скола на тротуаре — S={S} м², h={h:m} м{?V|, V={V} м³}'},
-    {id:'geo', name:'Устройство геотекстиля', fields:[{k:'mark',type:'select',opts:['Д-250','Д-300','Д-350','Д-400'],label:'Марка',v:'Д-250'},{k:'where',type:'select',opts:['тротуаре','проезжей части'],label:'Где',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство геотекстиля {mark}{?where| на {where}} — S={S} м²'},
+    {id:'osn_bet', name:'Бетонное основание (площадь)', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 30'}], tpl:'Устройство бетонного основания на {place} из {beton} — S={S} м², h={h:m} м{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
+    {id:'osn_bet_tranch', name:'Бетонное основание (в траншее)', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'L',type:'num',label:'L, м.п.'},{k:'b',type:'num',label:'b, см',v:60},{k:'h',type:'num',label:'h, см',v:16}], tpl:'Устройство бетонного основания в траншее на {place} из {beton} — L={L} м.п., b={b:m} м, h={h:m} м'},
+    {id:'osn_sch', name:'Щебеночное основание', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['5-10','5-20','20-40','40-70'],label:'Фракция',v:'20-40'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 50'}], tpl:'Устройство основания из {?type|{type:gen} }щебня фр. {fr} на {place} — S={S} м², h={h:m} м{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
+    {id:'osn_shpgs', name:'Основание из ЩГПС', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 50'}], tpl:'Устройство основания из ЩГПС на {place} — S={S} м², h={h:m} м{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
+    {id:'osn_pesok', name:'Песчаное основание', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true},{k:'layer',type:'select',opts:['1-й слой','2-й слой','3-й слой','4-й слой','Полный конструктив (закрыт)'],label:'Слой',opt:true},{k:'h_total',type:'num',label:'Из общей толщины конструктива, см (опц.)',opt:true,placeholder:'напр. 50'}], tpl:'Устройство основания из песка на {place} — S={S} м², h={h:m} м{?V|, V={V} м³}{?layer| — {layer}}{?h_total| (из общего конструктива {h_total:m} м)}'},
+    {id:'osn_renov', name:'Основание из реновации', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство основания из реновации на {place} — S={S} м², h={h:m} м{?V|, V={V} м³}'},
+    {id:'osn_krosh', name:'Основание из а/б крошки', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство основания из а/б крошки на {place} — S={S} м², h={h:m} м{?V|, V={V} м³}'},
+    {id:'osn_skol', name:'Основание из а/б скола', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Устройство основания из а/б скола на {place} — S={S} м², h={h:m} м{?V|, V={V} м³}'},
+    {id:'geo', name:'Устройство геотекстиля', fields:[{k:'mark',type:'select',opts:['Д-250','Д-300','Д-350','Д-400'],label:'Марка',v:'Д-250'},{k:'where',type:'select',opts:['тротуаре','проезжей части','тех. тротуаре','отмостке'],label:'Где',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство геотекстиля {mark}{?where| на {where}} — S={S} м²'},
     {id:'osn_lotki', name:'Основание под лотки h=36 см', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство основания{?beton| из бетона {beton}} под монтаж лотков — L={L} м.п., h=0.36 м'}
   ],
 
-  asphalt_pch: [
-    {id:'vsp_pch', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на проезжей части — h={h:m} м, S={S} м²'},
-    {id:'nsp_pch', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:7},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на проезжей части — h={h:m} м, S={S} м²'},
-    {id:'vso_pch', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:8},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на проезжей части — h={h:m} м, S={S} м²'},
-    {id:'virav_pch', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'hsr',type:'num',label:'hср, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на проезжей части — hср={hsr:m} м, S={S} м²'},
-    {id:'yamoch', name:'Ямочный ремонт', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Ямочный ремонт {mark}{?h| — h={h:m} м}, S={S} м²'},
-    {id:'rozliv', name:'Розлив битумной эмульсии', fields:[{k:'S',type:'num',label:'S, м²'}], tpl:'Розлив битумной эмульсии — S={S} м²'},
-    {id:'bitum_lent', name:'Устройство битумной ленты', fields:[{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство битумной ленты — L={L} м.п.'}
-  ],
-
-  asphalt_tr: [
-    {id:'vsp_tr', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:4},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на тротуаре — h={h:m} м, S={S} м²'},
-    {id:'nsp_tr', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на тротуаре — h={h:m} м, S={S} м²'},
-    {id:'vso_tr', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на тротуаре — h={h:m} м, S={S} м²'},
-    {id:'virav_tr', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'hsr',type:'num',label:'hср, см',v:3},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на тротуаре — hср={hsr:m} м, S={S} м²'}
-  ],
-
-  asphalt_teh_tr: [
-    {id:'vsp_teh_tr', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:4},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на тех. тротуаре — h={h:m} м, S={S} м²'},
-    {id:'nsp_teh_tr', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на тех. тротуаре — h={h:m} м, S={S} м²'},
-    {id:'vso_teh_tr', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на тех. тротуаре — h={h:m} м, S={S} м²'},
-    {id:'virav_teh_tr', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'hsr',type:'num',label:'hср, см',v:3},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на тех. тротуаре — hср={hsr:m} м, S={S} м²'}
-  ],
-
-  asphalt_otmostka: [
-    {id:'vsp_otm', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:4},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на отмостке — h={h:m} м, S={S} м²'},
-    {id:'nsp_otm', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на отмостке — h={h:m} м, S={S} м²'},
-    {id:'vso_otm', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на отмостке — h={h:m} м, S={S} м²'},
-    {id:'virav_otm', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'hsr',type:'num',label:'hср, см',v:3},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на отмостке — hср={hsr:m} м, S={S} м²'}
+  asphalt: [
+    {id:'vsp', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на {place} — h={h:m} м, S={S} м²'},
+    {id:'nsp', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',v:7},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на {place} — h={h:m} м, S={S} м²'},
+    {id:'vso', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',v:8},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на {place} — h={h:m} м, S={S} м²'},
+    {id:'virav', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'hsr',type:'num',label:'hср, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на {place} — hср={hsr:m} м, S={S} м²'},
+    {id:'yamoch', name:'Ямочный ремонт', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Ямочный ремонт {mark} на {place}{?h| — h={h:m} м}, S={S} м²'},
+    {id:'rozliv', name:'Розлив битумной эмульсии', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'}], tpl:'Розлив битумной эмульсии на {place} — S={S} м²'},
+    {id:'bitum_lent', name:'Устройство битумной ленты', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство битумной ленты на {place} — L={L} м.п.'}
   ],
 
   shtroba: [
@@ -1177,15 +1148,12 @@ const CAT_GROUP_TITLES = {
   frez:'ФРЕЗЕРОВАНИЕ',
   razrab:'РАЗРАБОТКА',
   bk:'БОРТОВОЙ КАМЕНЬ', osn:'ОСНОВАНИЯ ПОД АСФАЛЬТ',
-  asphalt_pch:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ПРОЕЗЖАЯ ЧАСТЬ',
-  asphalt_tr:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ТРОТУАР',
-  asphalt_teh_tr:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ТЕХ. ТРОТУАР',
-  asphalt_otmostka:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — ОТМОСТКА',
+  asphalt:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ',
   shtroba:'ШТРОБЫ', lotki:'ЛОТКИ И ДРЕНАЖ',
   olh:'Ремонт ОЛХ', gazon:'ГАЗОНЫ И ГРУНТ', other:'ПРОЧИЕ РАБОТЫ',
   vivoz:'ВЫВОЗ', workers:'ЗАДЕЙСТВОВАНО РАБОЧИХ', transfer:'ДВИЖЕНИЕ МАТЕРИАЛОВ', plan:'ПЛАНИРУЕМЫЙ ОБЪЁМ НА ЗАВТРА'
 };
-const CAT_ORDER = ['podg_cat','demont','frez','razrab','bk','osn','asphalt_pch','asphalt_tr','asphalt_teh_tr','asphalt_otmostka','shtroba','lotki','olh','gazon','other','vivoz','workers','transfer','plan'];
+const CAT_ORDER = ['podg_cat','demont','frez','razrab','bk','osn','asphalt','shtroba','lotki','olh','gazon','other','vivoz','workers','transfer','plan'];
 
 // ═══════════════════════════════════════════════════════════════════
 // ШАБЛОНЫ ПО УЧАСТКАМ — на основе анализа реальных отчётов BiP
@@ -1196,9 +1164,9 @@ const UCHASTOK_TEMPLATES = {
     title: 'Уч.1 — Асфальтные работы (ВСП ЩМА-20)',
     works: [
       { catId: 'other',   workId: 'podg',         values: { desc: '' } },
-      { catId: 'asphalt_pch', workId: 'rozliv',       values: { S: '' } },
-      { catId: 'asphalt_pch', workId: 'vsp_pch',      values: { mark: 'ЩМА-20', S: '' } },
-      { catId: 'asphalt_pch', workId: 'bitum_lent',   values: { L: '' } },
+      { catId: 'asphalt', workId: 'rozliv',       values: { S: '' } },
+      { catId: 'asphalt', workId: 'vsp',          values: { mark: 'ЩМА-20', place: 'проезжей части', S: '' } },
+      { catId: 'asphalt', workId: 'bitum_lent',   values: { L: '' } },
     ],
     mats: [
       { workId: 'm_ab', values: { mark: 'ЩМА-20', m: '', abz: 'Бирюлёво', note: '' } },
@@ -1208,9 +1176,9 @@ const UCHASTOK_TEMPLATES = {
     title: 'Уч.2 — Асфальт + Выравнивающий слой',
     works: [
       { catId: 'other',   workId: 'podg',          values: { desc: '' } },
-      { catId: 'asphalt_pch', workId: 'rozliv',        values: { S: '' } },
-      { catId: 'asphalt_pch', workId: 'virav_pch',     values: { mark: 'МЗБ-1', S: '' } },
-      { catId: 'asphalt_pch', workId: 'nsp_pch',       values: { mark: 'МЗБ-1', S: '' } },
+      { catId: 'asphalt', workId: 'rozliv',        values: { S: '' } },
+      { catId: 'asphalt', workId: 'virav',         values: { mark: 'МЗБ-1', place: 'проезжей части', S: '' } },
+      { catId: 'asphalt', workId: 'nsp',           values: { mark: 'МЗБ-1', place: 'проезжей части', S: '' } },
     ],
     mats: [
       { workId: 'm_ab', values: { mark: 'МЗБ-1', m: '', abz: 'Бирюлёво', note: '' } },
@@ -1221,9 +1189,9 @@ const UCHASTOK_TEMPLATES = {
     works: [
       { catId: 'other',   workId: 'podg',         values: { desc: '' } },
       { catId: 'razrab',  workId: 'razrab_tr',    values: { S: '', h: '' } },
-      { catId: 'asphalt_pch', workId: 'rozliv',       values: { S: '' } },
-      { catId: 'asphalt_tr', workId: 'virav_tr',      values: { mark: 'ПД-2', S: '' } },
-      { catId: 'asphalt_tr', workId: 'vsp_tr',        values: { mark: 'ПД-2', S: '' } },
+      { catId: 'asphalt', workId: 'rozliv',       values: { S: '' } },
+      { catId: 'asphalt', workId: 'virav',        values: { mark: 'ПД-2', place: 'тротуаре', S: '' } },
+      { catId: 'asphalt', workId: 'vsp',          values: { mark: 'ПД-2', place: 'тротуаре', S: '' } },
     ],
     mats: [
       { workId: 'm_ab', values: { mark: 'ПД-2', m: '', abz: 'Бирюлёво', note: '' } },
@@ -1338,7 +1306,7 @@ function calcAsphaltNorm(w) {
   const text = (w.text || '') + ' ' + (w.name || '');
   const family = asphaltFamily(text);
   if (!family) return null;
-  // Место: ПЧ если упоминается, иначе тротуар (тех. тротуар и отмостка используют нормы тротуара — конструктив тоньше)
+  // Место: ПЧ если упоминается, иначе тротуар (тех. тротуар и отмостка используют нормы тротуара)
   const place = /проезж/i.test(text) ? 'ПЧ' : 'тротуар';
   const S = parseFloat(String(w.values?.S || '').replace(',', '.'));
   let h = parseFloat(String(w.values?.h || '').replace(',', '.'));
@@ -3536,7 +3504,7 @@ function renderPreview() {
 
     // Определяем КАТЕГОРИЮ ПОСЛЕДНЕЙ РАБОТЫ СО ЩЕБНЕМ — после неё выведем блок щебня.
     // Работы со щебнем: основания из щебня (osn_sch_pch/tr/bk). Передачи не считаем — это движение.
-    const SCHEB_WORK_IDS = new Set(['osn_sch_pch','osn_sch_tr','osn_sch_bk']);
+    const SCHEB_WORK_IDS = new Set(['osn_sch','osn_sch_bk']);
     function isSchebWork(w) {
       return SCHEB_WORK_IDS.has(w.workId);
     }
@@ -3667,10 +3635,7 @@ function renderPreview() {
         lines.push(`  ${CAT_GROUP_TITLES[catId]}  `);
         cw.forEach(w => { let t = w.text; const norm = calcAsphaltNorm(w); if (norm) t += ` (по норме${norm.extrapolated ? " расчётно" : ""} = ${norm.tons.toString().replace(".", ",")} т)`; lines.push(`${n++}. ${t}`); });
         // После раздела АСФАЛЬТОБЕТОННЫЕ РАБОТЫ — сразу блок "Принято асфальта за смену" + движение асфальта
-        // Определяем какая asphalt-категория идёт последней — в ней и выводим блоки
-        const isAsphaltCat = (catId === 'asphalt_pch' || catId === 'asphalt_tr');
-        const hasAsphTr = state.works.some(w => w.catId === 'asphalt_tr');
-        const isLastAsphalt = (catId === 'asphalt_tr' && hasAsphTr) || (catId === 'asphalt_pch' && !hasAsphTr);
+        const isLastAsphalt = (catId === 'asphalt');
         if (isLastAsphalt && abMats.length && !state._asphaltMatRendered) {
           lines.push('');
           pushBorder('🛢 ПРИНЯТО АСФАЛЬТА ЗА СМЕНУ');
@@ -6485,7 +6450,6 @@ function renderBirthdaysTab() {
 let _bdFiltersLoaded = false;
 
 </script>
-<!-- ═══ PWA: регистрация service worker + автоматическое обнаружение обновлений ═══ -->
 <script>
 if ('serviceWorker' in navigator) {
   let isReloading = false;
