@@ -735,7 +735,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V97';
+const APP_VERSION = 'V105';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -966,8 +966,8 @@ const CATEGORIES = [
 const WORKS = {
   mat: [
     {id:'sec_beton', name:'━━ БЕТОН / ЦПС ━━', section:true},
-    {id:'m_beton', name:'Бетон', fields:[{k:'mark',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'V',type:'num',label:'V, м³'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'для замка / ТТН №12345'}], tpl:'Бетон {mark}{?note| ({note})} — {V} м³ — {plant}{?reisy|, {reisy} рейс}'},
-    {id:'m_cps', name:'ЦПС', fields:[{k:'mark',type:'select',opts:['М-150','М-100','М-200'],label:'Марка',v:'М-150'},{k:'m',type:'num',label:'Масса, кг'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'}], tpl:'ЦПС {mark} — {m} кг — {plant}'},
+    {id:'m_beton', name:'📥 Бетон — ПРИЁМ за смену', fields:[{k:'mark',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'V',type:'num',label:'V, м³'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'для замка / ТТН №12345'}], tpl:'Бетон {mark}{?note| ({note})} — {V} м³ — {plant}{?reisy|, {reisy} рейс}'},
+    {id:'m_cps', name:'📥 ЦПС — ПРИЁМ за смену', fields:[{k:'mark',type:'select',opts:['М-150','М-100','М-200'],label:'Марка',v:'М-150'},{k:'m',type:'num',label:'Масса, кг'},{k:'plant',type:'select_other',opts:BETON_PLANTS,label:'Источник'}], tpl:'ЦПС {mark} — {m} кг — {plant}'},
 
     {id:'sec_ab', name:'━━ АСФАЛЬТ / А/Б ━━', section:true},
     {id:'m_ab', name:'Асфальтобетон (а/б)', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'m',type:'num',label:'Масса, т'},{k:'abz',type:'select_other',opts:ABZ_LIST,label:'АБЗ'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'на ПБВ / ТТН №12345'}], tpl:'{mark}{?note| {note}} — {m} т — АБЗ {abz}{?reisy|, {reisy} рейс}'},
@@ -975,7 +975,7 @@ const WORKS = {
     {id:'sec_sch', name:'━━ ЩЕБЕНЬ / ПЕСОК ━━', section:true},
     {id:'m_schebe', name:'📥 Щебень — ПРИЁМ за смену', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'unit',type:'select',opts:['м³','т'],label:'Ед. измерения',v:'м³'},{k:'qty',type:'num',label:'Количество'},{k:'density',type:'num',label:'Плотность, т/м³ (опц.) — уточните в ПТО',opt:true,placeholder:'по умолч. 1,30',step:'0.01'},{k:'src',type:'select_other',opts:SCHEB_SRC,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'например ТТН №12345'}], tpl:'Щебень{?type| {type}} фр. {fr} — {qty} {unit}{?_alt| ({_alt})} — {src}{?reisy|, {reisy} рейс}{?note| ({note})}'},
     {id:'m_scheb_used', name:'📤 Щебень — РАСХОД на работы', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'V',type:'num',label:'V, м³'},{k:'note',type:'text',label:'Комментарий (опц.)',opt:true,placeholder:'напр. под асфальт ПЧ'}], tpl:'Использовано {?type|{type:gen} }щебня фр. {fr} на работы — {V} м³{?note| ({note})}'},
-    {id:'m_pesok', name:'Песок', fields:[{k:'V',type:'num',label:'V, м³'},{k:'src',type:'select_other',opts:['база Голохвастово','карьер Лыткарино','карьер Курьяново'],label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание',opt:true,placeholder:'без Т/Н / с Т/Н'}], tpl:'Песок — {V} м³{?reisy|, {reisy} рейс} — {src}{?note| ({note})}'},
+    {id:'m_pesok', name:'📥 Песок — ПРИЁМ за смену', fields:[{k:'V',type:'num',label:'V, м³'},{k:'src',type:'select_other',opts:['база Голохвастово','карьер Лыткарино','карьер Курьяново'],label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'например ТТН №12345'}], tpl:'Песок — {V} м³{?reisy|, {reisy} рейс} — {src}{?note| ({note})}'},
     {id:'m_pesok_used', name:'📤 Песок — РАСХОД на работы', fields:[{k:'V',type:'num',label:'V, м³'}], tpl:'Использовано песка на работы — {V} м³'},
 
     {id:'sec_bk', name:'━━ БК (бортовой камень) ━━', section:true},
@@ -986,13 +986,13 @@ const WORKS = {
     {id:'m_bk_ugl_bet', name:'БК бетонный угловой', fields:[{k:'angle',type:'select',opts:['правый внутренний','левый внутренний','правый внешний','левый внешний'],label:'Тип угла'},{k:'N',type:'num',label:'Количество, шт',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'src',type:'text',label:'Источник',opt:true}], tpl:'БК бетонный угловой {angle}{?N| — {N} шт} — {L} м.п.{?src| — {src}}'},
     {id:'m_bk_ugl_gr', name:'БК гранитный угловой', fields:[{k:'angle',type:'select',opts:['правый внутренний','левый внутренний','правый внешний','левый внешний'],label:'Тип угла'},{k:'N',type:'num',label:'Количество, шт',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'src',type:'text',label:'Источник',opt:true}], tpl:'БК гранитный угловой {angle}{?N| — {N} шт} — {L} м.п.{?src| — {src}}'},
 
-    {id:'sec_zbi_bal', name:'━━ ЖБИ от БАЛАНСОДЕРЖАТЕЛЕЙ ━━', section:true},
-    {id:'m_zbi_bal', name:'ЖБИ от балансодержателей', fields:[{k:'name',type:'select',opts:ZBI_NAMES,label:'Что получили'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
-    {id:'m_zbi_bal_other', name:'Другое (от балансодержателей)', fields:[{k:'name',type:'text',label:'Название'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
+    {id:'sec_zbi_bal', name:'━━ Материал для ремонта ОЛХ — ОТ БАЛАНСОДЕРЖАТЕЛЕЙ ━━', section:true},
+    {id:'m_zbi_bal', name:'Материал для ремонта ОЛХ — от балансодержателей', fields:[{k:'name',type:'select',opts:ZBI_NAMES,label:'Что получили'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
+    {id:'m_zbi_bal_other', name:'Другое для ремонта ОЛХ — от балансодержателей', fields:[{k:'name',type:'text',label:'Название'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
 
-    {id:'sec_zbi_gbu', name:'━━ ЖБИ от ГБУ / АВТОДОР ━━', section:true},
-    {id:'m_zbi_gbu', name:'ЖБИ от ГБУ / Автодор', fields:[{k:'name',type:'select',opts:ZBI_NAMES,label:'Что получили'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
-    {id:'m_zbi_gbu_other', name:'Другое (от ГБУ/Автодор)', fields:[{k:'name',type:'text',label:'Название'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
+    {id:'sec_zbi_gbu', name:'━━ Материал для ремонта ОЛХ — ОТ ГБУ ━━', section:true},
+    {id:'m_zbi_gbu', name:'Материал для ремонта ОЛХ — от ГБУ', fields:[{k:'name',type:'select',opts:ZBI_NAMES,label:'Что получили'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
+    {id:'m_zbi_gbu_other', name:'Другое для ремонта ОЛХ — от ГБУ', fields:[{k:'name',type:'text',label:'Название'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
 
     {id:'sec_other_mat', name:'━━ ПРОЧЕЕ ━━', section:true},
     {id:'m_geo', name:'Геотекстиль', fields:[{k:'mark',type:'text',label:'Марка',v:'Д-250'},{k:'S',type:'num',label:'S, м²'},{k:'src',type:'text',label:'Поставщик',opt:true}], tpl:'Геотекстиль {mark} — {S} м²{?src| — {src}}'},
@@ -1003,7 +1003,7 @@ const WORKS = {
     {id:'podg_gorodok', name:'Обустройство строительного городка', fields:[{k:'desc',type:'text',label:'Описание',opt:true,placeholder:'опционально'}], tpl:'Обустройство строительного городка{?desc|: {desc}}'},
     {id:'podg_bytovki', name:'Установка бытовок', fields:[{k:'N',type:'num',label:'Количество, шт'}], tpl:'Установка бытовок — {N} шт.'},
     {id:'podg_znak_temp', name:'Установка временных дорожных знаков', fields:[{k:'N',type:'num',label:'Количество, шт'}], tpl:'Установка временных дорожных знаков — {N} шт'},
-    {id:'obram_der', name:'Защита деревьев / кустарников', fields:[{k:'type',type:'select',opts:['деревянные щиты','металлическое ограждение'],label:'Тип защиты'},{k:'N',type:'num',label:'Количество деревьев/кустарников, шт'}], tpl:'Защита деревьев/кустарников — {type} — {N} шт (количество деревьев)'}
+    {id:'obram_der', name:'Защита деревьев / кустарников', fields:[{k:'type',type:'select',opts:['деревянными щитами','металлическим ограждением'],label:'Чем защищены'},{k:'N',type:'num',label:'Количество деревьев/кустарников, шт'}], tpl:'Защита деревьев/кустарников {type} — {N} шт (количество деревьев/кустарников)'}
   ],
 
   demont: [
@@ -6041,6 +6041,12 @@ function bdFormatDate(month, day) {
   return day + ' ' + months[month-1];
 }
 
+// Сокращение «Участок» → «уч.» для компактного отображения на телефонах
+function bdShort(text) {
+  if (!text) return '';
+  return text.replace(/Участок/g, 'уч.').replace(/участок/g, 'уч.');
+}
+
 // === Multi-select dropdown ===
 function bdToggleDropdown(key) {
   _bdDropdownKey = key;
@@ -6075,7 +6081,7 @@ function bdRenderDropdownList() {
   let items;
   if (key === 'fio') {
     // Для людей — просто список ФИО (без счёта)
-    let people = all.map(p => [p.fio, p.dept + ' / ' + p.pos]);
+    let people = all.map(p => [p.fio, bdShort(p.dept) + ' / ' + bdShort(p.pos)]);
     people.sort((a, b) => a[0].localeCompare(b[0], 'ru'));
     if (search) people = people.filter(([fio, info]) => fio.toLowerCase().includes(search) || info.toLowerCase().includes(search));
     items = people;
@@ -6099,7 +6105,8 @@ function bdRenderDropdownList() {
     const v = item[0];
     const extra = item[1]; // count для dept/pos, инфо для fio
     const checked = _bdDropdownTempSet.has(v);
-    const vEsc = v.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const vDisplay = (key === 'fio') ? v : bdShort(v); // ФИО не сокращаем
+    const vEsc = vDisplay.replace(/"/g, '&quot;').replace(/</g, '&lt;');
     const escSingle = v.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     
     // Визуальная "галочка" слева вместо нативного checkbox (надёжнее на iOS)
@@ -6208,7 +6215,7 @@ function bdUpdateFilterButtons() {
     document.getElementById('bd-flt-dept-btn').style.background = '#fff';
     document.getElementById('bd-flt-dept-btn').style.borderColor = '#d0d7e0';
   } else if (_bdSelectedDepts.size === 1) {
-    deptBtn.textContent = '🏢 ' + [..._bdSelectedDepts][0];
+    deptBtn.textContent = '🏢 ' + bdShort([..._bdSelectedDepts][0]);
     deptCnt.style.display = 'none';
     document.getElementById('bd-flt-dept-btn').style.background = '#e8f2dd';
     document.getElementById('bd-flt-dept-btn').style.borderColor = '#8eab59';
@@ -6228,7 +6235,7 @@ function bdUpdateFilterButtons() {
     document.getElementById('bd-flt-pos-btn').style.background = '#fff';
     document.getElementById('bd-flt-pos-btn').style.borderColor = '#d0d7e0';
   } else if (_bdSelectedPos.size === 1) {
-    posBtn.textContent = '👔 ' + [..._bdSelectedPos][0];
+    posBtn.textContent = '👔 ' + bdShort([..._bdSelectedPos][0]);
     posCnt.style.display = 'none';
     document.getElementById('bd-flt-pos-btn').style.background = '#e8f2dd';
     document.getElementById('bd-flt-pos-btn').style.borderColor = '#8eab59';
@@ -6409,8 +6416,8 @@ function renderBirthdaysTab() {
     
     return '<div style="border:1px solid ' + border + ';border-left:4px solid ' + border + ';border-radius:6px;padding:10px 12px;margin-bottom:8px;background:' + bg + '">' +
       '<div style="font-weight:600;font-size:14px;color:#1a2733">' + p.fio + '</div>' +
-      '<div style="font-size:12px;color:#555;margin-top:3px">' + p.pos + '</div>' +
-      '<div style="font-size:12px;color:#777;margin-top:2px">' + p.dept + '</div>' +
+      '<div style="font-size:12px;color:#555;margin-top:3px">' + bdShort(p.pos) + '</div>' +
+      '<div style="font-size:12px;color:#777;margin-top:2px">' + bdShort(p.dept) + '</div>' +
       phoneLink +
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding-top:6px;border-top:1px dashed #e0e4ea;gap:8px;flex-wrap:wrap">' +
       '<span style="font-size:13px;font-weight:600;color:#1F4E79">🎂 ' + dateStr + ' · ' + ageStr + '</span>' +
