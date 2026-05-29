@@ -757,7 +757,7 @@ body.big-mode #big-mode-btn{background:#ffd700;color:#1F4E79}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V155';
+const APP_VERSION = 'V156';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -6662,11 +6662,11 @@ function renderBirthdaysTab() {
   document.getElementById('bd-cnt-month').textContent = '(' + cntMonth + ')';
   document.getElementById('bd-cnt-all').textContent = '(' + filteredBase.length + ')';
   
-  // Применим период
+  // Применим период (избранные люди показываются всегда — независимо от периода)
   let filtered = filteredBase;
-  if (_bdFilter === 'today') filtered = filtered.filter(p => p.daysUntil === 0);
-  else if (_bdFilter === 'week') filtered = filtered.filter(p => p.daysUntil >= 0 && p.daysUntil <= 7);
-  else if (_bdFilter === 'month') filtered = filtered.filter(p => p.daysUntil >= 0 && p.daysUntil <= 30);
+  if (_bdFilter === 'today') filtered = filtered.filter(p => p.daysUntil === 0 || _bdSelectedFio.has(p.fio));
+  else if (_bdFilter === 'week') filtered = filtered.filter(p => (p.daysUntil >= 0 && p.daysUntil <= 7) || _bdSelectedFio.has(p.fio));
+  else if (_bdFilter === 'month') filtered = filtered.filter(p => (p.daysUntil >= 0 && p.daysUntil <= 30) || _bdSelectedFio.has(p.fio));
   
   // Сортировка
   filtered.sort((a, b) => a.daysUntil - b.daysUntil || a.fio.localeCompare(b.fio, 'ru'));
