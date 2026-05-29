@@ -2,7 +2,7 @@
 // При обновлении HTML или иконок — увеличивайте номер версии (v4 → v5 → v6 ...)
 // чтобы новая версия гарантированно скачалась у всех прорабов.
 
-const CACHE_NAME = 'ochakovo-v86';
+const CACHE_NAME = 'ochakovo-v88';
 const FILES_TO_CACHE = [
   './',
   './index.html',
