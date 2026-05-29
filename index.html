@@ -109,6 +109,15 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .work-option:active:not(.section-h){background:#f5f5f7}
 .back-link{color:#1F4E79;font-size:13px;font-weight:500;background:none;border:none;padding:4px 0;margin-bottom:10px;display:inline-flex;align-items:center;gap:4px;cursor:pointer}
 @media (max-width:380px){.container{padding:8px}.card{padding:12px}}
+/* Крупный режим — для работы на стройке / при ярком солнце / без очков */
+body.big-mode{font-size:118%}
+body.big-mode input,body.big-mode select,body.big-mode textarea,body.big-mode button{font-size:16px}
+body.big-mode .work-item .name{font-size:16px}
+body.big-mode .work-item .params{font-size:14px}
+body.big-mode .preview-box{font-size:15px}
+body.big-mode .work-option{font-size:16px;padding:14px 12px}
+body.big-mode label{font-size:15px}
+body.big-mode #big-mode-btn{background:#ffd700;color:#1F4E79}
 </style>
 </head>
 <body>
@@ -140,7 +149,10 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <h1>ОЧАКОВО — Отчёт <span id="app-version-tag" style="font-size:11px;font-weight:400;opacity:0.6;margin-left:6px"></span></h1>
     <div class="sub" id="hdr-date">—</div>
   </div>
-  <button onclick="openProfile()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:6px 12px;font-size:12px" id="profile-chip">Профиль</button>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button onclick="toggleBigMode()" id="big-mode-btn" title="Крупный шрифт" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:6px 10px;font-size:14px;font-weight:700;border-radius:6px;cursor:pointer">А+</button>
+    <button onclick="openProfile()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:6px 12px;font-size:12px" id="profile-chip">Профиль</button>
+  </div>
 </header>
 
 <!-- Баннер обновления PWA (скрыт по умолчанию) -->
@@ -203,6 +215,13 @@ button:disabled{opacity:.4;cursor:not-allowed}
         <select id="direction"></select>
       </div>
     </div>
+    <div id="fix-mode-box" onclick="toggleFixMode()" style="margin-top:10px;padding:12px;background:#f5f5f7;border:2px solid #ddd;border-radius:8px;cursor:pointer;transition:all .15s">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-weight:600">
+        <input type="checkbox" id="fix-mode" onclick="event.stopPropagation()" onchange="onFixModeChange()" style="width:22px;height:22px;cursor:pointer">
+        <span id="fix-mode-label" style="color:#666">🔧 Исправление замечаний — <b>выкл</b></span>
+      </label>
+      <div id="fix-mode-hint" style="font-size:12px;color:#999;margin-top:6px;margin-left:32px">Для завершённых объектов — добавит «ИСПРАВЛЕНИЕ ЗАМЕЧАНИЙ» к названию объекта в отчёте</div>
+    </div>
     <div style="margin-top:8px">
       <button onclick="toggleJoint()" id="joint-toggle" style="width:100%;background:#f5f5f7;color:#1F4E79;border:1px dashed #b0c4d6">+ Совместный отчёт с другим участком</button>
     </div>
@@ -233,6 +252,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <button type="button" class="add-btn" style="flex:2;margin-top:0" onclick="openAddWork()">＋ Добавить работу</button>
     <button type="button" class="add-btn" style="flex:1;margin-top:0;background:#FFF5E0;border-color:#E0BD8B;color:#854F0B" onclick="openUserTemplates()">📋 Мои шаблоны</button>
   </div>
+  <button type="button" id="repeat-last-btn" class="add-btn" style="width:100%;margin-top:8px;background:#eef4fb;border-color:#c5d9ee;color:#1F4E79;display:none" onclick="repeatLastReport()">🔁 Повторить последний отчёт</button>
 
   <!-- ОБЪЕКТ ЗАВЕРШЁН — отметка о закрытии объекта -->
   <div id="object-complete-block" style="margin-top:14px;padding:12px;background:#fff5f5;border:2px dashed #dc3545;border-radius:8px;text-align:center">
@@ -240,6 +260,8 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <div class="hint" style="margin-bottom:8px;color:#666">Нажмите когда выполняется последняя работа на объекте. В отчёте появится отметка «ОБЪЕКТ ЗАВЕРШЁН».</div>
     <button type="button" id="object-complete-btn" onclick="toggleObjectComplete()" style="width:100%;padding:10px;font-size:14px;font-weight:600;background:#fff;color:#dc3545;border:1px solid #dc3545;border-radius:6px;cursor:pointer">🏁 Отметить «Объект завершён»</button>
   </div>
+
+  <div id="report-checks"></div>
 
   <div class="section-title">Готовый отчёт для BiP</div>
   <div class="card">
@@ -552,7 +574,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     </div>
     <div class="field-group">
       <label>Направления движения <span style="color:#999;font-weight:400">(через запятую, опц.)</span></label>
-      <input type="text" id="obj-dirs" placeholder="напр. в центр, в область">
+      <input type="text" id="obj-dirs" placeholder="напр. в центр, в область  или  внешняя сторона, внутренняя сторона">
     </div>
     <button class="success" style="width:100%;margin-top:6px" onclick="saveNewObject()">Сохранить объект</button>
     <div id="custom-obj-list" style="margin-top:14px"></div>
@@ -563,6 +585,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
   <div class="form-modal" id="work-modal">
     <h2 id="work-title">Добавить <button class="close-btn" onclick="closeAddWork()">×</button></h2>
     <div id="work-step1">
+      <div id="frequent-works"></div>
       <div class="hint" style="margin-bottom:10px" id="step1-hint">Выберите категорию работы:</div>
       <div class="category-list" id="cat-list"></div>
     </div>
@@ -611,7 +634,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
         <input type="text" id="obj-edit-kod" placeholder="напр. 005000">
       </div>
     </div>
-    <div class="hint" style="margin-top:6px;font-size:12px;color:#888">Если поле оставить пустым — будет «—» в отчёте</div>
+    <div class="hint" style="margin-top:6px;font-size:12px;color:#888">💡 Шифр и Код берутся из проектной документации (титульный лист, ведомость объёмов). Если не знаете — оставьте пустым, будет «—».</div>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button type="button" class="add-btn" style="flex:1;margin:0" onclick="closeObjEdit()">Отмена</button>
       <button type="button" id="obj-edit-reset" style="flex:1;background:#fff;color:#888;border:1px solid #ddd;padding:14px;border-radius:10px;font-size:14px" onclick="resetObjEdit()">Сбросить</button>
@@ -734,7 +757,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V129';
+const APP_VERSION = 'V155';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -786,13 +809,13 @@ const TRIAL_EXPIRY = '2026-07-01'; // ГГГГ-ММ-ДД
 
 const OBJECTS = [
   // ─ МКАД 33 км — оставлен из старой версии (нет в плане 2026) ─
-  {short:'МКАД 33 км Битца-Парк', full:'МКАД 33 км Битца-Парк, внешняя сторона', shifr:'', kod:''},
+  {short:'МКАД 33 км Битца-Парк', full:'МКАД 33 км Битца-Парк, внешняя сторона', shifr:'', kod:'', directions:['внешняя сторона','внутренняя сторона']},
 
   // ═══ ЦАО — текрем РТС (005000) ═══
-  {short:'Б. Садовая', full:'Большая Садовая улица (на всём протяжении)', shifr:'', kod:'005000'},
+  {short:'Б. Садовая', full:'Большая Садовая улица (на всём протяжении)', shifr:'', kod:'005000', directions:['внешняя сторона','внутренняя сторона']},
   {short:'Пр. Садовая-Триумфальная—Оружейный', full:'Проезд между Садовой-Триумфальной улицей и Оружейным переулком (гостиница «София»)', shifr:'', kod:'005000'},
-  {short:'Садовая-Кудринская', full:'Садовая-Кудринская улица (на всём протяжении)', shifr:'', kod:'005000'},
-  {short:'Садовая-Триумфальная', full:'Садовая-Триумфальная улица (на всём протяжении)', shifr:'', kod:'005000'},
+  {short:'Садовая-Кудринская', full:'Садовая-Кудринская улица (на всём протяжении)', shifr:'', kod:'005000', directions:['внешняя сторона','внутренняя сторона']},
+  {short:'Садовая-Триумфальная', full:'Садовая-Триумфальная улица (на всём протяжении)', shifr:'', kod:'005000', directions:['внешняя сторона','внутренняя сторона']},
   {short:'Тверская Застава', full:'Тверская Застава, площадь (на всём протяжении)', shifr:'', kod:'005000'},
 
   // ═══ ЦАО — КБУ (075000) ═══
@@ -809,7 +832,7 @@ const OBJECTS = [
   {short:'2-й Силикатный пр-д', full:'2-й Силикатный проезд (на всём протяжении)', shifr:'', kod:'075000'},
 
   // ═══ ЗАО ═══
-  {short:'МКАД 51+800-53 км', full:'МКАД, прямой ход от ТР Очаково-Заречье до Сколковской ТР, км 51+800 - 53, 0-5 полосы (внешнее кольцо)', shifr:'', kod:'005000', directions:['в центр','в область']},
+  {short:'МКАД 51+800-53 км', full:'МКАД, прямой ход от ТР Очаково-Заречье до Сколковской ТР, км 51+800 - 53, 0-5 полосы (внешнее кольцо)', shifr:'', kod:'005000', directions:['внешняя сторона','внутренняя сторона']},
   {short:'Ун. площадь', full:'Университетская площадь (Университетский проспект — ул. Косыгина)', shifr:'', kod:'005000'},
   {short:'Волынская', full:'Волынская улица (на всём протяжении)', shifr:'', kod:'075000'},
   {short:'Наро-Фоминская', full:'Наро-Фоминская улица (на всём протяжении)', shifr:'', kod:'075000'},
@@ -885,7 +908,25 @@ const BK_MARKS_GR = [
 ];
 const BK_RADIUS = ['R0.5','R1','R3','R6','R8'];
 const BK_RAD_TYPE = ['внешний','внутренний'];
+const BK_STONE = ['бетонного','гранитного'];
+const BK_MARKS_ALL = [...BK_MARKS_BET, ...BK_MARKS_GR];
 const POLYGONS = ['ПК Десна','ПК Очаково','Внуково','Голохвастово','база Рябиновая 69','Очаково-Заречье','Щапово'];
+// Универсальный набор «4 направления вывоза» (куда + объём + рейсы) — используется во всех позициях категории ВЫВОЗ
+const VIVOZ_DIRS = [
+  {k:'place1',type:'select_other',opts:POLYGONS,label:'Куда — направление 1'},
+  {k:'V1',type:'num',label:'Объём 1, м³'},
+  {k:'reisy1',type:'num',label:'Рейсов 1',opt:true},
+  {k:'place2',type:'select_other',opts:POLYGONS,label:'Куда — направление 2 (опц.)',opt:true},
+  {k:'V2',type:'num',label:'Объём 2, м³',opt:true},
+  {k:'reisy2',type:'num',label:'Рейсов 2',opt:true},
+  {k:'place3',type:'select_other',opts:POLYGONS,label:'Куда — направление 3 (опц.)',opt:true},
+  {k:'V3',type:'num',label:'Объём 3, м³',opt:true},
+  {k:'reisy3',type:'num',label:'Рейсов 3',opt:true},
+  {k:'place4',type:'select_other',opts:POLYGONS,label:'Куда — направление 4 (опц.)',opt:true},
+  {k:'V4',type:'num',label:'Объём 4, м³',opt:true},
+  {k:'reisy4',type:'num',label:'Рейсов 4',opt:true}
+];
+const VIVOZ_TPL = ' — {place1}: V={V1} м³{?reisy1|, {reisy1} рейс}{?place2|; {place2}: V={V2} м³{?reisy2|, {reisy2} рейс}}{?place3|; {place3}: V={V3} м³{?reisy3|, {reisy3} рейс}}{?place4|; {place4}: V={V4} м³{?reisy4|, {reisy4} рейс}}';
 const PLITKA_SIZES_BET = ['300×300×60','500×500×60','500×250×60','400×400×60','200×100×60','100×200×60','750×750×80','600×400×80'];
 const PLITKA_SIZES_GR = ['600×300×80','500×500×80','400×400×80','300×300×80','600×400×100','1000×500×100'];
 const SCHEB_SRC = ['ПК Курьяново','ПК Очаково','база Голохвастово','карьер Лыткарино'];
@@ -934,7 +975,7 @@ const SHTABEL_MATERIALS = [
   // Щебень
   'Щебень фр. 20-40','Щебень фр. 5-20','Щебень фр. 40-70','Щебень фр. 3-10',
   // Прочее
-  'Песок','ЩГПС','а/б крошка','Реновация','а/б скол'
+  'Песок','а/б крошка','Реновация','а/б скол'
 ];
 const ANGLES = ['правый внутренний','левый внутренний','правый внешний','левый внешний'];
 const ZBI_NAMES = ['УОП-6','ДБ-2','ПВК-8','ОРГ-1М','ОУЭ К','ОУЭ В','ЛЧ Д','ОР','Кольцо К7-0.5','Кольцо К7-1.0','Кольцо К7-1.5','Кольцо К7-2.0'];
@@ -946,7 +987,6 @@ const CATEGORIES_MAT = [
 const CATEGORIES = [
   {id:'podg_cat', name:'Подготовительные работы', icon:'⚒'},
   {id:'demont', name:'Демонтаж', icon:'✕'},
-  {id:'frez', name:'Фрезерование', icon:'⚙'},
   {id:'razrab', name:'Разработка', icon:'⛏'},
   {id:'bk', name:'Бортовой камень', icon:'▌'},
   {id:'osn', name:'Основания', icon:'⬛'},
@@ -1001,39 +1041,27 @@ const WORKS = {
   ],
 
   demont: [
-    {id:'demont_ab_pch', name:'Демонтаж а/б покрытия (на проезжей части)', fields:[{k:'h',type:'num',label:'h, см'},{k:'S',type:'num',label:'S, м²'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Демонтаж а/б покрытия на проезжей части, h={h} см — S={S} м²{?V|, V={V} м³}'},
-    {id:'demont_ab_tr', name:'Демонтаж а/б покрытия (на тротуаре)', fields:[{k:'h',type:'num',label:'h, см'},{k:'S',type:'num',label:'S, м²'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Демонтаж а/б покрытия на тротуаре, h={h} см — S={S} м²{?V|, V={V} м³}'},
-    {id:'demont_kromki', name:'Демонтаж а/б кромки', fields:[{k:'L',type:'num',label:'L, м.п.'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Демонтаж а/б кромки — L={L} м.п.{?V|, V={V} м³}'},
-    {id:'demont_bk_bet', name:'Демонтаж бетонного БК', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_BET,label:'Марка',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Демонтаж бетонного бортового камня{?mark| {mark}} — L={L} м.п.'},
-    {id:'demont_bk_gr', name:'Демонтаж гранитного БК', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_GR,label:'Марка',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Демонтаж гранитного бортового камня{?mark| {mark}} — L={L} м.п.'},
-    {id:'demont_plitki', name:'Демонтаж бетонной тротуарной плитки', fields:[{k:'size',type:'select_other',opts:PLITKA_SIZES_BET,label:'Размер плитки, мм (опц.)',opt:true,placeholder:'напр. 500×500×60'},{k:'S',type:'num',label:'S, м²'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true}], tpl:'Демонтаж бетонной тротуарной плитки{?size| {size} мм} — S={S} м²{?N|, {N} шт}'},
-    {id:'demont_gr_plitki', name:'Демонтаж гранитной плитки', fields:[{k:'size',type:'select_other',opts:PLITKA_SIZES_GR,label:'Размер плитки, мм (опц.)',opt:true,placeholder:'напр. 600×300×80'},{k:'S',type:'num',label:'S, м²'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true}], tpl:'Демонтаж гранитной плитки{?size| {size} мм} на тротуаре — S={S} м²{?N|, {N} шт}'},
+    {id:'frez_pch', name:'Фрезерование', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Фрезерование на {place} — S={S} м², h={h:m} м'},
+    {id:'demont_ab_pch', name:'Демонтаж а/б покрытия', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см'},{k:'S',type:'num',label:'S, м²'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Демонтаж а/б покрытия на {place}, h={h} см — S={S} м²{?V|, V={V} м³}'},
+    {id:'demont_kromki', name:'Демонтаж а/б кромки', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Демонтаж а/б кромки{?place| на {place}} — L={L} м.п.{?V|, V={V} м³}'},
+    {id:'demont_bk_bet', name:'Демонтаж БК', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного',onchange:'onBkStoneChange(this)'},{k:'mark',type:'bk_mark',label:'Марка',opt:true},{k:'where',type:'select',opts:OSN_PLACES,label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Демонтаж {stone} бортового камня{?mark| {mark}}{?where| на {where}} — L={L} м.п.'},
+    {id:'demont_plitki', name:'Демонтаж плитки', fields:[{k:'material',type:'select',opts:['бетонной','гранитной'],label:'Материал',v:'бетонной',onchange:'onPlitkaMaterialChange(this)'},{k:'size',type:'plitka_size',label:'Размер плитки, мм',opt:true},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true}], tpl:'Демонтаж {material} плитки{?size| {size} мм} на {place} — S={S} м²{?N|, {N} шт}'},
     {id:'demont_lotka', name:'Демонтаж водосточного/водоприёмного лотка', fields:[{k:'L',type:'num',label:'L, м.п.'}], tpl:'Демонтаж водоприёмного лотка — L={L} м.п.'}
-  ],
-
-  frez: [
-    {id:'frez_pch', name:'Фрезерование (на проезжей части)', fields:[{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'},{k:'place1',type:'select_other',opts:POLYGONS,label:'Вывоз — направление 1 (куда)',opt:true},{k:'V1',type:'num',label:'Объём по напр. 1, м³',opt:true},{k:'reisy1',type:'num',label:'Рейсов по напр. 1',opt:true},{k:'place2',type:'select_other',opts:POLYGONS,label:'Направление 2 (опц.)',opt:true},{k:'V2',type:'num',label:'Объём по напр. 2, м³',opt:true},{k:'reisy2',type:'num',label:'Рейсов по напр. 2',opt:true},{k:'place3',type:'select_other',opts:POLYGONS,label:'Направление 3 (опц.)',opt:true},{k:'V3',type:'num',label:'Объём по напр. 3, м³',opt:true},{k:'reisy3',type:'num',label:'Рейсов по напр. 3',opt:true}], tpl:'Фрезерование проезжей части — S={S} м², h={h:m} м'},
-    {id:'frez_tr', name:'Фрезерование (на тротуаре)', fields:[{k:'h',type:'num',label:'h, см',v:4},{k:'S',type:'num',label:'S, м²'},{k:'place1',type:'select_other',opts:POLYGONS,label:'Вывоз — направление 1 (куда)',opt:true},{k:'V1',type:'num',label:'Объём по напр. 1, м³',opt:true},{k:'reisy1',type:'num',label:'Рейсов по напр. 1',opt:true},{k:'place2',type:'select_other',opts:POLYGONS,label:'Направление 2 (опц.)',opt:true},{k:'V2',type:'num',label:'Объём по напр. 2, м³',opt:true},{k:'reisy2',type:'num',label:'Рейсов по напр. 2',opt:true},{k:'place3',type:'select_other',opts:POLYGONS,label:'Направление 3 (опц.)',opt:true},{k:'V3',type:'num',label:'Объём по напр. 3, м³',opt:true},{k:'reisy3',type:'num',label:'Рейсов по напр. 3',opt:true}], tpl:'Фрезерование тротуара — S={S} м², h={h:m} м'}
   ],
 
   razrab: [
     {id:'razrab_tr', name:'Разработка тротуара', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',opt:true}], tpl:'Разработка существующего тротуара{?h| h={h} см} — S={S} м²'},
-    {id:'razrab_osn_tr', name:'Разработка основания тротуара (под новый конструктив)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка основания тротуара под устройство нового конструктива — S={S} м², h={h:m} м{?V|, V={V} м³}'},
-    {id:'razrab_osn_pch', name:'Разработка основания проезжей части (под новый конструктив)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка основания проезжей части под устройство нового конструктива — S={S} м², h={h:m} м{?V|, V={V} м³}'},
-    {id:'razrab_nest_pch', name:'Разработка нестабильного основания (на проезжей части)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:23},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка нестабильного основания на проезжей части, h={h:m} м — S={S} м²{?V|, V={V} м³}'},
-    {id:'razrab_nest_tr', name:'Разработка нестабильного основания (на тротуаре)', fields:[{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:23},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка нестабильного основания на тротуаре, h={h:m} м — S={S} м²{?V|, V={V} м³}'}
+    {id:'razrab_osn_tr', name:'Разработка основания (под новый конструктив)', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см'},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка основания на {place} под устройство нового конструктива — S={S} м², h={h:m} м{?V|, V={V} м³}'},
+    {id:'razrab_nest_pch', name:'Разработка нестабильного основания', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',v:23},{k:'V',type:'num',label:'V, м³',opt:true}], tpl:'Разработка нестабильного основания на {place}, h={h:m} м — S={S} м²{?V|, V={V} м³}'}
   ],
 
   bk: [
     {id:'razrab_tr_bk', name:'Разработка траншеи под БК', fields:[{k:'L',type:'num',label:'L, м.п.'},{k:'b',type:'num',label:'b, см',v:60},{k:'h',type:'num',label:'h, см',v:40}], tpl:'Разработка траншеи под монтаж бортового камня — L={L} м.п., b={b:m} м, h={h:m} м'},
     {id:'osn_sch_bk', name:'Устройство основания из щебня под БК', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['5-10','5-20','20-40','40-70'],label:'Фракция',v:'20-40'},{k:'L',type:'num',label:'L, м.п.'},{k:'h',type:'num',label:'h, см',v:10},{k:'b',type:'num',label:'b, см',v:60}], tpl:'Устройство основания из {?type|{type:gen} }щебня под БК фр. {fr} — L={L} м.п., b={b:m} м, h={h:m} м'},
     {id:'osn_bet_bk', name:'Устройство бетонного основания под БК', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'L',type:'num',label:'L, м.п.'},{k:'h',type:'num',label:'h, см',v:10},{k:'b',type:'num',label:'b, см',v:60}], tpl:'Устройство бетонного основания под БК из {beton} — L={L} м.п., b={b:m} м, h={h:m} м'},
-    {id:'mont_bet', name:'Монтаж бетонного БК (прямой)', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_BET,label:'Марка БК'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж бетонного бортового камня {mark}{?where| на {where}} — L={L} м.п.'},
-    {id:'mont_granit', name:'Монтаж гранитного БК (прямой)', fields:[{k:'mark',type:'select_other',opts:BK_MARKS_GR,label:'Марка'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж гранитного бортового камня {mark}{?where| на {where}} — L={L} м.п.'},
-    {id:'mont_radius_bet', name:'Монтаж радиусного бетонного БК', fields:[{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Кол-во, шт',opt:true}], tpl:'Монтаж радиусного бетонного бортового камня R-{R}{?type| {type}}{?where| на {where}}{?N| — {N} шт} — L={L} м.п.'},
-    {id:'mont_radius_gran', name:'Монтаж радиусного гранитного БК', fields:[{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Кол-во, шт',opt:true}], tpl:'Монтаж радиусного гранитного бортового камня R-{R}{?type| {type}}{?where| на {where}}{?N| — {N} шт} — L={L} м.п.'},
-    {id:'mont_ugl_bet', name:'Монтаж углового бетонного БК', fields:[{k:'angle',type:'select',opts:ANGLES,label:'Тип угла'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж углового бетонного бортового камня — {angle}{?where| на {where}} — L={L} м.п.'},
-    {id:'mont_ugl_gran', name:'Монтаж углового гранитного БК', fields:[{k:'angle',type:'select',opts:ANGLES,label:'Тип угла'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж углового гранитного бортового камня — {angle}{?where| на {where}} — L={L} м.п.'},
+    {id:'mont_bet', name:'Монтаж БК прямого', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного',onchange:'onBkStoneChange(this)'},{k:'mark',type:'bk_mark',label:'Марка',opt:true},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж {stone} бортового камня{?mark| {mark}}{?where| на {where}} — L={L} м.п.'},
+    {id:'mont_radius_bet', name:'Монтаж БК радиусного', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного'},{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Кол-во, шт',opt:true}], tpl:'Монтаж радиусного {stone} бортового камня R-{R}{?type| {type}}{?where| на {where}}{?N| — {N} шт} — L={L} м.п.'},
+    {id:'mont_ugl_bet', name:'Монтаж БК углового', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного'},{k:'angle',type:'select',opts:ANGLES,label:'Тип угла'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж углового {stone} бортового камня — {angle}{?where| на {where}} — L={L} м.п.'},
     {id:'opalubka', name:'Монтаж опалубки под БК', fields:[{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж опалубки под БК — L={L} м.п.'},
     {id:'zamok', name:'Устройство замка под БК', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство монолитного замка{?beton| из бетона {beton}} — L={L} м.п.'},
     {id:'stakan', name:'Устройство монолитного стакана под БК', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство монолитного стакана под БК{?beton| из бетона {beton}} — L={L} м.п.'},
@@ -1054,6 +1082,7 @@ const WORKS = {
   ],
 
   asphalt: [
+    {id:'hint_layers', hint:true, text:'ℹ️ <b>Слои сверху вниз:</b> ВСП (верхний слой покрытия) → НСП (нижний слой покрытия) → ВСО (верхний слой основания). <b>Выравнивающий</b> — для устранения неровностей перед укладкой.'},
     {id:'vsp', name:'ВСП — верхний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',v:6},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСП {mark} на {place} — h={h:m} м, S={S} м²'},
     {id:'nsp', name:'НСП — нижний слой покрытия', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',v:7},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство НСП {mark} на {place} — h={h:m} м, S={S} м²'},
     {id:'vso', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',v:8},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на {place} — h={h:m} м, S={S} м²'},
@@ -1064,8 +1093,7 @@ const WORKS = {
   ],
 
   shtroba: [
-    {id:'sht_bet_pch', name:'Бетонирование штробы вдоль БК (на проезжей части)', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'L',type:'num',label:'L, м.п.',opt:true},{k:'S',type:'num',label:'S, м²',opt:true},{k:'h',type:'num',label:'h, см',v:25,opt:true},{k:'b',type:'num',label:'b, см',v:35,opt:true}], tpl:'Бетонирование штробы из {beton} вдоль б/к на проезжей части{?L| — L={L} м.п.}{?S| — S={S} м²}{?b|, b={b:m} м}{?h|, h={h:m} м}'},
-    {id:'sht_bet_tr', name:'Бетонирование штробы вдоль БК (на тротуаре)', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'L',type:'num',label:'L, м.п.',opt:true},{k:'S',type:'num',label:'S, м²',opt:true},{k:'h',type:'num',label:'h, см',v:20,opt:true}], tpl:'Бетонирование штробы из {beton} вдоль б/к на тротуаре{?L| — L={L} м.п.}{?S| — S={S} м²}{?h|, h={h:m} м}'},
+    {id:'sht_bet_pch', name:'Бетонирование штробы вдоль БК', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'L',type:'num',label:'L, м.п.',opt:true},{k:'S',type:'num',label:'S, м²',opt:true},{k:'h',type:'num',label:'h, см',v:25,opt:true},{k:'b',type:'num',label:'b, см',v:35,opt:true}], tpl:'Бетонирование штробы из {beton} вдоль б/к на {place}{?L| — L={L} м.п.}{?S| — S={S} м²}{?b|, b={b:m} м}{?h|, h={h:m} м}'},
     {id:'sht_otsypka', name:'Отсыпка штроб а/б крошкой', fields:[{k:'S',type:'num',label:'S, м²'},{k:'hsr',type:'num',label:'hср, см',opt:true},{k:'m',type:'num',label:'m, т',opt:true}], tpl:'Отсыпка штробы на тротуаре а/б крошкой — S={S} м²{?hsr|, hср={hsr:m} м}{?m|, {m} т}'}
   ],
 
@@ -1096,12 +1124,15 @@ const WORKS = {
   other: [
     {id:'narez_pch', name:'Нарезка швов на проезжей части', fields:[{k:'L',type:'num',label:'L, м.п.'}], tpl:'Нарезка швов на проезжей части — L={L} м.п.'},
     {id:'narezka_bk', name:'Нарезка швов вдоль БК', fields:[{k:'L',type:'num',label:'L, м.п.'}], tpl:'Нарезка швов вдоль бортового камня — L={L} м.п.'},
-    {id:'pandus_pd2', name:'Временные пандусы из ПД-2 вокруг колодцев', fields:[{k:'N',type:'num',label:'шт'},{k:'V',type:'num',label:'V (ПД-2), т',opt:true},{k:'from_uch',type:'select',opts:['1','2','3','4','5','6','7','8','9'],label:'Принял у участка №',opt:true}], tpl:'Устройство временных пандусов колодцев из ПД-2 — {N} шт{?from_uch| принял у {from_uch} участка}'},
-    {id:'pandus_ab', name:'Устройство пандуса из а/б', fields:[{k:'N',type:'num',label:'шт',opt:true},{k:'S',type:'num',label:'S, м²',opt:true},{k:'from_uch',type:'select',opts:['1','2','3','4','5','6','7','8','9'],label:'Принял у участка №',opt:true}], tpl:'Устройство пандуса из а/б{?N| — {N} шт}{?S|, S={S} м²}{?from_uch| принял у {from_uch} участка}'},
-    {id:'plitka', name:'Восстановление тротуарной плитки', fields:[{k:'size',type:'select',opts:['300/300','400/400'],label:'Размер',v:'300/300'},{k:'S',type:'num',label:'S, м²'}], tpl:'Восстановление бетонной тротуарной плитки {size} на тротуаре — S={S} м²'},
+    {id:'pandus_pd2', name:'Устройство временных пандусов вокруг колодцев', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б',v:'ПД-2'},{k:'N',type:'num',label:'шт'},{k:'S',type:'num',label:'S, м²',opt:true},{k:'V',type:'num',label:'V, т',opt:true},{k:'from_uch',type:'select',opts:['1','2','3','4','5','6','7','8','9'],label:'Принял у участка №',opt:true}], tpl:'Устройство временных пандусов вокруг колодцев из {mark} — {N} шт{?S|, S={S} м²}{?V|, {V} т}{?from_uch| принял у {from_uch} участка}'},
+    {id:'plitka', name:'Восстановление ранее демонтированной плитки', fields:[{k:'material',type:'select',opts:['бетонной','гранитной'],label:'Материал',v:'бетонной',onchange:'onPlitkaMaterialChange(this)'},{k:'size',type:'plitka_size',label:'Размер плитки, мм',opt:true},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'N',type:'num',label:'Количество, шт (опц.)',opt:true}], tpl:'Восстановление ранее демонтированной {material} плитки{?size| {size} мм} на {place} — S={S} м²{?N|, {N} шт}'},
+    {id:'zatirka_shvov', name:'Затирка швов после монтажа плитки', fields:[{k:'material',type:'select',opts:['бетонной','гранитной'],label:'Материал плитки',v:'бетонной',onchange:'onPlitkaMaterialChange(this)'},{k:'size',type:'plitka_size',label:'Размер плитки, мм',opt:true},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'}], tpl:'Затирка швов после монтажа {material} плитки{?size| {size} мм} на {place} — S={S} м²'},
+    {id:'osn_pod_plitku', name:'Основание под восстановление плитки', fields:[{k:'material',type:'select',opts:['бетонной','гранитной'],label:'Под какую плитку',v:'бетонной',onchange:'onPlitkaMaterialChange(this)'},{k:'size',type:'plitka_size',label:'Размер плитки, мм',opt:true},{k:'iz',type:'select',opts:['ЦПС','песка','щебня','сухой смеси'],label:'Из чего',v:'ЦПС'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',opt:true}], tpl:'Устройство основания из {iz} под восстановление {material} плитки{?size| {size} мм} на {place} — S={S} м²{?h|, h={h:m} м}'},
+    {id:'osn_pod_plitku', name:'Доработка основания под восстановление плитки', fields:[{k:'material',type:'select',opts:['бетонной','гранитной'],label:'Под какую плитку',v:'бетонной',onchange:'onPlitkaMaterialChange(this)'},{k:'size',type:'plitka_size',label:'Размер плитки, мм',opt:true},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'},{k:'h',type:'num',label:'h, см',opt:true}], tpl:'Доработка основания под восстановление {material} плитки{?size| {size} мм} на {place} — S={S} м²{?h|, h={h:m} м}'},
     {id:'obochina', name:'Устройство обочин из а/б крошки', fields:[{k:'S',type:'num',label:'S, м²'},{k:'hsr',type:'num',label:'hср, см',opt:true}], tpl:'Устройство обочин из а/б крошки — S={S} м²{?hsr|, hср={hsr:m} м}'},
     {id:'zaklin', name:'Заклинцовка щебня', fields:[{k:'fr',type:'select',opts:['20-40','5-20'],label:'Фракция'},{k:'S',type:'num',label:'S, м²'}], tpl:'Заклинцовка щебня фр. {fr} — S={S} м²'},
     {id:'kgh', name:'Установка ограждения КГХ', fields:[{k:'type',type:'select',opts:['секции','забор металлический'],label:'Тип'},{k:'N',type:'num',label:'шт',opt:true},{k:'L',type:'num',label:'L, м.п.',opt:true}], tpl:'Установка ограждения КГХ ({type}){?N| — {N} шт}{?L| — L={L} м.п.}'},
+    {id:'vodonal_blok', name:'Установка водоналивных блоков', fields:[{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'шт',opt:true}], tpl:'Установка водоналивных блоков — L={L} м.п.{?N|, {N} шт}'},
     {id:'znak', name:'Установка дорожного знака', fields:[{k:'N',type:'num',label:'шт'}], tpl:'Установка дорожного знака на стойке — {N} шт'},
     {id:'shtit', name:'Установка щита/стенда', fields:[{k:'type',type:'select',opts:['информационный щит','оградительный щит','туалетная кабина'],label:'Тип'},{k:'N',type:'num',label:'шт'}], tpl:'Установка {type} — {N} шт'},
     {id:'uborka', name:'Уборка строительного мусора', fields:[{k:'V',type:'num',label:'V, м³'}], tpl:'Уборка строительного мусора — V={V} м³'},
@@ -1110,15 +1141,15 @@ const WORKS = {
   ],
 
   vivoz: [
-    {id:'vivoz_ab_kroshka', name:'Вывоз а/б крошки', fields:[{k:'V',type:'num',label:'V, м³'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true}], tpl:'Вывоз а/б крошки на {place} — V={V} м³{?reisy|, {reisy} рейс}'},
-    {id:'vivoz_skol', name:'Вывоз а/б скола', fields:[{k:'V',type:'num',label:'V, м³'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true}], tpl:'Вывоз а/б скола на {place} — V={V} м³{?reisy|, {reisy} рейс}'},
-    {id:'vivoz_grunt', name:'Вывоз грунта', fields:[{k:'V',type:'num',label:'V всего, м³'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда (основное)'},{k:'reisy',type:'num',label:'Рейсов на основное',opt:true},{k:'place2',type:'select_other',opts:POLYGONS,label:'Куда (доп. направление)',opt:true},{k:'reisy2',type:'num',label:'Рейсов на доп.',opt:true}], tpl:'Вывоз грунта — V={V} м³, направление: {place}{?reisy| ({reisy} рейс)}{?place2| + {place2}{?reisy2| ({reisy2} рейс)}}'},
-    {id:'vivoz_rastit', name:'Вывоз растительного слоя', fields:[{k:'V',type:'num',label:'V, м³'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true}], tpl:'Вывоз растительного слоя на {place} — V={V} м³{?reisy|, {reisy} рейс}'},
-    {id:'vivoz_musor', name:'Вывоз строительного мусора', fields:[{k:'V',type:'num',label:'V, м³'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда'},{k:'reisy',type:'num',label:'Рейсов',opt:true}], tpl:'Вывоз строительного мусора на {place} — V={V} м³{?reisy|, {reisy} рейс}'},
-    {id:'vivoz_demont', name:'Вывоз демонтированного БР', fields:[{k:'V',type:'num',label:'V, м³'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда'}], tpl:'Вывоз демонтированного бортового камня на {place} — V={V} м³'},
-    {id:'vivoz_kroshka', name:'Вывоз бетонной крошки', fields:[{k:'V',type:'num',label:'V, м³'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда'},{k:'reisy',type:'num',label:'Рейсов',opt:true}], tpl:'Вывоз бетонной крошки на {place} — V={V} м³{?reisy|, {reisy} рейс}'},
-    {id:'vivoz_plitka', name:'Вывоз тротуарной плитки', fields:[{k:'V',type:'num',label:'V, м³',opt:true},{k:'N',type:'num',label:'или шт',opt:true},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда'},{k:'reisy',type:'num',label:'Рейсов',opt:true}], tpl:'Вывоз тротуарной плитки на {place}{?V| — V={V} м³}{?N|, {N} шт}{?reisy|, {reisy} рейс}'},
-    {id:'vivoz_blok', name:'Вывоз водоналивных блоков', fields:[{k:'N',type:'num',label:'шт'},{k:'place',type:'select_other',opts:POLYGONS,label:'Куда'}], tpl:'Вывоз водоналивных блоков — {N} шт на {place}'}
+    {id:'vivoz_ab_kroshka', name:'Вывоз а/б крошки', fields:[...VIVOZ_DIRS], tpl:'Вывоз а/б крошки'+VIVOZ_TPL},
+    {id:'vivoz_skol', name:'Вывоз а/б скола', fields:[...VIVOZ_DIRS], tpl:'Вывоз а/б скола'+VIVOZ_TPL},
+    {id:'vivoz_grunt', name:'Вывоз грунта', fields:[...VIVOZ_DIRS], tpl:'Вывоз грунта'+VIVOZ_TPL},
+    {id:'vivoz_rastit', name:'Вывоз растительного слоя', fields:[...VIVOZ_DIRS], tpl:'Вывоз растительного слоя'+VIVOZ_TPL},
+    {id:'vivoz_musor', name:'Вывоз строительного мусора', fields:[...VIVOZ_DIRS], tpl:'Вывоз строительного мусора'+VIVOZ_TPL},
+    {id:'vivoz_demont', name:'Вывоз демонтированного БР', fields:[...VIVOZ_DIRS], tpl:'Вывоз демонтированного бортового камня'+VIVOZ_TPL},
+    {id:'vivoz_kroshka', name:'Вывоз бетонной крошки', fields:[...VIVOZ_DIRS], tpl:'Вывоз бетонной крошки'+VIVOZ_TPL},
+    {id:'vivoz_plitka', name:'Вывоз тротуарной плитки', fields:[{k:'Ntotal',type:'num',label:'Всего, шт (опц.)',opt:true},...VIVOZ_DIRS], tpl:'Вывоз тротуарной плитки{?Ntotal| — всего {Ntotal} шт}'+VIVOZ_TPL},
+    {id:'vivoz_blok', name:'Вывоз водоналивных блоков', fields:[{k:'Ntotal',type:'num',label:'Всего, шт (опц.)',opt:true},...VIVOZ_DIRS], tpl:'Вывоз водоналивных блоков{?Ntotal| — всего {Ntotal} шт}'+VIVOZ_TPL}
   ],
 
   transfer: [
@@ -1145,7 +1176,6 @@ const WORKS = {
 const CAT_GROUP_TITLES = {
   podg_cat:'ПОДГОТОВИТЕЛЬНЫЕ РАБОТЫ',
   demont:'ДЕМОНТАЖ',
-  frez:'ФРЕЗЕРОВАНИЕ',
   razrab:'РАЗРАБОТКА',
   bk:'БОРТОВОЙ КАМЕНЬ', osn:'ОСНОВАНИЯ ПОД АСФАЛЬТ',
   asphalt:'АСФАЛЬТОБЕТОННЫЕ РАБОТЫ',
@@ -1153,7 +1183,7 @@ const CAT_GROUP_TITLES = {
   olh:'Ремонт ОЛХ', gazon:'ГАЗОНЫ И ГРУНТ', other:'ПРОЧИЕ РАБОТЫ',
   vivoz:'ВЫВОЗ', workers:'ЗАДЕЙСТВОВАНО РАБОЧИХ', transfer:'ДВИЖЕНИЕ МАТЕРИАЛОВ', plan:'ПЛАНИРУЕМЫЙ ОБЪЁМ НА ЗАВТРА'
 };
-const CAT_ORDER = ['podg_cat','demont','frez','razrab','bk','osn','asphalt','shtroba','lotki','olh','gazon','other','vivoz','workers','transfer','plan'];
+const CAT_ORDER = ['podg_cat','demont','razrab','bk','osn','asphalt','shtroba','lotki','olh','gazon','other','vivoz','workers','transfer','plan'];
 
 // ═══════════════════════════════════════════════════════════════════
 // ШАБЛОНЫ ПО УЧАСТКАМ — на основе анализа реальных отчётов BiP
@@ -1231,7 +1261,7 @@ const UCHASTOK_TEMPLATES = {
     title: 'Уч.6 — Фрезерование проезжей части',
     works: [
       { catId: 'other',  workId: 'podg',          values: { desc: '' } },
-      { catId: 'frez', workId: 'frez_pch',      values: { S: '', h: 6, place1: 'ПК Десна', V1: '', reisy1: '' } },
+      { catId: 'demont', workId: 'frez_pch',      values: { S: '', h: 6, place1: 'ПК Десна', V1: '', reisy1: '' } },
     ],
     mats: []
   },
@@ -1239,7 +1269,7 @@ const UCHASTOK_TEMPLATES = {
     title: 'Уч.7 — Фрезерование + Лотки',
     works: [
       { catId: 'other',  workId: 'podg',           values: { desc: '' } },
-      { catId: 'frez', workId: 'frez_pch',       values: { S: '', h: 6, place1: 'ПК Десна', V1: '', reisy1: '' } },
+      { catId: 'demont', workId: 'frez_pch',       values: { S: '', h: 6, place1: 'ПК Десна', V1: '', reisy1: '' } },
       { catId: 'lotki',  workId: 'demont_lotki', values: { L: '' } },
       { catId: 'lotki',  workId: 'mont_lotki',   values: { mark: 'бетонные DN500', L: '' } },
     ],
@@ -2009,6 +2039,65 @@ function openAddWork(editIndex) {
   document.getElementById('work-overlay').classList.add('active');
 }
 function closeAddWork() { document.getElementById('work-overlay').classList.remove('active'); }
+// Анализ архива: какие работы прораб использует чаще всего
+async function analyzeFrequentWorks(limit) {
+  limit = limit || 6;
+  try {
+    const all = await archiveList();
+    if (!all.length) return [];
+    const uch = state.profile && state.profile.uch;
+    let pool = uch ? all.filter(r => r.profile && r.profile.uch === uch) : all;
+    if (!pool.length) pool = all;
+    // Считаем частоту по (catId|workId)
+    const freq = {};
+    pool.forEach(r => {
+      (r.works || []).forEach(w => {
+        if (!w.catId || !w.workId) return;
+        if (['transfer','workers','plan'].includes(w.catId)) return; // эти не предлагаем
+        if (w.workId === 'custom' || w.workId === 'plan_custom') return;
+        const key = w.catId + '|' + w.workId;
+        freq[key] = (freq[key] || 0) + 1;
+      });
+    });
+    // Сортируем по убыванию частоты
+    const sorted = Object.entries(freq)
+      .filter(([k, n]) => n >= 2) // только если встречалось ≥2 раз
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit);
+    // Превращаем в объекты с названиями
+    return sorted.map(([key, n]) => {
+      const [catId, workId] = key.split('|');
+      const def = (WORKS[catId] || []).find(w => w.id === workId);
+      if (!def) return null;
+      return { catId, workId, name: def.name, count: n };
+    }).filter(Boolean);
+  } catch (e) { console.error('analyzeFrequentWorks:', e); return []; }
+}
+
+async function renderFrequentWorks() {
+  const box = document.getElementById('frequent-works');
+  if (!box) return;
+  box.innerHTML = '';
+  // Только в режиме работ (не материалов)
+  if (state.mode === 'mat') return;
+  const items = await analyzeFrequentWorks(6);
+  if (!items.length) return;
+  box.innerHTML = `
+    <div style="margin-bottom:10px;padding:10px;background:#eef4fb;border:1px solid #c5d9ee;border-radius:8px">
+      <div style="font-size:12px;font-weight:600;color:#1F4E79;margin-bottom:8px">⚡ Часто используете:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${items.map(it => `<button onclick="quickAddFrequent('${it.catId}','${it.workId}')" style="background:#fff;border:1px solid #1F4E79;color:#1F4E79;border-radius:16px;padding:6px 12px;font-size:12px;cursor:pointer;text-align:left">${it.name} <span style="opacity:.6">×${it.count}</span></button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function quickAddFrequent(catId, workId) {
+  state.currentCat = catId;
+  state.currentWork = (WORKS[catId] || []).find(w => w.id === workId);
+  if (!state.currentWork) return;
+  showStep3({});
+}
+
 function showStep1() {
   document.getElementById('work-step1').style.display = 'block';
   document.getElementById('work-step2').style.display = 'none';
@@ -2016,6 +2105,7 @@ function showStep1() {
   document.getElementById('step1-hint').textContent = 'Выберите категорию работы:';
   document.getElementById('cat-list').innerHTML = CATEGORIES.map(c =>
     `<button class="cat-btn" onclick="selectCat('${c.id}')"><span class="icon">${c.icon}</span><span>${c.name}</span></button>`).join('');
+  renderFrequentWorks();
 }
 function selectCat(catId) { state.currentCat = catId; showStep2(catId); }
 function showStep2(catId) {
@@ -2053,7 +2143,42 @@ function showStep3(initialValues) {
     const val = initialValues[f.k] !== undefined ? initialValues[f.k] : (f.v !== undefined ? f.v : '');
     const lblOpt = f.opt ? ' <span style="color:#999;font-weight:400">(опц.)</span>' : '';
     if (f.type === 'select') {
-      return `<div class="field-group"><label>${f.label}${lblOpt}</label><select data-k="${f.k}"><option value="">—</option>${f.opts.map(o=>`<option value="${o}" ${String(val)===String(o)?'selected':''}>${o}</option>`).join('')}</select></div>`;
+      const oc = f.onchange ? ` onchange="${f.onchange}"` : '';
+      return `<div class="field-group"><label>${f.label}${lblOpt}</label><select data-k="${f.k}"${oc}><option value="">—</option>${f.opts.map(o=>`<option value="${o}" ${String(val)===String(o)?'selected':''}>${o}</option>`).join('')}</select></div>`;
+    }
+    if (f.type === 'plitka_size') {
+      // Размер плитки — список зависит от выбора материала (бетонная/гранитная)
+      const matVal = (initialValues.material !== undefined ? initialValues.material : ((w.fields.find(x=>x.k==='material')||{}).v)) || 'бетонной';
+      const sizes = matVal === 'гранитной' ? PLITKA_SIZES_GR : PLITKA_SIZES_BET;
+      const isInList = sizes.includes(val);
+      const showOther = val && !isInList;
+      const selVal = isInList ? val : (showOther ? '__OTHER__' : '');
+      const otherVal = showOther ? val : '';
+      return `<div class="field-group"><label>${f.label}${lblOpt}</label>
+        <select data-k="${f.k}" data-select-other="1" data-plitka-size="1" onchange="toggleOtherInput(this)">
+          <option value="">—</option>
+          ${sizes.map(o=>`<option value="${o}" ${selVal===o?'selected':''}>${o}</option>`).join('')}
+          <option value="__OTHER__" ${selVal==='__OTHER__'?'selected':''}>+ Свой вариант (ввести вручную)</option>
+        </select>
+        <input type="text" data-k-other="${f.k}" value="${otherVal}" placeholder="напр. ${sizes[0] || '500×500×60'}" style="margin-top:6px;display:${showOther?'block':'none'}">
+      </div>`;
+    }
+    if (f.type === 'bk_mark') {
+      // Марка БК — список зависит от выбора камня (бетонный/гранитный)
+      const stoneVal = (initialValues.stone !== undefined ? initialValues.stone : ((w.fields.find(x=>x.k==='stone')||{}).v)) || 'бетонного';
+      const marks = stoneVal === 'гранитного' ? BK_MARKS_GR : BK_MARKS_BET;
+      const isInList = marks.includes(val);
+      const showOther = val && !isInList;
+      const selVal = isInList ? val : (showOther ? '__OTHER__' : '');
+      const otherVal = showOther ? val : '';
+      return `<div class="field-group"><label>${f.label}${lblOpt}</label>
+        <select data-k="${f.k}" data-select-other="1" data-bk-mark="1" onchange="toggleOtherInput(this)">
+          <option value="">—</option>
+          ${marks.map(o=>`<option value="${o}" ${selVal===o?'selected':''}>${o}</option>`).join('')}
+          <option value="__OTHER__" ${selVal==='__OTHER__'?'selected':''}>+ Свой вариант (ввести вручную)</option>
+        </select>
+        <input type="text" data-k-other="${f.k}" value="${otherVal}" placeholder="напр. ${marks[0] || 'свой вариант'}" style="margin-top:6px;display:${showOther?'block':'none'}">
+      </div>`;
     }
     if (f.type === 'select_obj') {
       // Select объектов: пользовательский ввод + список всех объектов (встроенные + кастомные)
@@ -2100,6 +2225,30 @@ function showStep3(initialValues) {
     warnHtml = '<div style="background:#FFF5E0;border:1px solid #E0BD8B;color:#854F0B;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:12px;line-height:1.4">⚠ <b>Ручного ввода желательно избежать.</b> Если добавляете свой вариант — <b>обязательно сообщите Никонорову А.Г.</b> чтобы он добавил эту позицию в список.</div>';
   }
   document.getElementById('work-fields').innerHTML = `<div style="font-size:13px;font-weight:600;margin-bottom:10px;padding:8px 10px;background:#e8eef5;color:#1F4E79;border-radius:6px">${w.name}</div>${warnHtml}${fieldsHtml}`;
+}
+function onPlitkaMaterialChange(sel) {
+  const mat = sel.value;
+  const sizes = mat === 'гранитной' ? PLITKA_SIZES_GR : PLITKA_SIZES_BET;
+  const sizeSel = document.querySelector('#work-fields select[data-plitka-size="1"]');
+  if (!sizeSel) return;
+  sizeSel.innerHTML = '<option value="">—</option>' +
+    sizes.map(o=>`<option value="${o}">${o}</option>`).join('') +
+    '<option value="__OTHER__">+ Свой вариант (ввести вручную)</option>';
+  sizeSel.value = '';
+  const otherInput = document.querySelector('#work-fields [data-k-other="size"]');
+  if (otherInput) { otherInput.style.display = 'none'; otherInput.value = ''; otherInput.placeholder = 'напр. ' + (sizes[0] || '500×500×60'); }
+}
+function onBkStoneChange(sel) {
+  const stone = sel.value;
+  const marks = stone === 'гранитного' ? BK_MARKS_GR : BK_MARKS_BET;
+  const markSel = document.querySelector('#work-fields select[data-bk-mark="1"]');
+  if (!markSel) return;
+  markSel.innerHTML = '<option value="">—</option>' +
+    marks.map(o=>`<option value="${o}">${o}</option>`).join('') +
+    '<option value="__OTHER__">+ Свой вариант (ввести вручную)</option>';
+  markSel.value = '';
+  const otherInput = document.querySelector('#work-fields [data-k-other="mark"]');
+  if (otherInput) { otherInput.style.display = 'none'; otherInput.value = ''; otherInput.placeholder = 'напр. ' + (marks[0] || 'свой вариант'); }
 }
 function toggleOtherInput(selectEl) {
   const k = selectEl.dataset.k;
@@ -2240,7 +2389,7 @@ function renderMaterials() {
   document.getElementById('mats-count').textContent = state.materials.length;
   const btn = document.getElementById('clear-mats-btn');
   if (btn) btn.style.display = state.materials.length > 0 ? '' : 'none';
-  if (!state.materials.length) { list.innerHTML = '<div class="empty-state">Материалы за смену (бетон, асфальт, щебень, ЖБИ...)</div>'; return; }
+  if (!state.materials.length) { list.innerHTML = '<div class="empty-state" style="text-align:center;padding:16px;color:#999;line-height:1.5">📦 Здесь появятся материалы<br><span style="font-size:12px">Нажмите «➕ Добавить материал» — бетон, асфальт, щебень, ЖБИ...</span></div>'; return; }
   list.innerHTML = state.materials.map((m, i) => `
     <div class="work-item mat">
       <div class="num">•</div>
@@ -2259,7 +2408,7 @@ function renderWorks() {
   document.getElementById('works-count').textContent = state.works.length;
   const btn = document.getElementById('clear-works-btn');
   if (btn) btn.style.display = state.works.length > 0 ? '' : 'none';
-  if (!state.works.length) { list.innerHTML = '<div class="empty-state">Выполненные работы за смену</div>'; return; }
+  if (!state.works.length) { list.innerHTML = '<div class="empty-state" style="text-align:center;padding:16px;color:#999;line-height:1.5">🛠 Здесь появятся работы<br><span style="font-size:12px">Нажмите «➕ Добавить работу» и выберите из списка</span></div>'; return; }
   list.innerHTML = state.works.map((w, i) => `
     <div class="work-item">
       <div class="num">${i+1}</div>
@@ -2303,6 +2452,50 @@ function removeMaterial(i) { state.materials.splice(i, 1); saveDraft(true); rend
 // ═══════════════════════════════════════════════════════════════════
 // ВКЛАДКИ: переключение между отчётом и калькулятором
 // ═══════════════════════════════════════════════════════════════════
+function toggleFixMode() {
+  const cb = document.getElementById('fix-mode');
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  onFixModeChange();
+}
+function onFixModeChange() {
+  updateFixModeUI();
+  saveDraft(true);
+  renderPreview();
+}
+function updateFixModeUI() {
+  const cb = document.getElementById('fix-mode');
+  const box = document.getElementById('fix-mode-box');
+  const label = document.getElementById('fix-mode-label');
+  const hint = document.getElementById('fix-mode-hint');
+  if (!cb || !box || !label) return;
+  if (cb.checked) {
+    box.style.background = '#ffe8e8';
+    box.style.borderColor = '#dc3545';
+    label.style.color = '#c0392b';
+    label.innerHTML = '✅ ИСПРАВЛЕНИЕ ЗАМЕЧАНИЙ — <b>ВКЛЮЧЕНО</b>';
+    if (hint) hint.innerHTML = 'В названии объекта появится пометка «— ИСПРАВЛЕНИЕ ЗАМЕЧАНИЙ». Нажмите ещё раз чтобы выключить.';
+  } else {
+    box.style.background = '#f5f5f7';
+    box.style.borderColor = '#ddd';
+    label.style.color = '#666';
+    label.innerHTML = '🔧 Исправление замечаний — <b>выкл</b>';
+    if (hint) hint.innerHTML = 'Для завершённых объектов — добавит «ИСПРАВЛЕНИЕ ЗАМЕЧАНИЙ» к названию объекта в отчёте';
+  }
+}
+function toggleBigMode() {
+  const on = document.body.classList.toggle('big-mode');
+  try { localStorage.setItem('ochakovo_big_mode', on ? '1' : '0'); } catch(e) {}
+  const btn = document.getElementById('big-mode-btn');
+  if (btn) btn.title = on ? 'Обычный шрифт' : 'Крупный шрифт';
+}
+function initBigMode() {
+  try {
+    if (localStorage.getItem('ochakovo_big_mode') === '1') {
+      document.body.classList.add('big-mode');
+    }
+  } catch(e) {}
+}
 function switchTab(name) {
   const main = document.getElementById('tab-main');
   const calc = document.getElementById('tab-calc');
@@ -3437,6 +3630,11 @@ function renderPreview() {
   if (direction && obj.directions && obj.directions.includes(direction)) {
     fullObjName += ` (${direction})`;
   }
+  // Если включён режим «исправление замечаний» — добавляем пометку прямо в название объекта
+  const fixMode = document.getElementById('fix-mode') && document.getElementById('fix-mode').checked;
+  if (fixMode) {
+    fullObjName += ' — ИСПРАВЛЕНИЕ ЗАМЕЧАНИЙ';
+  }
   const lines = [];
   // Хелпер для оформления заголовков блоков рамкой из горизонтальных линий
   function pushBorder(title) {
@@ -3497,8 +3695,6 @@ function renderPreview() {
     let n = 1;
     const olhHasMats = (balMats.length || gbuMats.length);
     const olhHasWorks = state.works.some(w => w.catId === 'olh');
-    // Фрезерование с заполненным направлением вывоза — нужно показать раздел ВЫВОЗ
-    const frezHasVyvoz = state.works.some(w => (w.workId === 'frez_pch' || w.workId === 'frez_tr') && w.values && (w.values.place1 || w.values.place2 || w.values.place3));
     const orderedCats = [...CAT_ORDER];
     if (olhHasMats && !olhHasWorks && !orderedCats.includes('olh')) orderedCats.push('olh');
 
@@ -3540,7 +3736,7 @@ function renderPreview() {
       const cw = state.works.filter(w => w.catId === catId && w.workId !== 'podg');
       const isOlh = catId === 'olh';
       const isVivoz = catId === 'vivoz';
-      if (!cw.length && !(isOlh && olhHasMats) && !(isVivoz && frezHasVyvoz)) return;
+      if (!cw.length && !(isOlh && olhHasMats)) return;
       lines.push('');
       if (isOlh) {
         // Особый формат для ОЛХ по инструкции:
@@ -3588,49 +3784,6 @@ function renderPreview() {
       } else if (catId === 'vivoz') {
         lines.push(`  ${CAT_GROUP_TITLES[catId]}  `);
         cw.forEach(w => { let t = w.text; const norm = calcAsphaltNorm(w); if (norm) t += ` (по норме${norm.extrapolated ? " расчётно" : ""} = ${norm.tons.toString().replace(".", ",")} т)`; lines.push(`${n++}. ${t}`); });
-        // Дополнительно — вывоз а/б крошки из фрезерования (сводная строка с до 3 направлениями)
-        const frezWorks = state.works.filter(w => w.workId === 'frez_pch' || w.workId === 'frez_tr');
-        if (frezWorks.length) {
-          const dirsByPlace = {};
-          const dirOrder = [];
-          let totalV = 0;
-          frezWorks.forEach(fw => {
-            const v = fw.values || {};
-            for (let i = 1; i <= 3; i++) {
-              const place = v['place' + i];
-              if (!place) continue;
-              const Vraw = v['V' + i] || '0';
-              const Vnum = parseFloat(String(Vraw).replace(',', '.')) || 0;
-              const reisyRaw = v['reisy' + i] || '';
-              const reisyNum = parseInt(reisyRaw) || 0;
-              if (!dirsByPlace[place]) { dirsByPlace[place] = { V: 0, reisy: 0 }; dirOrder.push(place); }
-              dirsByPlace[place].V += Vnum;
-              dirsByPlace[place].reisy += reisyNum;
-              totalV += Vnum;
-            }
-          });
-          if (dirOrder.length) {
-            const parts = dirOrder.map(p => {
-              const d = dirsByPlace[p];
-              let s = p;
-              if (d.V) {
-                const vStr = (Math.round(d.V * 1000) / 1000).toString().replace('.', ',');
-                s += ` V=${vStr} м³`;
-              }
-              if (d.reisy) s += ` (${d.reisy} рейс)`;
-              return s;
-            });
-            let line = `Вывоз а/б крошки`;
-            if (totalV) {
-              const totalStr = (Math.round(totalV * 1000) / 1000).toString().replace('.', ',');
-              line += ` — V=${totalStr} м³`;
-            }
-            line += `, направление:`;
-            // Каждое направление с новой строки с отступом
-            lines.push(`${n++}. ${line}`);
-            parts.forEach(p => lines.push(`   ${p}`));
-          }
-        }
       } else {
         lines.push(`  ${CAT_GROUP_TITLES[catId]}  `);
         cw.forEach(w => { let t = w.text; const norm = calcAsphaltNorm(w); if (norm) t += ` (по норме${norm.extrapolated ? " расчётно" : ""} = ${norm.tons.toString().replace(".", ",")} т)`; lines.push(`${n++}. ${t}`); });
@@ -4027,6 +4180,65 @@ function renderPreview() {
     .replace(/🏁 ОБЪЕКТ ЗАВЕРШЁН  🏁/g, m => `<span style="color:#dc3545;font-weight:700;font-size:18px">${m}</span>`)
     .replace(/╔═══════════════════════════════╗|╚═══════════════════════════════╝|║  /g, m => `<span style="color:#dc3545;font-weight:700">${m}</span>`);
   document.getElementById('preview').innerHTML = colored;
+  renderReportChecks();
+}
+// Анализ отчёта: счётчик содержимого + умные предупреждения о несоответствиях
+function renderReportChecks() {
+  const box = document.getElementById('report-checks');
+  if (!box) return;
+  const works = state.works || [];
+  const mats = state.materials || [];
+  // Считаем реальные работы (без секций-разделителей и передач отдельно)
+  const realWorks = works.filter(w => w.catId !== 'transfer' && w.catId !== 'workers' && w.catId !== 'plan');
+  const transfers = works.filter(w => w.catId === 'transfer');
+  const plans = works.filter(w => w.catId === 'plan');
+
+  if (!works.length && !mats.length) {
+    box.innerHTML = '';
+    return;
+  }
+
+  // Счётчик
+  const parts = [];
+  if (realWorks.length) parts.push(`${realWorks.length} ${plural(realWorks.length,'работа','работы','работ')}`);
+  if (mats.length) parts.push(`${mats.length} ${plural(mats.length,'материал','материала','материалов')}`);
+  if (transfers.length) parts.push(`${transfers.length} ${plural(transfers.length,'передача','передачи','передач')}`);
+  if (plans.length) parts.push(`план на завтра`);
+
+  // Умные предупреждения
+  const warns = [];
+  const hasAsphaltWork = works.some(w => w.catId === 'asphalt' && !['rozliv','bitum_lent'].includes(w.workId));
+  const hasAbMat = mats.some(m => m.workId === 'm_ab');
+  if (hasAsphaltWork && !hasAbMat) warns.push('Есть работы по асфальту, но не указан приём а/б — добавьте материал «📥 Асфальтобетон».');
+  if (hasAbMat && !hasAsphaltWork) warns.push('Принят асфальт, но нет ни одной работы по укладке — точно всё внесли?');
+
+  const hasBetonWork = works.some(w => (w.catId === 'osn' || w.catId === 'bk' || w.catId === 'shtroba') && /beton/i.test(JSON.stringify(w.values||{})));
+  const hasBetonMat = mats.some(m => m.workId === 'm_beton');
+  const hasBetonWorkByText = works.some(w => /бетон/i.test(w.text||''));
+  if (hasBetonWorkByText && !hasBetonMat) warns.push('Есть бетонные работы, но не указан приём бетона — добавьте материал «📥 Бетон».');
+
+  const hasSchebWork = works.some(w => /щебн|щебен/i.test(w.text||''));
+  const hasSchebMat = mats.some(m => m.workId === 'm_schebe');
+  if (hasSchebWork && !hasSchebMat) warns.push('Есть работы со щебнем, но не указан его приём/расход — проверьте раздел материалов.');
+
+  let html = '';
+  if (parts.length) {
+    html += `<div style="padding:8px 12px;background:#eef4fb;border:1px solid #c5d9ee;border-radius:8px;font-size:13px;color:#1F4E79;margin-bottom:${warns.length?'8':'0'}px">📊 В отчёте: <b>${parts.join(' · ')}</b></div>`;
+  }
+  if (warns.length) {
+    html += `<div style="padding:10px 12px;background:#fff8e6;border:1px solid #f0d28a;border-radius:8px;font-size:13px;color:#7a5a10">
+      <div style="font-weight:600;margin-bottom:4px">⚠️ Проверьте перед отправкой:</div>
+      ${warns.map(w => `<div style="margin:3px 0;padding-left:4px">• ${w}</div>`).join('')}
+      <div style="font-size:11px;color:#a8893a;margin-top:6px">Это просто напоминание — если всё верно, можно отправлять.</div>
+    </div>`;
+  }
+  box.innerHTML = html;
+}
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+  return many;
 }
 function copyReport() {
   if (!state.profile) { alert('Сначала заполните профиль'); return; }
@@ -4128,6 +4340,7 @@ function saveDraft(silent) {
     ts: document.getElementById('time-start').value,
     te: document.getElementById('time-end').value,
     direction: document.getElementById('direction').value,
+    fix_mode: (document.getElementById('fix-mode') || {}).checked || false,
     joint_uchs: document.getElementById('joint-uchs').value,
     works: state.works, materials: state.materials,
     objectComplete: state.objectComplete || false
@@ -4145,6 +4358,11 @@ function loadDraft() {
     if (d.direction) {
       const sel = document.getElementById('direction');
       if ([...sel.options].some(o => o.value === d.direction)) sel.value = d.direction;
+    }
+    if (d.fix_mode !== undefined) {
+      const fixEl = document.getElementById('fix-mode');
+      if (fixEl) fixEl.checked = !!d.fix_mode;
+      updateFixModeUI();
     }
     if (d.joint_uchs) {
       document.getElementById('joint-uchs').value = d.joint_uchs;
@@ -4189,8 +4407,10 @@ loadProfile();
 loadDraft();
 loadCalcItems();
 loadAreaItems();
+initBigMode();
 document.getElementById('report-date').value = todayStr();
 renderMaterials(); renderWorks(); renderPreview();
+updateRepeatBtn();
 ['report-date','shift','time-start','time-end','direction','joint-uchs'].forEach(id => {
   const el = document.getElementById(id);
   el.addEventListener('change', () => { saveDraft(true); renderPreview(); });
@@ -4401,6 +4621,8 @@ async function saveCurrentReportToArchive() {
     shift: shiftEl ? shiftEl.value : 'day',
     timeStart: (document.getElementById('time-start') || {}).value || '',
     timeEnd: (document.getElementById('time-end') || {}).value || '',
+    direction: (document.getElementById('direction') || {}).value || '',
+    fixMode: (document.getElementById('fix-mode') || {}).checked || false,
     profile: state.profile ? JSON.parse(JSON.stringify(state.profile)) : {},
     works: JSON.parse(JSON.stringify(state.works || [])),
     materials: JSON.parse(JSON.stringify(state.materials || [])),
@@ -4422,11 +4644,77 @@ function applyReportToEditor(report) {
   document.getElementById('shift').value = report.shift || 'day';
   document.getElementById('time-start').value = report.timeStart || '';
   document.getElementById('time-end').value = report.timeEnd || '';
+  if (report.direction !== undefined) {
+    const dirSel = document.getElementById('direction');
+    if (dirSel && [...dirSel.options].some(o => o.value === report.direction)) dirSel.value = report.direction;
+  }
+  if (report.fixMode !== undefined) {
+    const fixEl = document.getElementById('fix-mode');
+    if (fixEl) fixEl.checked = !!report.fixMode;
+    updateFixModeUI();
+  }
   if (report.profile) state.profile = report.profile;
   saveDraft(true);
   renderAll();
   renderPreview();
   switchTab('main');
+}
+
+// Показать/скрыть кнопку «Повторить последний отчёт»
+async function updateRepeatBtn() {
+  const btn = document.getElementById('repeat-last-btn');
+  if (!btn) return;
+  try {
+    const all = await archiveList();
+    // только отчёты текущего участка (если профиль есть)
+    const uch = state.profile && state.profile.uch;
+    const relevant = uch ? all.filter(r => r.profile && r.profile.uch === uch) : all;
+    btn.style.display = relevant.length ? '' : 'none';
+  } catch(e) { btn.style.display = 'none'; }
+}
+
+async function repeatLastReport() {
+  try {
+    const all = await archiveList();
+    if (!all.length) { toast('В архиве пока нет отчётов'); return; }
+    // Сортируем по дате (свежие первыми), потом по времени сохранения
+    const uch = state.profile && state.profile.uch;
+    let pool = uch ? all.filter(r => r.profile && r.profile.uch === uch) : all;
+    if (!pool.length) pool = all;
+    pool.sort((a, b) => {
+      const da = (a.date || '') + (a.savedAt || '');
+      const db = (b.date || '') + (b.savedAt || '');
+      return db.localeCompare(da);
+    });
+    const last = pool[0];
+    const wCount = (last.works || []).length;
+    const mCount = (last.materials || []).length;
+    const dateNice = last.date ? last.date.split('-').reverse().join('.') : 'без даты';
+    // Если текущий черновик не пустой — предупредим
+    if ((state.works && state.works.length) || (state.materials && state.materials.length)) {
+      if (!confirm(`Заменить текущий черновик данными последнего отчёта?\n\nОтчёт от ${dateNice}: ${wCount} работ, ${mCount} материалов.\n\nДата останется сегодняшней.`)) return;
+    }
+    // Переносим работы и материалы, НО дату оставляем сегодняшней
+    state.works = JSON.parse(JSON.stringify(last.works || []));
+    state.materials = JSON.parse(JSON.stringify(last.materials || []));
+    // Направление и исправление — тоже подтянем
+    if (last.direction !== undefined) {
+      const dirSel = document.getElementById('direction');
+      if (dirSel && [...dirSel.options].some(o => o.value === last.direction)) dirSel.value = last.direction;
+    }
+    if (last.fixMode !== undefined) {
+      const fixEl = document.getElementById('fix-mode');
+      if (fixEl) fixEl.checked = !!last.fixMode;
+      updateFixModeUI();
+    }
+    saveDraft(true);
+    renderAll();
+    renderPreview();
+    toast(`Перенесено: ${wCount} работ, ${mCount} материалов. Поправьте цифры под сегодня.`);
+  } catch(e) {
+    console.error(e);
+    toast('Не удалось загрузить последний отчёт');
+  }
 }
 
 async function openArchivedReport(id) {
@@ -6453,40 +6741,15 @@ let _bdFiltersLoaded = false;
 <script>
 if ('serviceWorker' in navigator) {
   let isReloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (isReloading) return;
-    isReloading = true;
-    window.location.reload();
-  });
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (isReloading) return; isReloading = true; window.location.reload(); });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then(reg => {
-      console.log('PWA готов:', reg.scope);
       setInterval(() => reg.update().catch(()=>{}), 30 * 60 * 1000);
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner(newWorker);
-          }
-        });
-      });
-      if (reg.waiting && navigator.serviceWorker.controller) {
-        showUpdateBanner(reg.waiting);
-      }
+      reg.addEventListener('updatefound', () => { const nw = reg.installing; if (!nw) return; nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(nw); }); });
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg.waiting);
     }).catch(err => console.log('PWA ошибка:', err));
   });
-  function showUpdateBanner(worker) {
-    const banner = document.getElementById('update-banner');
-    if (!banner) return;
-    banner.style.display = 'block';
-    document.getElementById('update-now-btn').onclick = () => {
-      worker.postMessage({ type: 'SKIP_WAITING' });
-    };
-    document.getElementById('update-later-btn').onclick = () => {
-      banner.style.display = 'none';
-    };
-  }
+  function showUpdateBanner(worker) { const banner = document.getElementById('update-banner'); if (!banner) return; banner.style.display = 'block'; document.getElementById('update-now-btn').onclick = () => worker.postMessage({ type: 'SKIP_WAITING' }); document.getElementById('update-later-btn').onclick = () => { banner.style.display = 'none'; }; }
 }
 </script>
 </body>
