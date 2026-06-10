@@ -26,7 +26,8 @@ header .sub{font-size:11px;opacity:.85;margin-top:2px}
 .section-title .count{background:#e8eef5;color:#1F4E79;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;letter-spacing:0}
 .section-title.mat .count{background:#FAEEDA;color:#854F0B}
 label{display:block;font-size:12px;color:#666;margin-bottom:4px;font-weight:500}
-input,select,textarea{width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;font-family:inherit;background:#fff;-webkit-appearance:none;appearance:none}
+input,select,textarea{width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;font-family:inherit;background:#fff;color:#1a1a1a;-webkit-appearance:none;appearance:none}
+select,select option{color:#1a1a1a;background-color:#fff}
 select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23666' d='M6 8L0 0h12z'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
 input:focus,select:focus,textarea:focus{outline:none;border-color:#1F4E79;box-shadow:0 0 0 3px rgba(31,78,121,0.1)}
 .row{display:flex;gap:8px;margin-bottom:10px}
@@ -757,7 +758,7 @@ body.big-mode #big-mode-btn{background:#ffd700;color:#1F4E79}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V158';
+const APP_VERSION = 'V160';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -906,7 +907,7 @@ const BK_MARKS_GR = [
   'ГП (300×300)',    // квадратный (нестандартный)
   'ГП (200×300)'     // нестандартный
 ];
-const BK_RADIUS = ['R0.5','R1','R3','R6','R8'];
+const BK_RADIUS = ['R0.5','R0.75','R1','R1.5','R2','R2.5','R3','R4','R5','R6','R8','R10','R12','R15','R20'];
 const BK_RAD_TYPE = ['внешний','внутренний'];
 const BK_STONE = ['бетонного','гранитного'];
 const BK_MARKS_ALL = [...BK_MARKS_BET, ...BK_MARKS_GR];
@@ -1059,9 +1060,9 @@ const WORKS = {
     {id:'razrab_tr_bk', name:'Разработка траншеи под БК', fields:[{k:'L',type:'num',label:'L, м.п.'},{k:'b',type:'num',label:'b, см',v:60},{k:'h',type:'num',label:'h, см',v:40}], tpl:'Разработка траншеи под монтаж бортового камня — L={L} м.п., b={b:m} м, h={h:m} м'},
     {id:'osn_sch_bk', name:'Устройство основания из щебня под БК', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['5-10','5-20','20-40','40-70'],label:'Фракция',v:'20-40'},{k:'L',type:'num',label:'L, м.п.'},{k:'h',type:'num',label:'h, см',v:10},{k:'b',type:'num',label:'b, см',v:60}], tpl:'Устройство основания из {?type|{type:gen} }щебня под БК фр. {fr} — L={L} м.п., b={b:m} м, h={h:m} м'},
     {id:'osn_bet_bk', name:'Устройство бетонного основания под БК', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона'},{k:'L',type:'num',label:'L, м.п.'},{k:'h',type:'num',label:'h, см',v:10},{k:'b',type:'num',label:'b, см',v:60}], tpl:'Устройство бетонного основания под БК из {beton} — L={L} м.п., b={b:m} м, h={h:m} м'},
-    {id:'mont_bet', name:'Монтаж БК прямого', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного',onchange:'onBkStoneChange(this)'},{k:'sost',type:'select',opts:['нового','ранее демонтированного'],label:'Состояние',v:'нового'},{k:'mark',type:'bk_mark',label:'Марка'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж {stone} {sost} бортового камня {mark}{?where| на {where}} — L={L} м.п.'},
-    {id:'mont_radius_bet', name:'Монтаж БК радиусного', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного'},{k:'sost',type:'select',opts:['нового','ранее демонтированного'],label:'Состояние',v:'нового'},{k:'R',type:'select',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Кол-во, шт',opt:true}], tpl:'Монтаж радиусного {stone} {sost} бортового камня R-{R}{?type| {type}}{?where| на {where}}{?N| — {N} шт} — L={L} м.п.'},
-    {id:'mont_ugl_bet', name:'Монтаж БК углового', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного'},{k:'sost',type:'select',opts:['нового','ранее демонтированного'],label:'Состояние',v:'нового'},{k:'angle',type:'select',opts:ANGLES,label:'Тип угла'},{k:'where',type:'select',opts:['проезжей части','тротуаре'],label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж углового {stone} {sost} бортового камня — {angle}{?where| на {where}} — L={L} м.п.'},
+    {id:'mont_bet', name:'Монтаж БК прямого', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного',onchange:'onBkStoneChange(this)'},{k:'sost',type:'select',opts:['нового','ранее демонтированного'],label:'Состояние',v:'нового'},{k:'mark',type:'bk_mark',label:'Марка'},{k:'where',type:'select',opts:OSN_PLACES,label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж {stone} {sost} бортового камня {mark}{?where| на {where}} — L={L} м.п.'},
+    {id:'mont_radius_bet', name:'Монтаж БК радиусного', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного'},{k:'sost',type:'select',opts:['нового','ранее демонтированного'],label:'Состояние',v:'нового'},{k:'R',type:'select_other',opts:BK_RADIUS,label:'Радиус'},{k:'type',type:'select',opts:BK_RAD_TYPE,label:'Тип',v:'внешний'},{k:'where',type:'select',opts:OSN_PLACES,label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'},{k:'N',type:'num',label:'Кол-во, шт',opt:true}], tpl:'Монтаж радиусного {stone} {sost} бортового камня R-{R}{?type| {type}}{?where| на {where}}{?N| — {N} шт} — L={L} м.п.'},
+    {id:'mont_ugl_bet', name:'Монтаж БК углового', fields:[{k:'stone',type:'select',opts:BK_STONE,label:'Камень',v:'бетонного'},{k:'sost',type:'select',opts:['нового','ранее демонтированного'],label:'Состояние',v:'нового'},{k:'angle',type:'select',opts:ANGLES,label:'Тип угла'},{k:'where',type:'select',opts:OSN_PLACES,label:'Где',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж углового {stone} {sost} бортового камня — {angle}{?where| на {where}} — L={L} м.п.'},
     {id:'opalubka', name:'Монтаж опалубки под БК', fields:[{k:'L',type:'num',label:'L, м.п.'}], tpl:'Монтаж опалубки под БК — L={L} м.п.'},
     {id:'zamok', name:'Устройство замка под БК', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство монолитного замка{?beton| из бетона {beton}} — L={L} м.п.'},
     {id:'stakan', name:'Устройство монолитного стакана под БК', fields:[{k:'beton',type:'select',opts:BETON_MARKS,label:'Марка бетона',opt:true},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство монолитного стакана под БК{?beton| из бетона {beton}} — L={L} м.п.'},
@@ -1339,7 +1340,7 @@ function calcAsphaltNorm(w) {
   // Место: ПЧ если упоминается, иначе тротуар (тех. тротуар и отмостка используют нормы тротуара)
   const place = /проезж/i.test(text) ? 'ПЧ' : 'тротуар';
   const S = parseFloat(String(w.values?.S || '').replace(',', '.'));
-  let h = parseFloat(String(w.values?.h || '').replace(',', '.'));
+  let h = parseFloat(String(w.values?.h || w.values?.hsr || '').replace(',', '.'));
   if (!S || !h) return null;
   // h всегда в см
   const table = ASPHALT_NORMS[place]?.[family];
@@ -2224,7 +2225,16 @@ function showStep3(initialValues) {
   if (w && w.id === 'm_custom') {
     warnHtml = '<div style="background:#FFF5E0;border:1px solid #E0BD8B;color:#854F0B;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:12px;line-height:1.4">⚠ <b>Ручного ввода желательно избежать.</b> Если добавляете свой вариант — <b>обязательно сообщите Никонорову А.Г.</b> чтобы он добавил эту позицию в список.</div>';
   }
+  // Напоминание указать количество людей для работ по монтажу/демонтажу борта
+  const BK_PEOPLE_WORKS = ['mont_bet','mont_radius_bet','mont_ugl_bet','demont_bk_bet'];
+  if (w && BK_PEOPLE_WORKS.includes(w.id)) {
+    warnHtml += '<div style="background:#fff3e0;border:1px solid #ffb74d;color:#9a5b00;border-radius:6px;padding:9px 11px;margin-bottom:10px;font-size:12px;line-height:1.45">👷 <b>Не забудьте указать количество задействованных людей</b> на работы с бортовым камнем — в категории «Люди / трудозатраты».</div>';
+  }
   document.getElementById('work-fields').innerHTML = `<div style="font-size:13px;font-weight:600;margin-bottom:10px;padding:8px 10px;background:#e8eef5;color:#1F4E79;border-radius:6px">${w.name}</div>${warnHtml}${fieldsHtml}`;
+  // Дополнительно — всплывающее уведомление
+  if (w && BK_PEOPLE_WORKS.includes(w.id) && typeof toast === 'function') {
+    toast('👷 Укажите количество людей на работы с бортом');
+  }
 }
 function onPlitkaMaterialChange(sel) {
   const mat = sel.value;
