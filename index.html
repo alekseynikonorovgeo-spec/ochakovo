@@ -786,7 +786,7 @@ body.dark-mode .form-modal h2{color:#e2e7ee}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V164';
+const APP_VERSION = 'V165';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -4304,10 +4304,9 @@ function renderPreview() {
   // ОБЪЕКТ ЗАВЕРШЁН — отметка в самом низу отчёта
   if (state.objectComplete) {
     lines.push('');
-    lines.push('');
-    lines.push('╔═══════════════════════════════╗');
-    lines.push('║  🏁 ОБЪЕКТ ЗАВЕРШЁН  🏁  ║');
-    lines.push('╚═══════════════════════════════╝');
+    lines.push('🏁🏁🏁🏁🏁🏁🏁🏁🏁');
+    lines.push('✅ ОБЪЕКТ ЗАВЕРШЁН ✅');
+    lines.push('🏁🏁🏁🏁🏁🏁🏁🏁🏁');
   }
   // Рендер: HTML с раскраской перерасхода/экономии, но textContent сохраняет чистый текст для копирования
   const fullText = lines.join('\n');
@@ -4316,7 +4315,7 @@ function renderPreview() {
     .replace(/🔴 Перерасход: \+[\d,.]+ т/g, m => `<span style="color:#c00;font-weight:600">${m}</span>`)
     .replace(/🟢 Экономия: -?[\d,.]+ т/g, m => `<span style="color:#0a8a0a;font-weight:600">${m}</span>`)
     .replace(/✓ Баланс сходится/g, m => `<span style="color:#1F4E79;font-weight:600">${m}</span>`)
-    .replace(/🏁 ОБЪЕКТ ЗАВЕРШЁН  🏁/g, m => `<span style="color:#dc3545;font-weight:700;font-size:18px">${m}</span>`)
+    .replace(/✅ ОБЪЕКТ ЗАВЕРШЁН ✅/g, m => `<span style="color:#dc3545;font-weight:700;font-size:18px">${m}</span>`)
     .replace(/╔═══════════════════════════════╗|╚═══════════════════════════════╝|║  /g, m => `<span style="color:#dc3545;font-weight:700">${m}</span>`);
   document.getElementById('preview').innerHTML = colored;
   renderReportChecks();
