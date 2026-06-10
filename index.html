@@ -786,7 +786,7 @@ body.dark-mode .form-modal h2{color:#e2e7ee}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V165';
+const APP_VERSION = 'V167';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -900,7 +900,7 @@ const OBJECTS = [
   {short:'Мост через р. Моча', full:'Подольск — А-101, мост через реку Моча (км 5+600)', shifr:'', kod:'003018'},
 ];
 
-const ABZ_LIST = ['Бирюлёво','Внуково','АБЗ-4','Курьяново','Голохвастово'];
+const ABZ_LIST = ['Бирюлёво','Внуково','АБЗ-4','Курьяново','Голохвастово','Дмитровка','Рябиновая','Мелитопольская'];
 const BETON_PLANTS = ['ПК Бетонный завод (Дорожная 64)','БЗ-1 Москва','Лыткарино'];
 const BETON_MARKS = ['В7,5П2','В15Ж4','В15П2','В15П3','В20','В22,5','В25','В30'];
 const AB_MARKS = ['ЩМА-20','ЩМА-15','ПД-2','КЗБ-1','КЗБ-2','МЗБ-1','МЗВ-2'];
@@ -1117,8 +1117,9 @@ const WORKS = {
     {id:'vso', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',v:8},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на {place} — h={h:m} м, S={S} м²'},
     {id:'virav', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'hsr',type:'num',label:'hср, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на {place} — hср={hsr:m} м, S={S} м²'},
     {id:'yamoch', name:'Ямочный ремонт', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Ямочный ремонт {mark} на {place}{?h| — h={h:m} м}, S={S} м²'},
-    {id:'rozliv', name:'Розлив битумной эмульсии', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'}], tpl:'Розлив битумной эмульсии на {place} — S={S} м²'},
-    {id:'bitum_lent', name:'Устройство битумной ленты', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство битумной ленты на {place} — L={L} м.п.'}
+    {id:'rozliv', name:'Розлив битумной эмульсии', fields:[{k:'osn',type:'select',opts:['отфрезерованное покрытие','щебёночное основание','бетонное основание','ВСО','НСП'],label:'На какое основание'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'before',type:'select',opts:['укладкой НСП','укладкой ВСП','укладкой ВСО','укладкой выравнивающего слоя'],label:'Перед каким видом работ',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Розлив битумной эмульсии на {osn} на {place}{?before| перед {before}} — S={S} м²'},
+    {id:'bitum_lent', name:'Устройство битумной ленты', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство битумной ленты на {place} — L={L} м.п.'},
+    {id:'geosetka', name:'Геосетка (трещинопрерывающая прослойка)', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство трещинопрерывающей прослойки из геосетки на {place} — S={S} м²'}
   ],
 
   shtroba: [
@@ -1360,8 +1361,8 @@ function asphaltFamily(s) {
 // w — работа из state.works (требуются: values.S, values.h в см, текст/имя со смесью и местом)
 function calcAsphaltNorm(w) {
   if (!w || !['asphalt','asphalt_pch','asphalt_tr','asphalt_teh_tr','asphalt_otmostka'].includes(w.catId)) return null;
-  // битумная лента, розлив — норму не считаем
-  if (w.workId === 'bitum_lent' || w.workId === 'rozliv') return null;
+  // битумная лента, розлив, геосетка — норму не считаем
+  if (w.workId === 'bitum_lent' || w.workId === 'rozliv' || w.workId === 'geosetka') return null;
   const text = (w.text || '') + ' ' + (w.name || '');
   const family = asphaltFamily(text);
   if (!family) return null;
@@ -4304,9 +4305,9 @@ function renderPreview() {
   // ОБЪЕКТ ЗАВЕРШЁН — отметка в самом низу отчёта
   if (state.objectComplete) {
     lines.push('');
-    lines.push('🏁🏁🏁🏁🏁🏁🏁🏁🏁');
-    lines.push('✅ ОБЪЕКТ ЗАВЕРШЁН ✅');
-    lines.push('🏁🏁🏁🏁🏁🏁🏁🏁🏁');
+    lines.push('🔴🔴🔴🔴🔴🔴🔴🔴🔴');
+    lines.push('‼️ ОБЪЕКТ ЗАВЕРШЁН ‼️');
+    lines.push('🔴🔴🔴🔴🔴🔴🔴🔴🔴');
   }
   // Рендер: HTML с раскраской перерасхода/экономии, но textContent сохраняет чистый текст для копирования
   const fullText = lines.join('\n');
@@ -4315,7 +4316,7 @@ function renderPreview() {
     .replace(/🔴 Перерасход: \+[\d,.]+ т/g, m => `<span style="color:#c00;font-weight:600">${m}</span>`)
     .replace(/🟢 Экономия: -?[\d,.]+ т/g, m => `<span style="color:#0a8a0a;font-weight:600">${m}</span>`)
     .replace(/✓ Баланс сходится/g, m => `<span style="color:#1F4E79;font-weight:600">${m}</span>`)
-    .replace(/✅ ОБЪЕКТ ЗАВЕРШЁН ✅/g, m => `<span style="color:#dc3545;font-weight:700;font-size:18px">${m}</span>`)
+    .replace(/‼️ ОБЪЕКТ ЗАВЕРШЁН ‼️/g, m => `<span style="color:#dc3545;font-weight:700;font-size:18px">${m}</span>`)
     .replace(/╔═══════════════════════════════╗|╚═══════════════════════════════╝|║  /g, m => `<span style="color:#dc3545;font-weight:700">${m}</span>`);
   document.getElementById('preview').innerHTML = colored;
   renderReportChecks();
