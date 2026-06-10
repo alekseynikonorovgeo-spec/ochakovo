@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="color-scheme" content="light only">
+<meta name="color-scheme" content="light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1F4E79">
 <title>ОЧАКОВО — Отчёт нач. участка</title>
@@ -120,6 +120,32 @@ body.big-mode .preview-box{font-size:15px}
 body.big-mode .work-option{font-size:16px;padding:14px 12px}
 body.big-mode label{font-size:15px}
 body.big-mode #big-mode-btn{background:#ffd700;color:#1F4E79}
+/* Тёмная тема (для ночных смен) */
+body.dark-mode{background:#15191f;color:#d8dde5}
+body.dark-mode .card{background:#1e242c;box-shadow:0 1px 2px rgba(0,0,0,0.4)}
+body.dark-mode .section-title{color:#9aa5b5}
+body.dark-mode .section-title .count{background:#2a3442;color:#8fb4dd}
+body.dark-mode label{color:#9aa5b5}
+body.dark-mode input,body.dark-mode select,body.dark-mode textarea{background:#262d37;color:#e2e7ee;border-color:#3a4452;color-scheme:dark}
+body.dark-mode select option{background:#262d37;color:#e2e7ee}
+body.dark-mode input::placeholder,body.dark-mode textarea::placeholder{color:#5d6877}
+body.dark-mode button{background:#262d37;color:#d8dde5;border-color:#3a4452}
+body.dark-mode button.primary{background:#2b66a3;border-color:#2b66a3;color:#fff}
+body.dark-mode button.success{background:#1f7a35;border-color:#1f7a35;color:#fff}
+body.dark-mode button.danger{background:#a33;border-color:#a33;color:#fff}
+body.dark-mode .work-item{background:#1e242c;border-color:#323b48}
+body.dark-mode .work-item.mat{background:#262217;border-color:#4a4030}
+body.dark-mode .work-item .params{color:#8d97a6}
+body.dark-mode .preview-box{background:#1a1f26;color:#cfd6df;border-color:#323b48}
+body.dark-mode .work-option{background:#1e242c;color:#d8dde5;border-color:#323b48}
+body.dark-mode .work-option.section-h{background:#171c22;color:#8d97a6}
+body.dark-mode .cat-btn{background:#1e242c;color:#d8dde5;border-color:#323b48}
+body.dark-mode .empty-state{color:#6b7686 !important}
+body.dark-mode .add-btn{background:#1d2733;color:#8fb4dd;border-color:#33455c}
+body.dark-mode .hint{color:#7d8796}
+body.dark-mode #dark-mode-btn{background:#ffd700;color:#1F4E79}
+body.dark-mode .form-modal{background:#1e242c;color:#d8dde5}
+body.dark-mode .form-modal h2{color:#e2e7ee}
 </style>
 </head>
 <body>
@@ -152,6 +178,7 @@ body.big-mode #big-mode-btn{background:#ffd700;color:#1F4E79}
     <div class="sub" id="hdr-date">—</div>
   </div>
   <div style="display:flex;gap:6px;align-items:center">
+    <button onclick="toggleDarkMode()" id="dark-mode-btn" title="Тёмная тема" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:6px 10px;font-size:14px;border-radius:6px;cursor:pointer">🌙</button>
     <button onclick="toggleBigMode()" id="big-mode-btn" title="Крупный шрифт" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:6px 10px;font-size:14px;font-weight:700;border-radius:6px;cursor:pointer">А+</button>
     <button onclick="openProfile()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:6px 12px;font-size:12px" id="profile-chip">Профиль</button>
   </div>
@@ -759,7 +786,7 @@ body.big-mode #big-mode-btn{background:#ffd700;color:#1F4E79}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V161';
+const APP_VERSION = 'V164';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -2041,6 +2068,20 @@ function openAddWork(editIndex) {
   document.getElementById('work-overlay').classList.add('active');
 }
 function closeAddWork() { document.getElementById('work-overlay').classList.remove('active'); }
+// Дублирование работы: открывает форму той же работы с теми же значениями, но добавит НОВУЮ запись
+function duplicateWork(index) {
+  const w = state.works[index];
+  if (!w) return;
+  state.editIsMaterial = false;
+  state.editIndex = -1; // важное отличие от редактирования — добавится новая
+  state.currentCat = w.catId;
+  state.currentWork = WORKS[w.catId] ? WORKS[w.catId].find(x => x.id === w.workId) : null;
+  if (!state.currentWork) { toast('Не удалось дублировать'); return; }
+  document.getElementById('work-title').firstChild.textContent = 'Дублировать работу ';
+  showStep3(JSON.parse(JSON.stringify(w.values || {})));
+  document.getElementById('work-overlay').classList.add('active');
+  toast('Копия открыта — поправьте цифры и нажмите «Добавить»');
+}
 // Анализ архива: какие работы прораб использует чаще всего
 async function analyzeFrequentWorks(limit) {
   limit = limit || 6;
@@ -2141,7 +2182,7 @@ function showStep3(initialValues) {
       document.getElementById('scheb-info-overlay').classList.add('active');
     }, 200);
   }
-  const fieldsHtml = (w.fields || []).map(f => {
+  const fieldsHtmlArr = (w.fields || []).map(f => {
     const val = initialValues[f.k] !== undefined ? initialValues[f.k] : (f.v !== undefined ? f.v : '');
     const lblOpt = f.opt ? ' <span style="color:#999;font-weight:400">(опц.)</span>' : '';
     if (f.type === 'select') {
@@ -2184,7 +2225,7 @@ function showStep3(initialValues) {
     }
     if (f.type === 'select_obj') {
       // Select объектов: пользовательский ввод + список всех объектов (встроенные + кастомные)
-      const objs = getAllObjects().map(o => o.shortName);
+      const objs = getAllObjects().map(o => o.short);
       const isInList = objs.includes(val);
       const showOther = val && !isInList;
       const selVal = isInList ? val : (showOther ? '__OTHER__' : '');
@@ -2214,13 +2255,58 @@ function showStep3(initialValues) {
       </div>`;
     }
     if (f.type === 'num') {
+      // Для полей площади S — кнопка-калькулятор L×B
+      const isArea = f.k === 'S' && /S,\s*м²/.test(f.label);
+      if (isArea) {
+        return `<div class="field-group"><label>${f.label}${lblOpt}</label>
+          <div style="display:flex;gap:6px">
+            <input type="number" inputmode="decimal" step="0.01" data-k="${f.k}" value="${val}" placeholder="${f.placeholder||''}" style="flex:1">
+            <button type="button" onclick="toggleAreaCalc(this)" title="Калькулятор L×B" style="flex-shrink:0;padding:9px 12px;font-size:16px">📐</button>
+          </div>
+          <div class="area-calc" style="display:none;margin-top:6px;padding:8px;background:#eef4fb;border:1px solid #c5d9ee;border-radius:8px">
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="number" inputmode="decimal" step="0.01" class="ac-l" placeholder="L, м" style="flex:1;font-size:14px;padding:8px">
+              <span style="color:#666;font-weight:600">×</span>
+              <input type="number" inputmode="decimal" step="0.01" class="ac-b" placeholder="B, м" style="flex:1;font-size:14px;padding:8px">
+              <button type="button" onclick="applyAreaCalc(this,'${f.k}')" style="flex-shrink:0;padding:8px 14px;background:#1F4E79;color:#fff;border-color:#1F4E79;font-weight:600">=</button>
+            </div>
+            <div class="ac-result" style="font-size:12px;color:#1F4E79;margin-top:4px;display:none"></div>
+          </div>
+        </div>`;
+      }
       return `<div class="field-group"><label>${f.label}${lblOpt}</label><input type="number" inputmode="decimal" step="0.01" data-k="${f.k}" value="${val}" placeholder="${f.placeholder||''}"></div>`;
     }
     if (f.type === 'textarea') {
       return `<div class="field-group"><label>${f.label}${lblOpt}</label><textarea data-k="${f.k}" rows="3">${val}</textarea></div>`;
     }
     return `<div class="field-group"><label>${f.label}${lblOpt}</label><input type="text" data-k="${f.k}" value="${val}" placeholder="${f.placeholder||''}"></div>`;
-  }).join('');
+  });
+  // Для вывоза: направления 2–4 сворачиваем (показываем по кнопке), если они пустые
+  let fieldsHtml;
+  if (state.currentCat === 'vivoz') {
+    const fields = w.fields || [];
+    const mainParts = [], extraParts = [];
+    let hasExtraValues = false;
+    fields.forEach((f, i) => {
+      const isExtraDir = /^(place|V|reisy)[234]$/.test(f.k);
+      if (isExtraDir) {
+        extraParts.push(fieldsHtmlArr[i]);
+        const v = initialValues[f.k];
+        if (v !== undefined && v !== '') hasExtraValues = true;
+      } else {
+        mainParts.push(fieldsHtmlArr[i]);
+      }
+    });
+    if (extraParts.length) {
+      fieldsHtml = mainParts.join('') +
+        `<div id="vivoz-extra-dirs" style="display:${hasExtraValues?'block':'none'}">${extraParts.join('')}</div>` +
+        `<button type="button" id="vivoz-extra-btn" onclick="const b=document.getElementById('vivoz-extra-dirs');const isOpen=b.style.display!=='none';b.style.display=isOpen?'none':'block';this.textContent=isOpen?'➕ Ещё направления (2–4)':'➖ Скрыть направления 2–4';" style="width:100%;margin-top:4px;padding:10px;background:#f5f5f7;border:1px dashed #b0c4d6;border-radius:8px;color:#1F4E79;font-size:13px;font-weight:600">${hasExtraValues?'➖ Скрыть направления 2–4':'➕ Ещё направления (2–4)'}</button>`;
+    } else {
+      fieldsHtml = fieldsHtmlArr.join('');
+    }
+  } else {
+    fieldsHtml = fieldsHtmlArr.join('');
+  }
   // Подсказка про необходимость уведомить Никонорова А.Г. при свободном вводе
   let warnHtml = '';
   if (w && w.id === 'm_custom') {
@@ -2260,6 +2346,32 @@ function onBkStoneChange(sel) {
   markSel.value = '';
   const otherInput = document.querySelector('#work-fields [data-k-other="mark"]');
   if (otherInput) { otherInput.style.display = 'none'; otherInput.value = ''; otherInput.placeholder = 'напр. ' + (marks[0] || 'свой вариант'); }
+}
+function toggleAreaCalc(btn) {
+  const fg = btn.closest('.field-group');
+  if (!fg) return;
+  const calc = fg.querySelector('.area-calc');
+  if (!calc) return;
+  calc.style.display = calc.style.display === 'none' ? 'block' : 'none';
+  if (calc.style.display === 'block') {
+    const l = calc.querySelector('.ac-l');
+    if (l) l.focus();
+  }
+}
+function applyAreaCalc(btn, key) {
+  const fg = btn.closest('.field-group');
+  if (!fg) return;
+  const L = parseFloat((fg.querySelector('.ac-l').value || '').replace(',', '.'));
+  const B = parseFloat((fg.querySelector('.ac-b').value || '').replace(',', '.'));
+  const res = fg.querySelector('.ac-result');
+  if (!L || !B) {
+    if (res) { res.textContent = 'Заполните L и B'; res.style.display = 'block'; res.style.color = '#c0392b'; }
+    return;
+  }
+  const S = Math.round(L * B * 100) / 100;
+  const input = fg.querySelector(`input[data-k="${key}"]`);
+  if (input) input.value = S;
+  if (res) { res.textContent = `${L} × ${B} = ${S} м² — подставлено`; res.style.display = 'block'; res.style.color = '#1F4E79'; }
 }
 function toggleOtherInput(selectEl) {
   const k = selectEl.dataset.k;
@@ -2429,6 +2541,7 @@ function renderWorks() {
       </div>
       <div class="actions">
         <button type="button" onclick="event.stopPropagation();openAddWork(${i})">✎</button>
+        <button type="button" title="Дублировать" onclick="event.stopPropagation();duplicateWork(${i})">⧉</button>
         <button type="button" class="del" data-idx="${i}" onclick="event.stopPropagation();askDeleteWork(this, ${i})">×</button>
       </div>
     </div>`).join('');
@@ -2493,6 +2606,21 @@ function updateFixModeUI() {
     label.innerHTML = '🔧 Исправление замечаний — <b>выкл</b>';
     if (hint) hint.innerHTML = 'Для завершённых объектов — добавит «ИСПРАВЛЕНИЕ ЗАМЕЧАНИЙ» к названию объекта в отчёте';
   }
+}
+function toggleDarkMode() {
+  const on = document.body.classList.toggle('dark-mode');
+  try { localStorage.setItem('ochakovo_dark_mode', on ? '1' : '0'); } catch(e) {}
+  const btn = document.getElementById('dark-mode-btn');
+  if (btn) { btn.textContent = on ? '☀️' : '🌙'; btn.title = on ? 'Светлая тема' : 'Тёмная тема'; }
+}
+function initDarkMode() {
+  try {
+    if (localStorage.getItem('ochakovo_dark_mode') === '1') {
+      document.body.classList.add('dark-mode');
+      const btn = document.getElementById('dark-mode-btn');
+      if (btn) { btn.textContent = '☀️'; btn.title = 'Светлая тема'; }
+    }
+  } catch(e) {}
 }
 function toggleBigMode() {
   const on = document.body.classList.toggle('big-mode');
@@ -4419,6 +4547,7 @@ loadDraft();
 loadCalcItems();
 loadAreaItems();
 initBigMode();
+initDarkMode();
 document.getElementById('report-date').value = todayStr();
 renderMaterials(); renderWorks(); renderPreview();
 updateRepeatBtn();
