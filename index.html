@@ -800,7 +800,7 @@ body.dark-mode .form-modal h2{color:#e2e7ee}
 // ============================================================
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V170';
+const APP_VERSION = 'V173';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -2077,7 +2077,10 @@ function showMatMenu() {
      <button class="cat-btn" style="padding:16px 14px" onclick="state.mode='work';state.editIsMaterial=false;state.currentCat='transfer';showStep2('transfer')">
        <span class="icon">⇄</span>
        <span><b>Движение материалов</b><br><span style="font-size:12px;color:#888;font-weight:400">получено / передано: другой участок, ПК</span></span>
-     </button>`;
+     </button>
+     <div style="margin-top:10px;padding:9px 11px;background:#eef6ee;border:1px solid #cfe6cf;border-radius:8px;font-size:12px;color:#2d5a2d;line-height:1.45">
+       💡 <b>Обязательно указывайте:</b> весь <b>принятый</b> материал за смену, <b>израсходованный</b> на работы (щебень, песок — позиции «📤 РАСХОД») и <b>переданный/полученный</b> (через «Движение»). Расписывать текстом ничего не нужно — программа сама сведёт баланс и покажет остаток. Расход <b>асфальта</b> вносить не надо — он считается автоматически из работ по нормам.
+     </div>`;
   const freq = document.getElementById('frequent-works');
   if (freq) freq.innerHTML = '';
 }
