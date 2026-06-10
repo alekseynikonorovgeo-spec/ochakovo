@@ -786,7 +786,7 @@ body.dark-mode .form-modal h2{color:#e2e7ee}
 // ВЕРСИЯ ПРОГРАММЫ — выводится в шапке + используется для уведомлений
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V167';
+const APP_VERSION = 'V169';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -1027,7 +1027,6 @@ const CATEGORIES = [
   {id:'other', name:'Прочие', icon:'•'},
   {id:'vivoz', name:'Вывоз', icon:'◀'},
   {id:'workers', name:'Задействовано рабочих', icon:'👷'},
-  {id:'transfer', name:'Движение материалов', icon:'⇄'},
   {id:'plan', name:'План на завтра', icon:'⏭'}
 ];
 
@@ -1117,7 +1116,7 @@ const WORKS = {
     {id:'vso', name:'ВСО — верхний слой основания', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',v:8},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство ВСО {mark} на {place} — h={h:m} м, S={S} м²'},
     {id:'virav', name:'Выравнивающий слой', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'hsr',type:'num',label:'hср, см',v:5},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство выравнивающего слоя {mark} на {place} — hср={hsr:m} м, S={S} м²'},
     {id:'yamoch', name:'Ямочный ремонт', fields:[{k:'mark',type:'select',opts:AB_MARKS,label:'Марка а/б'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'h',type:'num',label:'h, см',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Ямочный ремонт {mark} на {place}{?h| — h={h:m} м}, S={S} м²'},
-    {id:'rozliv', name:'Розлив битумной эмульсии', fields:[{k:'osn',type:'select',opts:['отфрезерованное покрытие','щебёночное основание','бетонное основание','ВСО','НСП'],label:'На какое основание'},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'before',type:'select',opts:['укладкой НСП','укладкой ВСП','укладкой ВСО','укладкой выравнивающего слоя'],label:'Перед каким видом работ',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Розлив битумной эмульсии на {osn} на {place}{?before| перед {before}} — S={S} м²'},
+    {id:'rozliv', name:'Розлив битумной эмульсии', fields:[{k:'osn',type:'select',opts:['отфрезерованное покрытие','щебёночное основание','бетонное основание','ВСО','НСП'],label:'На какое основание',opt:true},{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'before',type:'select',opts:['укладкой НСП','укладкой ВСП','укладкой ВСО','укладкой выравнивающего слоя'],label:'Перед каким видом работ',opt:true},{k:'S',type:'num',label:'S, м²'}], tpl:'Розлив битумной эмульсии{?osn| на {osn}} на {place}{?before| перед {before}} — S={S} м²'},
     {id:'bitum_lent', name:'Устройство битумной ленты', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'L',type:'num',label:'L, м.п.'}], tpl:'Устройство битумной ленты на {place} — L={L} м.п.'},
     {id:'geosetka', name:'Геосетка (трещинопрерывающая прослойка)', fields:[{k:'place',type:'select',opts:OSN_PLACES,label:'Где'},{k:'S',type:'num',label:'S, м²'}], tpl:'Устройство трещинопрерывающей прослойки из геосетки на {place} — S={S} м²'}
   ],
@@ -2045,10 +2044,28 @@ function openAddMaterial(editIndex) {
     showStep3(m.values);
   } else {
     state.currentWork = null;
-    document.getElementById('work-title').firstChild.textContent = 'Добавить материал ';
-    showStep2('mat');
+    document.getElementById('work-title').firstChild.textContent = 'Материалы ';
+    showMatMenu();
   }
   document.getElementById('work-overlay').classList.add('active');
+}
+// Единое меню «Материалы»: приём за смену ИЛИ движение между участками
+function showMatMenu() {
+  document.getElementById('work-step1').style.display = 'block';
+  document.getElementById('work-step2').style.display = 'none';
+  document.getElementById('work-step3').style.display = 'none';
+  document.getElementById('step1-hint').textContent = 'Что нужно сделать?';
+  document.getElementById('cat-list').innerHTML =
+    `<button class="cat-btn" style="padding:16px 14px" onclick="state.mode='mat';state.editIsMaterial=true;state.currentCat='mat';showStep2('mat')">
+       <span class="icon">📥</span>
+       <span><b>Приём за смену</b><br><span style="font-size:12px;color:#888;font-weight:400">бетон, асфальт с АБЗ, щебень, песок, ЖБИ...</span></span>
+     </button>
+     <button class="cat-btn" style="padding:16px 14px" onclick="state.mode='work';state.editIsMaterial=false;state.currentCat='transfer';showStep2('transfer')">
+       <span class="icon">⇄</span>
+       <span><b>Движение материалов</b><br><span style="font-size:12px;color:#888;font-weight:400">получено / передано: другой участок, ПК</span></span>
+     </button>`;
+  const freq = document.getElementById('frequent-works');
+  if (freq) freq.innerHTML = '';
 }
 function openAddWork(editIndex) {
   state.mode = 'work';
@@ -2163,6 +2180,12 @@ function showStep2(catId) {
   }).join('');
 }
 function backToStep1() {
+  // Из разделов меню «Материалы» — назад в это меню
+  if (state.currentCat === 'mat' || (state.currentCat === 'transfer' && document.getElementById('work-title').firstChild.textContent.indexOf('Материалы') === 0)) {
+    document.getElementById('work-title').firstChild.textContent = 'Материалы ';
+    showMatMenu();
+    return;
+  }
   if (state.mode === 'mat') { closeAddWork(); return; }
   showStep1();
 }
@@ -2510,10 +2533,13 @@ function renderTemplate(tpl, values) {
 }
 function renderMaterials() {
   const list = document.getElementById('mats-list');
-  document.getElementById('mats-count').textContent = state.materials.length;
+  // Движение материалов (живёт в state.works с catId 'transfer') показываем здесь же
+  const transferItems = [];
+  state.works.forEach((w, i) => { if (w.catId === 'transfer') transferItems.push({w, i}); });
+  document.getElementById('mats-count').textContent = state.materials.length + transferItems.length;
   const btn = document.getElementById('clear-mats-btn');
-  if (btn) btn.style.display = state.materials.length > 0 ? '' : 'none';
-  if (!state.materials.length) { list.innerHTML = '<div class="empty-state" style="text-align:center;padding:16px;color:#999;line-height:1.5">📦 Здесь появятся материалы<br><span style="font-size:12px">Нажмите «➕ Добавить материал» — бетон, асфальт, щебень, ЖБИ...</span></div>'; return; }
+  if (btn) btn.style.display = (state.materials.length + transferItems.length) > 0 ? '' : 'none';
+  if (!state.materials.length && !transferItems.length) { list.innerHTML = '<div class="empty-state" style="text-align:center;padding:16px;color:#999;line-height:1.5">📦 Здесь появятся материалы<br><span style="font-size:12px">Нажмите «➕ Добавить материал» — приём за смену или движение между участками</span></div>'; return; }
   list.innerHTML = state.materials.map((m, i) => `
     <div class="work-item mat">
       <div class="num">•</div>
@@ -2525,17 +2551,31 @@ function renderMaterials() {
         <button type="button" onclick="event.stopPropagation();openAddMaterial(${i})">✎</button>
         <button type="button" class="del" data-idx="${i}" onclick="event.stopPropagation();askDeleteMat(this, ${i})">×</button>
       </div>
+    </div>`).join('') + transferItems.map(({w, i}) => `
+    <div class="work-item mat" style="border-left:3px solid #1F4E79">
+      <div class="num">⇄</div>
+      <div class="content">
+        <div class="name">${w.name}</div>
+        <div class="params">${w.text}</div>
+      </div>
+      <div class="actions">
+        <button type="button" onclick="event.stopPropagation();openAddWork(${i})">✎</button>
+        <button type="button" class="del" data-idx="${i}" onclick="event.stopPropagation();askDeleteWork(this, ${i})">×</button>
+      </div>
     </div>`).join('');
 }
 function renderWorks() {
   const list = document.getElementById('works-list');
-  document.getElementById('works-count').textContent = state.works.length;
+  // Движение материалов показывается в блоке материалов — здесь скрываем
+  const items = [];
+  state.works.forEach((w, i) => { if (w.catId !== 'transfer') items.push({w, i}); });
+  document.getElementById('works-count').textContent = items.length;
   const btn = document.getElementById('clear-works-btn');
-  if (btn) btn.style.display = state.works.length > 0 ? '' : 'none';
-  if (!state.works.length) { list.innerHTML = '<div class="empty-state" style="text-align:center;padding:16px;color:#999;line-height:1.5">🛠 Здесь появятся работы<br><span style="font-size:12px">Нажмите «➕ Добавить работу» и выберите из списка</span></div>'; return; }
-  list.innerHTML = state.works.map((w, i) => `
+  if (btn) btn.style.display = items.length > 0 ? '' : 'none';
+  if (!items.length) { list.innerHTML = '<div class="empty-state" style="text-align:center;padding:16px;color:#999;line-height:1.5">🛠 Здесь появятся работы<br><span style="font-size:12px">Нажмите «➕ Добавить работу» и выберите из списка</span></div>'; return; }
+  list.innerHTML = items.map(({w, i}, n) => `
     <div class="work-item">
-      <div class="num">${i+1}</div>
+      <div class="num">${n+1}</div>
       <div class="content">
         <div class="name">${w.name}</div>
         <div class="params">${w.text}</div>
@@ -2550,7 +2590,7 @@ function renderWorks() {
 // Два тапа: первый - кнопка краснеет с текстом "удалить?", второй - удаляет
 function askDeleteWork(btn, i) {
   if (btn.classList.contains('confirm')) {
-    state.works.splice(i, 1); saveDraft(true); renderWorks(); renderPreview();
+    state.works.splice(i, 1); saveDraft(true); renderWorks(); renderMaterials(); renderPreview();
     return;
   }
   // Сброс других кнопок в режиме confirm
