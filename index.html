@@ -793,7 +793,7 @@ body.dark-mode .form-modal h2{color:#e2e7ee}
 // ============================================================
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V174';
+const APP_VERSION = 'V175';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -948,21 +948,28 @@ const BK_STONE = ['бетонного','гранитного'];
 const BK_MARKS_ALL = [...BK_MARKS_BET, ...BK_MARKS_GR];
 const POLYGONS = ['ПК Десна','ПК Очаково','ПК Кварц','Внуково','Голохвастово','база Рябиновая 69','Очаково-Заречье','Щапово'];
 // Универсальный набор «4 направления вывоза» (куда + объём + рейсы) — используется во всех позициях категории ВЫВОЗ
+// Направление 1 обязательное; 2–6 добавляются кнопкой «+ Добавить направление» по одному
 const VIVOZ_DIRS = [
   {k:'place1',type:'select_other',opts:POLYGONS,label:'Куда — направление 1'},
   {k:'V1',type:'num',label:'Объём 1, м³'},
   {k:'reisy1',type:'num',label:'Рейсов 1',opt:true},
-  {k:'place2',type:'select_other',opts:POLYGONS,label:'Куда — направление 2 (опц.)',opt:true},
+  {k:'place2',type:'select_other',opts:POLYGONS,label:'Куда — направление 2',opt:true},
   {k:'V2',type:'num',label:'Объём 2, м³',opt:true},
   {k:'reisy2',type:'num',label:'Рейсов 2',opt:true},
-  {k:'place3',type:'select_other',opts:POLYGONS,label:'Куда — направление 3 (опц.)',opt:true},
+  {k:'place3',type:'select_other',opts:POLYGONS,label:'Куда — направление 3',opt:true},
   {k:'V3',type:'num',label:'Объём 3, м³',opt:true},
   {k:'reisy3',type:'num',label:'Рейсов 3',opt:true},
-  {k:'place4',type:'select_other',opts:POLYGONS,label:'Куда — направление 4 (опц.)',opt:true},
+  {k:'place4',type:'select_other',opts:POLYGONS,label:'Куда — направление 4',opt:true},
   {k:'V4',type:'num',label:'Объём 4, м³',opt:true},
-  {k:'reisy4',type:'num',label:'Рейсов 4',opt:true}
+  {k:'reisy4',type:'num',label:'Рейсов 4',opt:true},
+  {k:'place5',type:'select_other',opts:POLYGONS,label:'Куда — направление 5',opt:true},
+  {k:'V5',type:'num',label:'Объём 5, м³',opt:true},
+  {k:'reisy5',type:'num',label:'Рейсов 5',opt:true},
+  {k:'place6',type:'select_other',opts:POLYGONS,label:'Куда — направление 6',opt:true},
+  {k:'V6',type:'num',label:'Объём 6, м³',opt:true},
+  {k:'reisy6',type:'num',label:'Рейсов 6',opt:true}
 ];
-const VIVOZ_TPL = ' — {place1}: V={V1} м³{?reisy1|, {reisy1} рейс}{?place2|; {place2}: V={V2} м³{?reisy2|, {reisy2} рейс}}{?place3|; {place3}: V={V3} м³{?reisy3|, {reisy3} рейс}}{?place4|; {place4}: V={V4} м³{?reisy4|, {reisy4} рейс}}';
+const VIVOZ_TPL = ' — {place1}: V={V1} м³{?reisy1|, {reisy1} рейс}{?place2|; {place2}: V={V2} м³{?reisy2|, {reisy2} рейс}}{?place3|; {place3}: V={V3} м³{?reisy3|, {reisy3} рейс}}{?place4|; {place4}: V={V4} м³{?reisy4|, {reisy4} рейс}}{?place5|; {place5}: V={V5} м³{?reisy5|, {reisy5} рейс}}{?place6|; {place6}: V={V6} м³{?reisy6|, {reisy6} рейс}}';
 const PLITKA_SIZES_BET = ['300×300×60','500×500×60','500×250×60','400×400×60','200×100×60','100×200×60','750×750×80','600×400×80'];
 const PLITKA_SIZES_GR = ['600×300×80','500×500×80','400×400×80','300×300×80','600×400×100','1000×500×100'];
 const SCHEB_SRC = ['ПК Курьяново','ПК Очаково','база Голохвастово','карьер Лыткарино'];
@@ -2315,26 +2322,37 @@ function showStep3(initialValues) {
     }
     return `<div class="field-group"><label>${f.label}${lblOpt}</label><input type="text" data-k="${f.k}" value="${val}" placeholder="${f.placeholder||''}"></div>`;
   });
-  // Для вывоза: направления 2–4 сворачиваем (показываем по кнопке), если они пустые
+  // Для вывоза: направление 1 видно всегда; 2–6 добавляются кнопкой «+» по одному
   let fieldsHtml;
   if (state.currentCat === 'vivoz') {
     const fields = w.fields || [];
-    const mainParts = [], extraParts = [];
-    let hasExtraValues = false;
+    const mainParts = [];
+    const dirBlocks = {};   // n -> [html полей этого направления]
+    const dirHasVal = {};   // n -> есть ли значения
     fields.forEach((f, i) => {
-      const isExtraDir = /^(place|V|reisy)[234]$/.test(f.k);
-      if (isExtraDir) {
-        extraParts.push(fieldsHtmlArr[i]);
+      const m = f.k.match(/^(place|V|reisy)([2-6])$/);
+      if (m) {
+        const n = m[2];
+        (dirBlocks[n] = dirBlocks[n] || []).push(fieldsHtmlArr[i]);
         const v = initialValues[f.k];
-        if (v !== undefined && v !== '') hasExtraValues = true;
+        if (v !== undefined && v !== '') dirHasVal[n] = true;
       } else {
         mainParts.push(fieldsHtmlArr[i]);
       }
     });
-    if (extraParts.length) {
-      fieldsHtml = mainParts.join('') +
-        `<div id="vivoz-extra-dirs" style="display:${hasExtraValues?'block':'none'}">${extraParts.join('')}</div>` +
-        `<button type="button" id="vivoz-extra-btn" onclick="const b=document.getElementById('vivoz-extra-dirs');const isOpen=b.style.display!=='none';b.style.display=isOpen?'none':'block';this.textContent=isOpen?'➕ Ещё направления (2–4)':'➖ Скрыть направления 2–4';" style="width:100%;margin-top:4px;padding:10px;background:#f5f5f7;border:1px dashed #b0c4d6;border-radius:8px;color:#1F4E79;font-size:13px;font-weight:600">${hasExtraValues?'➖ Скрыть направления 2–4':'➕ Ещё направления (2–4)'}</button>`;
+    const ns = Object.keys(dirBlocks).sort();
+    if (ns.length) {
+      let blocksHtml = '';
+      ns.forEach(n => {
+        const visible = !!dirHasVal[n];
+        blocksHtml += `<div class="vivoz-dir" id="vivoz-dir-${n}" data-n="${n}" style="display:${visible?'block':'none'};border:1px dashed #b0c4d6;border-radius:8px;padding:10px 10px 4px;margin-top:8px;position:relative;background:#fafcff">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:700;color:#1F4E79">Направление ${n}</span>
+            <button type="button" onclick="vivozRemoveDir(${n})" style="background:#fff5f5;border:1px solid #fbcaca;color:#dc3545;border-radius:6px;padding:3px 10px;font-size:12px">✕ Убрать</button>
+          </div>${dirBlocks[n].join('')}</div>`;
+      });
+      fieldsHtml = mainParts.join('') + blocksHtml +
+        `<button type="button" id="vivoz-add-btn" onclick="vivozAddDir()" style="width:100%;margin-top:8px;padding:11px;background:#eef6ee;border:1px dashed #7eb37e;border-radius:8px;color:#2d5a2d;font-size:13px;font-weight:700">➕ Добавить направление</button>`;
     } else {
       fieldsHtml = fieldsHtmlArr.join('');
     }
@@ -2356,6 +2374,29 @@ function showStep3(initialValues) {
   if (w && BK_PEOPLE_WORKS.includes(w.id) && typeof toast === 'function') {
     toast('👷 Укажите количество людей на работы с бортом');
   }
+}
+function vivozAddDir() {
+  // Показать первый скрытый блок направления (по одному за нажатие)
+  const blocks = [...document.querySelectorAll('.vivoz-dir')];
+  const hidden = blocks.find(b => b.style.display === 'none');
+  if (hidden) hidden.style.display = 'block';
+  // Если все показаны — спрятать кнопку «+»
+  const stillHidden = blocks.some(b => b.style.display === 'none');
+  const btn = document.getElementById('vivoz-add-btn');
+  if (btn) btn.style.display = stillHidden ? 'block' : 'none';
+}
+function vivozRemoveDir(n) {
+  const block = document.getElementById('vivoz-dir-' + n);
+  if (!block) return;
+  // Очистить значения полей блока
+  block.querySelectorAll('input, select').forEach(el => {
+    if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
+  });
+  // Спрятать input «другое», если был раскрыт
+  block.querySelectorAll('input[data-k-other]').forEach(el => { el.style.display = 'none'; el.value = ''; });
+  block.style.display = 'none';
+  const btn = document.getElementById('vivoz-add-btn');
+  if (btn) btn.style.display = 'block';
 }
 function onPlitkaMaterialChange(sel) {
   const mat = sel.value;
