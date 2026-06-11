@@ -7,13 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1F4E79">
 <title>ОЧАКОВО — Отчёт нач. участка</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1F4E79">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="ОЧАКОВО">
 <style>
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,sans-serif;font-size:15px;line-height:1.4;color:#1a1a1a;background:#f5f5f7;-webkit-tap-highlight-color:transparent;color-scheme:light}
@@ -800,7 +793,7 @@ body.dark-mode .form-modal h2{color:#e2e7ee}
 // ============================================================
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V173';
+const APP_VERSION = 'V174';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -953,7 +946,7 @@ const BK_RADIUS = ['R0.5','R0.75','R1','R1.5','R2','R2.5','R3','R4','R5','R6','R
 const BK_RAD_TYPE = ['внешний','внутренний'];
 const BK_STONE = ['бетонного','гранитного'];
 const BK_MARKS_ALL = [...BK_MARKS_BET, ...BK_MARKS_GR];
-const POLYGONS = ['ПК Десна','ПК Очаково','Внуково','Голохвастово','база Рябиновая 69','Очаково-Заречье','Щапово'];
+const POLYGONS = ['ПК Десна','ПК Очаково','ПК Кварц','Внуково','Голохвастово','база Рябиновая 69','Очаково-Заречье','Щапово'];
 // Универсальный набор «4 направления вывоза» (куда + объём + рейсы) — используется во всех позициях категории ВЫВОЗ
 const VIVOZ_DIRS = [
   {k:'place1',type:'select_other',opts:POLYGONS,label:'Куда — направление 1'},
@@ -6934,20 +6927,6 @@ function renderBirthdaysTab() {
 }
 let _bdFiltersLoaded = false;
 
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  let isReloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (isReloading) return; isReloading = true; window.location.reload(); });
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-      setInterval(() => reg.update().catch(()=>{}), 30 * 60 * 1000);
-      reg.addEventListener('updatefound', () => { const nw = reg.installing; if (!nw) return; nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(nw); }); });
-      if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg.waiting);
-    }).catch(err => console.log('PWA ошибка:', err));
-  });
-  function showUpdateBanner(worker) { const banner = document.getElementById('update-banner'); if (!banner) return; banner.style.display = 'block'; document.getElementById('update-now-btn').onclick = () => worker.postMessage({ type: 'SKIP_WAITING' }); document.getElementById('update-later-btn').onclick = () => { banner.style.display = 'none'; }; }
-}
 </script>
 </body>
 </html>
