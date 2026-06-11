@@ -793,7 +793,7 @@ body.dark-mode .form-modal h2{color:#e2e7ee}
 // ============================================================
 // При каждом обновлении — поднимать вместе с CACHE_NAME в sw.js
 // ============================================================
-const APP_VERSION = 'V175';
+const APP_VERSION = 'V176';
 
 // Покажем версию в шапке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -1059,9 +1059,7 @@ const WORKS = {
     {id:'sec_sch', name:'━━ ЩЕБЕНЬ / ПЕСОК ━━', section:true},
     {id:'hint_sch', hint:true, text:'ℹ️ Указывайте <b>и приём, и расход</b> — даже если израсходовали всё, что приняли. По разнице программа покажет остаток на объекте. Передачи — через «Движение материала».'},
     {id:'m_schebe', name:'📥 Щебень — ПРИЁМ за смену', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'unit',type:'select',opts:['м³','т'],label:'Ед. измерения',v:'м³'},{k:'qty',type:'num',label:'Количество'},{k:'density',type:'num',label:'Плотность, т/м³ (опц.) — уточните в ПТО',opt:true,placeholder:'по умолч. 1,30',step:'0.01'},{k:'src',type:'select_other',opts:SCHEB_SRC,label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'например ТТН №12345'}], tpl:'Щебень{?type| {type}} фр. {fr} — {qty} {unit}{?_alt| ({_alt})} — {src}{?reisy|, {reisy} рейс}{?note| ({note})}'},
-    {id:'m_scheb_used', name:'📤 Щебень — РАСХОД на работы', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'V',type:'num',label:'V, м³'},{k:'note',type:'text',label:'Комментарий (опц.)',opt:true,placeholder:'напр. под асфальт ПЧ'}], tpl:'Использовано {?type|{type:gen} }щебня фр. {fr} на работы — {V} м³{?note| ({note})}'},
     {id:'m_pesok', name:'📥 Песок — ПРИЁМ за смену', fields:[{k:'V',type:'num',label:'V, м³'},{k:'src',type:'select_other',opts:['база Голохвастово','карьер Лыткарино','карьер Курьяново'],label:'Источник'},{k:'reisy',type:'num',label:'Кол-во рейсов',opt:true},{k:'note',type:'text',label:'Примечание / ТТН',opt:true,placeholder:'например ТТН №12345'}], tpl:'Песок — {V} м³{?reisy|, {reisy} рейс} — {src}{?note| ({note})}'},
-    {id:'m_pesok_used', name:'📤 Песок — РАСХОД на работы', fields:[{k:'V',type:'num',label:'V, м³'}], tpl:'Использовано песка на работы — {V} м³'},
 
     {id:'sec_zbi_bal', name:'━━ Материал для ремонта ОЛХ — ОТ БАЛАНСОДЕРЖАТЕЛЕЙ ━━', section:true, hidden:true},
     {id:'m_zbi_bal', name:'Материал для ремонта ОЛХ — от балансодержателей', hidden:true, fields:[{k:'name',type:'select',opts:ZBI_NAMES,label:'Что получили'},{k:'N',type:'num',label:'Количество, шт'}], tpl:'{name} — {N} шт'},
@@ -1073,6 +1071,11 @@ const WORKS = {
 
     {id:'sec_other_mat', name:'━━ ПРОЧЕЕ ━━', section:true},
     {id:'m_custom', name:'Свой материал (свободный ввод)', fields:[{k:'text',type:'text',label:'Описание полностью',placeholder:'Битумная эмульсия — 500 л — поставщик'}], tpl:'{text}'}
+  ],
+  mat_used: [
+    {section:true, id:'sec_used', name:'━━ РАСХОД МАТЕРИАЛА ЗА СМЕНУ ━━'},
+    {id:'m_scheb_used', name:'📤 Щебень — РАСХОД на работы', fields:[{k:'type',type:'select',opts:SCHEB_TYPES,label:'Тип щебня',opt:true},{k:'fr',type:'select',opts:['3-10','5-10','5-20','20-40','40-70'],label:'Фракция'},{k:'V',type:'num',label:'V, м³'},{k:'note',type:'text',label:'Комментарий (опц.)',opt:true,placeholder:'напр. под асфальт ПЧ'}], tpl:'Использовано {?type|{type:gen} }щебня фр. {fr} на работы — {V} м³{?note| ({note})}'},
+    {id:'m_pesok_used', name:'📤 Песок — РАСХОД на работы', fields:[{k:'V',type:'num',label:'V, м³'}], tpl:'Использовано песка на работы — {V} м³'}
   ],
 
   podg_cat: [
@@ -2053,7 +2056,8 @@ function openAddMaterial(editIndex) {
   state.currentCat = 'mat';
   if (state.editIndex >= 0) {
     const m = state.materials[state.editIndex];
-    state.currentWork = WORKS.mat.find(x => x.id === m.workId);
+    state.currentWork = WORKS.mat.find(x => x.id === m.workId) || WORKS.mat_used.find(x => x.id === m.workId);
+    if (state.currentWork && WORKS.mat_used.some(x => x.id === m.workId)) state.currentCat = 'mat_used';
     document.getElementById('work-title').firstChild.textContent = 'Редактировать материал ';
     showStep3(m.values);
   } else {
@@ -2072,14 +2076,18 @@ function showMatMenu() {
   document.getElementById('cat-list').innerHTML =
     `<button class="cat-btn" style="padding:16px 14px" onclick="state.mode='mat';state.editIsMaterial=true;state.currentCat='mat';showStep2('mat')">
        <span class="icon">📥</span>
-       <span><b>Приём за смену</b><br><span style="font-size:12px;color:#888;font-weight:400">бетон, асфальт с АБЗ, щебень, песок, ЖБИ...</span></span>
+       <span><b>Приём за смену</b><br><span style="font-size:12px;color:#888;font-weight:400">бетон, ЦПС, асфальт с АБЗ, щебень, песок, ЖБИ...</span></span>
+     </button>
+     <button class="cat-btn" style="padding:16px 14px" onclick="state.mode='mat';state.editIsMaterial=true;state.currentCat='mat_used';showStep2('mat_used')">
+       <span class="icon">📤</span>
+       <span><b>Расход материала за смену</b><br><span style="font-size:12px;color:#888;font-weight:400">израсходовано на работы: щебень, песок</span></span>
      </button>
      <button class="cat-btn" style="padding:16px 14px" onclick="state.mode='work';state.editIsMaterial=false;state.currentCat='transfer';showStep2('transfer')">
        <span class="icon">⇄</span>
        <span><b>Движение материалов</b><br><span style="font-size:12px;color:#888;font-weight:400">получено / передано: другой участок, ПК</span></span>
      </button>
      <div style="margin-top:10px;padding:9px 11px;background:#eef6ee;border:1px solid #cfe6cf;border-radius:8px;font-size:12px;color:#2d5a2d;line-height:1.45">
-       💡 <b>Обязательно указывайте:</b> весь <b>принятый</b> материал за смену, <b>израсходованный</b> на работы (щебень, песок — позиции «📤 РАСХОД») и <b>переданный/полученный</b> (через «Движение»). Расписывать текстом ничего не нужно — программа сама сведёт баланс и покажет остаток. Расход <b>асфальта</b> вносить не надо — он считается автоматически из работ по нормам.
+       💡 <b>Обязательно указывайте:</b> весь <b>принятый</b> материал (кнопка «Приём»), <b>израсходованный</b> на работы щебень и песок (кнопка «Расход»), и <b>переданный/полученный</b> (кнопка «Движение»). Программа сама сведёт баланс и покажет остаток. Расход <b>асфальта</b> вносить не надо — он считается автоматически из работ по нормам.
      </div>`;
   const freq = document.getElementById('frequent-works');
   if (freq) freq.innerHTML = '';
@@ -2198,7 +2206,7 @@ function showStep2(catId) {
 }
 function backToStep1() {
   // Из разделов меню «Материалы» — назад в это меню
-  if (state.currentCat === 'mat' || (state.currentCat === 'transfer' && document.getElementById('work-title').firstChild.textContent.indexOf('Материалы') === 0)) {
+  if (state.currentCat === 'mat' || state.currentCat === 'mat_used' || (state.currentCat === 'transfer' && document.getElementById('work-title').firstChild.textContent.indexOf('Материалы') === 0)) {
     document.getElementById('work-title').firstChild.textContent = 'Материалы ';
     showMatMenu();
     return;
